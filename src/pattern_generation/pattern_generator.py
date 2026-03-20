@@ -1,12 +1,8 @@
-from geometry import *
-from graphics_tk import *
+from .geometry import *
 from PIL import ImageColor
 
 to_screen_mat = [1, 0, 0, 0, -1, 0]
-# col = ["black", "seagreen", "White", "sandybrown", "sandybrown"]
-#
-# colors = {'H1': [col[0], ImageColor.getrgb(col[0])], 'H': [col[1], ImageColor.getrgb(col[1])], 'T': [
-#    col[2], ImageColor.getrgb(col[2])], 'P': [col[3], ImageColor.getrgb(col[3])], 'F': [col[4], ImageColor.getrgb(col[4])]}
+DEFAULT_COLORS = ("black", "seagreen", "white", "sandybrown", "sandybrown")
 
 vertices_to_draw = []
 
@@ -273,7 +269,15 @@ def draw(colors):
     tiles[0].draw(to_screen_mat, level, colors)
 
 
-def next_generation(colorquintett=["black", "seagreen", "White", "sandybrown", "sandybrown"]):
+def reset_generator():
+    global tiles
+    global level
+    vertices_to_draw.clear()
+    tiles = [H_init(), T_init(), P_init(), F_init()]
+    level = 1
+
+
+def next_generation(colorquintett=DEFAULT_COLORS):
     col = colorquintett
     colors = {
         'H1': [col[0], ImageColor.getrgb(col[0])],

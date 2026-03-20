@@ -1,5 +1,14 @@
-from tkinter import Canvas, Tk
+from pathlib import Path
+
 from PIL import Image, ImageDraw
+
+try:
+    from tkinter import Canvas, Tk
+    TK_AVAILABLE = True
+except ModuleNotFoundError:
+    Canvas = object
+    Tk = None
+    TK_AVAILABLE = False
 
 
 class EinsteinCanvas(Canvas):
@@ -13,22 +22,13 @@ class EinsteinCanvas(Canvas):
     def draw_polygon(self, vertices, fill="blue"):
         coordinates = []
         for vec in vertices:
-            coordinates.append(vec.x*self.scalar + self.winfo_reqwidth()/2)
-            coordinates.append(vec.y*self.scalar + self.winfo_reqheight()/2)
+            coordinates.append(vec.x * self.scalar + self.winfo_reqwidth() / 2)
+            coordinates.append(vec.y * self.scalar + self.winfo_reqheight() / 2)
 
         self.create_polygon(coordinates, fill=fill, width=2, outline="black")
 
 
 class EinsteinImage:
-    """Pillow-backed drawing helper that mirrors the small Canvas API used
-    by the project (set_scalar, draw_polygon).
-
-    Usage:
-        img = EinsteinImage(width, height, bg="white", scalar=20)
-        img.draw_polygon(vertices, fill="red")
-        img.save("out.png")
-    """
-
     def __init__(self, width, height, bg=(255, 255, 255), scalar=1):
         self.width = width
         self.height = height
@@ -46,18 +46,12 @@ class EinsteinImage:
         for vec in vertices:
             coords.append((vec.x * self.scalar + cx, vec.y * self.scalar + cy))
 
-        # Accept several fill formats used in the project:
-        #  - color name string, e.g. 'blue'
-        #  - RGB tuple, e.g. (255,200,100)
-        #  - list like [name, (r,g,b)]
         if isinstance(fill, (list, tuple)):
             if len(fill) == 0:
                 fill_val = None
             elif isinstance(fill[0], str):
-                # [name, (r,g,b)] or (name, ...)
                 fill_val = fill[0]
             elif all(isinstance(c, int) for c in fill):
-                # RGB tuple
                 fill_val = tuple(fill)
             elif len(fill) > 1 and isinstance(fill[1], (list, tuple)) and all(isinstance(c, int) for c in fill[1]):
                 fill_val = tuple(fill[1])
@@ -70,8 +64,10 @@ class EinsteinImage:
 
     def save(self, filename):
         try:
-            self.img.save(filename)
-            print("Saved successfully:", filename)
+            output_path = Path(filename)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            self.img.save(output_path)
+            print("Saved successfully:", output_path)
         except Exception as e:
             print("SAVE FAILED:", e)
 
@@ -79,7 +75,7 @@ class EinsteinImage:
         return self.img
 
 
-def draw_tiles(tiles, width=500, height=500, scalar=20, filename="./einstein_pattern.jpg", show_window=False):
+def draw_tiles(tiles, width=500, height=500, scalar=20, filename="output/einstein_pattern.jpg", show_window=False):
     if filename:
         img = EinsteinImage(width, height, bg="white", scalar=scalar)
         for tile in tiles:
@@ -87,6 +83,11 @@ def draw_tiles(tiles, width=500, height=500, scalar=20, filename="./einstein_pat
 
         img.save(filename)
     if show_window:
+        if not TK_AVAILABLE:
+            raise RuntimeError(
+                "Tkinter is not available in this Python installation. "
+                "Run with show_window=False or install a Python build with Tk support."
+            )
         root = Tk()
         canvas = EinsteinCanvas(root, width=width, height=height)
         canvas.set_scalar(scalar)
@@ -97,3 +98,4 @@ def draw_tiles(tiles, width=500, height=500, scalar=20, filename="./einstein_pat
         canvas.pack()
         root.mainloop()
     return filename
+
