@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LAUNCHER_DIR="$SCRIPT_DIR/src/root"
+LAUNCHER_DIR="$SCRIPT_DIR/src/entry"
 
 if [ "$#" -eq 0 ]; then
     exec python3 "$LAUNCHER_DIR/main_visual.py"

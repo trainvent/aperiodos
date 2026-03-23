@@ -45,6 +45,7 @@ class GeneratorLauncher:
             "P": tk.StringVar(value="sandybrown"),
             "F": tk.StringVar(value="gold"),
         }
+        self.color_swatches = {}
 
         self._build_ui()
 
@@ -76,13 +77,18 @@ class GeneratorLauncher:
                 width=18,
             )
             color_box.grid(row=row, column=1, sticky="ew", pady=2)
+            swatch = tk.Canvas(colors_frame, width=24, height=24, highlightthickness=0, bd=0)
+            swatch.grid(row=row, column=2, padx=(8, 0), pady=2)
+            self.color_swatches[label] = swatch
+            self.color_vars[label].trace_add("write", lambda *_args, color_label=label: self._update_color_swatch(color_label))
+            self._update_color_swatch(label)
 
         ttk.Label(
             colors_frame,
             text="Choose a named color or type a custom Pillow/CSS color value.",
             wraplength=320,
             justify="left",
-        ).grid(row=len(COLOR_LABELS), column=0, columnspan=2, sticky="w", pady=(6, 0))
+        ).grid(row=len(COLOR_LABELS), column=0, columnspan=3, sticky="w", pady=(6, 0))
 
         ttk.Label(frame, text="Output").grid(row=5, column=0, sticky="w", pady=4)
         output_frame = ttk.Frame(frame)
@@ -104,6 +110,20 @@ class GeneratorLauncher:
         )
 
         frame.columnconfigure(1, weight=1)
+
+    def _update_color_swatch(self, label):
+        swatch = self.color_swatches[label]
+        swatch.delete("all")
+
+        color_value = self.color_vars[label].get().strip()
+        try:
+            rgb = ImageColor.getrgb(color_value)
+            fill_color = "#%02x%02x%02x" % rgb
+            swatch.create_oval(2, 2, 22, 22, fill=fill_color, outline="#333333", width=1)
+        except ValueError:
+            swatch.create_rectangle(2, 2, 22, 22, fill="#f8f8f8", outline="#cc3333", width=1)
+            swatch.create_line(6, 6, 18, 18, fill="#cc3333", width=2)
+            swatch.create_line(18, 6, 6, 18, fill="#cc3333", width=2)
 
     def _choose_output(self):
         selected = filedialog.asksaveasfilename(

@@ -16,7 +16,7 @@ The project currently focuses on offline image generation. The longer-term goal 
 .
 ├── aperiodic-generator      # Executable launcher for GUI or direct CLI rendering
 ├── src/
-│   ├── root/                # Launcher scripts for CLI and GUI entrypoints
+│   ├── entry/               # Launcher scripts for CLI and GUI entrypoints
 │   └── pattern_generation/  # Source package with the generator code
 ├── output/                  # Generated images are written here by default
 └── README.md
@@ -48,7 +48,7 @@ Package notes:
 Generate the default full pattern:
 
 ```bash
-python3 src/root/main.py
+python3 src/entry/main.py
 ```
 
 This writes an image to `output/einstein_pattern.jpg`.
@@ -56,7 +56,7 @@ This writes an image to `output/einstein_pattern.jpg`.
 Open a small Tk form to choose values visually and run the generator:
 
 ```bash
-python3 src/root/main_visual.py
+python3 src/entry/main_visual.py
 ```
 
 Or launch it like a little desktop-style tool from the project root:
@@ -80,7 +80,7 @@ Pass normal CLI options to the same launcher and it renders directly without ope
 Generate a larger image with custom colors:
 
 ```bash
-python3 src/root/main.py \
+python3 src/entry/main.py \
   --iterations 6 \
   --width 7000 \
   --height 7000 \
@@ -92,13 +92,13 @@ python3 src/root/main.py \
 Generate a seed-based crop:
 
 ```bash
-python3 src/root/main.py --seed 6 --output output/seed-6.png
+python3 src/entry/main.py --seed 6 --output output/seed-6.png
 ```
 
 Open a Tk preview window while also saving the file:
 
 ```bash
-python3 src/root/main.py --show-window
+python3 src/entry/main.py --show-window
 ```
 
 ## CLI Options
