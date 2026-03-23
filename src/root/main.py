@@ -2,8 +2,8 @@ import sys
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
-SRC_PATH = PROJECT_ROOT / "src"
+LAUNCHER_DIR = Path(__file__).resolve().parent
+SRC_PATH = LAUNCHER_DIR.parent
 
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))

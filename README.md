@@ -14,8 +14,9 @@ The project currently focuses on offline image generation. The longer-term goal 
 
 ```text
 .
-├── main.py                  # Visible top-level launcher
+├── aperiodic-generator      # Executable launcher for GUI or direct CLI rendering
 ├── src/
+│   ├── root/                # Launcher scripts for CLI and GUI entrypoints
 │   └── pattern_generation/  # Source package with the generator code
 ├── output/                  # Generated images are written here by default
 └── README.md
@@ -30,6 +31,12 @@ sudo apt update
 sudo apt install -y python3 python3-pil python3-opencv python3-tk
 ```
 
+Alternativly you can install the packages via pip:
+
+```bash
+pip install pillow tkinter
+```
+
 Package notes:
 
 - `python3-pil` is used for the normal image renderer.
@@ -41,15 +48,39 @@ Package notes:
 Generate the default full pattern:
 
 ```bash
-python3 main.py
+python3 src/root/main.py
 ```
 
 This writes an image to `output/einstein_pattern.jpg`.
 
+Open a small Tk form to choose values visually and run the generator:
+
+```bash
+python3 src/root/main_visual.py
+```
+
+Or launch it like a little desktop-style tool from the project root:
+
+```bash
+./aperiodic-generator
+```
+
+Pass normal CLI options to the same launcher and it renders directly without opening the GUI:
+
+```bash
+./aperiodic-generator \
+  --iterations 6 \
+  --width 7000 \
+  --height 7000 \
+  --scalar 24 \
+  --colors black seagreen white sandybrown gold \
+  --output output/custom-pattern.jpg
+```
+
 Generate a larger image with custom colors:
 
 ```bash
-python3 main.py \
+python3 src/root/main.py \
   --iterations 6 \
   --width 7000 \
   --height 7000 \
@@ -61,13 +92,13 @@ python3 main.py \
 Generate a seed-based crop:
 
 ```bash
-python3 main.py --seed 6 --output output/seed-6.png
+python3 src/root/main.py --seed 6 --output output/seed-6.png
 ```
 
 Open a Tk preview window while also saving the file:
 
 ```bash
-python3 main.py --show-window
+python3 src/root/main.py --show-window
 ```
 
 ## CLI Options
