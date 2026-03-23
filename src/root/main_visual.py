@@ -4,6 +4,8 @@ import threading
 from pathlib import Path
 from typing import cast
 
+from PIL import ImageColor
+
 try:
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
@@ -19,6 +21,7 @@ PROJECT_ROOT = LAUNCHER_DIR.parent.parent
 MAIN_SCRIPT = LAUNCHER_DIR / "main.py"
 DEFAULT_OUTPUT = PROJECT_ROOT / "output" / "custom-pattern.jpg"
 COLOR_LABELS = ("H1", "H", "T", "P", "F")
+AVAILABLE_COLORS = tuple(sorted(ImageColor.colormap))
 
 
 class GeneratorLauncher:
@@ -66,9 +69,20 @@ class GeneratorLauncher:
 
         for row, label in enumerate(COLOR_LABELS):
             ttk.Label(colors_frame, text=label, width=4).grid(row=row, column=0, sticky="w", pady=2)
-            ttk.Entry(colors_frame, textvariable=self.color_vars[label], width=18).grid(
-                row=row, column=1, sticky="ew", pady=2
+            color_box = ttk.Combobox(
+                colors_frame,
+                textvariable=self.color_vars[label],
+                values=AVAILABLE_COLORS,
+                width=18,
             )
+            color_box.grid(row=row, column=1, sticky="ew", pady=2)
+
+        ttk.Label(
+            colors_frame,
+            text="Choose a named color or type a custom Pillow/CSS color value.",
+            wraplength=320,
+            justify="left",
+        ).grid(row=len(COLOR_LABELS), column=0, columnspan=2, sticky="w", pady=(6, 0))
 
         ttk.Label(frame, text="Output").grid(row=5, column=0, sticky="w", pady=4)
         output_frame = ttk.Frame(frame)
@@ -142,6 +156,10 @@ class GeneratorLauncher:
             color = self.color_vars[label].get().strip()
             if not color:
                 raise ValueError(f"Color {label} cannot be empty.")
+            try:
+                ImageColor.getrgb(color)
+            except ValueError as exc:
+                raise ValueError(f"Color {label} is not recognized: {color}") from exc
             colors.append(color)
 
         output = self.output_var.get().strip()
