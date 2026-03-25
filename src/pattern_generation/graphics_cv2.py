@@ -7,7 +7,7 @@ OUTPUT_IMAGE_DIMENSIONS = Vector(800, 800)
 SCALAR = 50
 
 
-def draw_tile(tile, image, offset_coord=Vector(0, 0)):
+def draw_tile(tile, image, offset_coord=Vector(0, 0), draw_outline=True):
     fill = tile[1][1]
     vertices = np.zeros((len(tile[0]), 2))
 
@@ -17,6 +17,6 @@ def draw_tile(tile, image, offset_coord=Vector(0, 0)):
 
     vertices = vertices.astype(int)
     output_image = cv2.fillPoly(image, pts=[vertices], color=fill)
-    output_image = cv2.polylines(image, [vertices], True, (0, 0, 0), 2)
+    if draw_outline:
+        output_image = cv2.polylines(image, [vertices], True, (0, 0, 0), 2)
     return output_image
-

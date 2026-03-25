@@ -1,0 +1,84 @@
+{
+  "last_used": {
+    "iterations": "8",
+    "width": "10000",
+    "height": "9000",
+    "scalar": "2",
+    "output": "/home/leonmarq/Code/Aperiodic_Monotiles_Generator/output/custom-pattern.jpg",
+    "show_window": false,
+    "no_outline": false,
+    "colors": {
+      "H1": "black",
+      "H": "red",
+      "T": "gold",
+      "P": "turquoise",
+      "F": "white"
+    }
+  },
+  "presets": {
+    "default": {
+      "iterations": "6",
+      "width": "7000",
+      "height": "7000",
+      "scalar": "24",
+      "output": "/home/leonmarq/Code/Aperiodic_Monotiles_Generator/output/custom-pattern.jpg",
+      "show_window": false,
+      "no_outline": false,
+      "colors": {
+        "H1": "black",
+        "H": "seagreen",
+        "T": "white",
+        "P": "sandybrown",
+        "F": "gold"
+      }
+    },
+    "preset_1": {
+      "iterations": "8",
+      "width": "10000",
+      "height": "9000",
+      "scalar": "2",
+      "output": "/home/leonmarq/Code/Aperiodic_Monotiles_Generator/output/custom-pattern.jpg",
+      "show_window": false,
+      "no_outline": false,
+      "colors": {
+        "H1": "black",
+        "H": "red",
+        "T": "gold",
+        "P": "turquoise",
+        "F": "white"
+      }
+    },
+    "preset_2": {
+      "iterations": "6",
+      "width": "7000",
+      "height": "7000",
+      "scalar": "24",
+      "output": "/home/leonmarq/Code/Aperiodic_Monotiles_Generator/output/custom-pattern.jpg",
+      "show_window": false,
+      "no_outline": false,
+      "colors": {
+        "H1": "black",
+        "H": "seagreen",
+        "T": "white",
+        "P": "sandybrown",
+        "F": "gold"
+      }
+    },
+    "preset_3": {
+      "iterations": "6",
+      "width": "7000",
+      "height": "7000",
+      "scalar": "24",
+      "output": "/home/leonmarq/Code/Aperiodic_Monotiles_Generator/output/custom-pattern.jpg",
+      "show_window": false,
+      "no_outline": false,
+      "colors": {
+        "H1": "black",
+        "H": "seagreen",
+        "T": "white",
+        "P": "sandybrown",
+        "F": "gold"
+      }
+    }
+  }
+}

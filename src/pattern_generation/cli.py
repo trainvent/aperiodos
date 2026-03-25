@@ -19,6 +19,7 @@ def render_pattern(
     output=DEFAULT_OUTPUT,
     colors=DEFAULT_COLORS,
     show_window=False,
+    draw_outline=True,
 ):
     reset_generator()
     for _ in range(iterations):
@@ -31,6 +32,7 @@ def render_pattern(
         scalar=scalar,
         filename=output,
         show_window=show_window,
+        draw_outline=draw_outline,
     )
 
 
@@ -49,6 +51,7 @@ def build_parser():
         help="Five CSS-style colors for the H1, H, T, P, and F tile families.",
     )
     parser.add_argument("--show-window", action="store_true", help="Open a Tk window in addition to saving the image.")
+    parser.add_argument("--no-outline", action="store_true", help="Render filled tiles without black outlines.")
     parser.add_argument("--seed", type=int, help="Generate a seed-based cropped pattern instead of the full centered render.")
     return parser
 
@@ -56,7 +59,7 @@ def build_parser():
 def main(argv=None):
     args = build_parser().parse_args(argv)
     if args.seed is not None:
-        output = seed_to_pattern(seed=args.seed, output_file_name=args.output)
+        output = seed_to_pattern(seed=args.seed, output_file_name=args.output, draw_outline=not args.no_outline)
     else:
         output = render_pattern(
             iterations=args.iterations,
@@ -66,6 +69,7 @@ def main(argv=None):
             output=args.output,
             colors=tuple(args.colors),
             show_window=args.show_window,
+            draw_outline=not args.no_outline,
         )
 
     print(output)
@@ -74,4 +78,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

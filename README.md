@@ -59,6 +59,8 @@ Open a small Tk form to choose values visually and run the generator:
 python3 src/entry/main_visual.py
 ```
 
+The visual launcher remembers your last-used settings and includes one default preset plus three saveable preset slots.
+
 Or launch it like a little desktop-style tool from the project root:
 
 ```bash
@@ -85,6 +87,7 @@ python3 src/entry/main.py \
   --width 7000 \
   --height 7000 \
   --scalar 24 \
+  --no-outline \
   --colors black seagreen white sandybrown gold \
   --output output/custom-pattern.jpg
 ```
@@ -110,6 +113,7 @@ python3 src/entry/main.py --show-window
 --height        Output image height
 --output        Output file path
 --colors        Five colors for H1, H, T, P, and F tiles
+--no-outline    Render filled tiles without black borders
 --seed          Generate a seed-based crop instead of the default full render
 --show-window   Display a Tk window while rendering
 ```
@@ -117,6 +121,7 @@ python3 src/entry/main.py --show-window
 ## Notes
 
 - Very high iteration counts can become slow and memory-heavy.
+- More than 8 iterations can be very heavy to load and render, especially at large output sizes.
 - The current codebase is aimed at experimentation and image generation, not yet a polished web app.
 - Generated files and Python cache files are intentionally ignored by git.
 
@@ -124,4 +129,5 @@ python3 src/entry/main.py --show-window
 
 - David Smith: https://en.wikipedia.org/wiki/David_Smith_(amateur_mathematician)
 - Hat monotile reference page: https://cs.uwaterloo.ca/~csk/hat/h7h8.html
-- Earlier inspiration repository: https://github.com/lmarquar/Einstein_Tile_Generator_img
+- Earlier inspiration repository: https://github.com/asmoly/Einstein_Tile_Generator
+-

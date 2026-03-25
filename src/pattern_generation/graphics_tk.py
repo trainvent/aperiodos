@@ -19,13 +19,13 @@ class EinsteinCanvas(Canvas):
     def set_scalar(self, scalar):
         self.scalar = scalar
 
-    def draw_polygon(self, vertices, fill="blue"):
+    def draw_polygon(self, vertices, fill="blue", outline="black", outline_width=2):
         coordinates = []
         for vec in vertices:
             coordinates.append(vec.x * self.scalar + self.winfo_reqwidth() / 2)
             coordinates.append(vec.y * self.scalar + self.winfo_reqheight() / 2)
 
-        self.create_polygon(coordinates, fill=fill, width=2, outline="black")
+        self.create_polygon(coordinates, fill=fill, width=outline_width, outline=outline)
 
 
 class EinsteinImage:
@@ -39,7 +39,7 @@ class EinsteinImage:
     def set_scalar(self, scalar):
         self.scalar = scalar
 
-    def draw_polygon(self, vertices, fill="blue"):
+    def draw_polygon(self, vertices, fill="blue", outline="black"):
         coords = []
         cx = self.width / 2
         cy = self.height / 2
@@ -60,7 +60,7 @@ class EinsteinImage:
         else:
             fill_val = fill
 
-        self.draw.polygon(coords, fill=fill_val, outline="black")
+        self.draw.polygon(coords, fill=fill_val, outline=outline)
 
     def save(self, filename):
         try:
@@ -75,11 +75,21 @@ class EinsteinImage:
         return self.img
 
 
-def draw_tiles(tiles, width=500, height=500, scalar=20, filename="output/einstein_pattern.jpg", show_window=False):
+def draw_tiles(
+    tiles,
+    width=500,
+    height=500,
+    scalar=20,
+    filename="output/einstein_pattern.jpg",
+    show_window=False,
+    draw_outline=True,
+):
+    outline = "black" if draw_outline else None
+    outline_width = 2 if draw_outline else 0
     if filename:
         img = EinsteinImage(width, height, bg="white", scalar=scalar)
         for tile in tiles:
-            img.draw_polygon(tile[0], fill=tile[1][1])
+            img.draw_polygon(tile[0], fill=tile[1][1], outline=outline)
 
         img.save(filename)
     if show_window:
@@ -93,9 +103,8 @@ def draw_tiles(tiles, width=500, height=500, scalar=20, filename="output/einstei
         canvas.set_scalar(scalar)
 
         for tile in tiles:
-            canvas.draw_polygon(tile[0], fill=tile[1][0])
+            canvas.draw_polygon(tile[0], fill=tile[1][0], outline=outline, outline_width=outline_width)
 
         canvas.pack()
         root.mainloop()
     return filename
-
