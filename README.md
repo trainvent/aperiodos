@@ -104,6 +104,115 @@ Open a Tk preview window while also saving the file:
 python3 src/entry/main.py --show-window
 ```
 
+## Cloud Run
+
+The easiest Google Cloud path for this repo is to run it as a tiny HTTP image-generation service on Cloud Run.
+
+This repo now includes:
+
+- `src/entry/web.py` for a small Flask API
+- `requirements.txt` for container dependencies
+- `Dockerfile` for Cloud Run builds
+
+### Local Container-Friendly Run
+
+Install the service dependencies:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Start the web service locally:
+
+```bash
+python3 -m src.entry.web
+```
+
+Test it from another terminal:
+
+```bash
+curl http://127.0.0.1:8080/healthz
+curl -X POST http://127.0.0.1:8080/render \
+  -H "Content-Type: application/json" \
+  --data '{"iterations":5,"width":1400,"height":1400,"scalar":20,"format":"png"}' \
+  --output pattern.png
+```
+
+### Deploy To Cloud Run
+
+Pick your Google Cloud project and region:
+
+```bash
+gcloud config set project YOUR_PROJECT_ID
+gcloud config set run/region europe-west1
+```
+
+Enable the required APIs once:
+
+```bash
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+```
+
+Deploy directly from the repo:
+
+```bash
+gcloud run deploy aperiodic-monotiles-generator \
+  --source . \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --cpu 1 \
+  --timeout 300 \
+  --concurrency 1 \
+  --max-instances 3
+```
+
+Notes:
+
+- `--concurrency 1` is a safer default because renders can be CPU- and memory-heavy.
+- `--memory 2Gi` is a good starting point for moderate image sizes. Increase it for larger renders.
+- Cloud Run will expose an HTTPS URL you can call with `POST /render`.
+
+Example request after deploy:
+
+```bash
+SERVICE_URL="https://YOUR-SERVICE-URL"
+curl -X POST "$SERVICE_URL/render" \
+  -H "Content-Type: application/json" \
+  --data '{"iterations":5,"width":1600,"height":1600,"scalar":20,"colors":["black","seagreen","white","sandybrown","gold"],"format":"png"}' \
+  --output pattern.png
+```
+
+Available service endpoints:
+
+- `GET /` returns usage details
+- `GET /healthz` returns a simple health response
+- `POST /render` returns the generated image directly
+
+`POST /render` JSON fields:
+
+```json
+{
+  "iterations": 5,
+  "width": 1600,
+  "height": 1600,
+  "scalar": 20,
+  "colors": ["black", "seagreen", "white", "sandybrown", "gold"],
+  "no_outline": false,
+  "seed": null,
+  "format": "png"
+}
+```
+
+Service limits:
+
+- `iterations` max: `6`
+- `width` and `height` max: `6000`
+- `scalar` max: `80`
+
+These limits are there to reduce the chance of Cloud Run instances timing out or running out of memory.
+
 ## CLI Options
 
 ```text

@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw
 try:
     from tkinter import Canvas, Tk
     TK_AVAILABLE = True
-except ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     Canvas = object
     Tk = None
     TK_AVAILABLE = False
