@@ -42,12 +42,17 @@ const EINSTEIN_DEFAULTS = {
   width: 1600,
   height: 1600,
   format: "png",
+  color_mode: "families",
   seed: "",
   color_h1: "black",
   color_h: "seagreen",
   color_t: "white",
   color_p: "sandybrown",
   color_f: "gold",
+  four_color_1: "seagreen",
+  four_color_2: "sienna",
+  four_color_3: "goldenrod",
+  four_color_4: "midnightblue",
   no_outline: false
 };
 
@@ -183,6 +188,17 @@ function EinsteinPage() {
           <SelectField
             values={values}
             setValues={setValues}
+            name="color_mode"
+            label="Coloring"
+            options={[
+              { value: "families", label: "Tile Families" },
+              { value: "four_color", label: "Four-Color" }
+            ]}
+            full
+          />
+          <SelectField
+            values={values}
+            setValues={setValues}
             name="format"
             label="Format"
             options={[
@@ -192,13 +208,22 @@ function EinsteinPage() {
             full
           />
           <TextField values={values} setValues={setValues} name="seed" label="Seed" placeholder="Optional" full />
-          <div className="swatches full">
-            <ColorField values={values} setValues={setValues} name="color_h1" label="H1" />
-            <ColorField values={values} setValues={setValues} name="color_h" label="H" />
-            <ColorField values={values} setValues={setValues} name="color_t" label="T" />
-            <ColorField values={values} setValues={setValues} name="color_p" label="P" />
-            <ColorField values={values} setValues={setValues} name="color_f" label="F" full />
-          </div>
+          {values.color_mode === "families" ? (
+            <div className="swatches full">
+              <ColorField values={values} setValues={setValues} name="color_h1" label="H1" />
+              <ColorField values={values} setValues={setValues} name="color_h" label="H" />
+              <ColorField values={values} setValues={setValues} name="color_t" label="T" />
+              <ColorField values={values} setValues={setValues} name="color_p" label="P" />
+              <ColorField values={values} setValues={setValues} name="color_f" label="F" full />
+            </div>
+          ) : (
+            <div className="swatches full">
+              <ColorField values={values} setValues={setValues} name="four_color_1" label="Color 1" />
+              <ColorField values={values} setValues={setValues} name="four_color_2" label="Color 2" />
+              <ColorField values={values} setValues={setValues} name="four_color_3" label="Color 3" />
+              <ColorField values={values} setValues={setValues} name="four_color_4" label="Color 4" />
+            </div>
+          )}
           <CheckboxField
             values={values}
             setValues={setValues}
@@ -214,7 +239,9 @@ function EinsteinPage() {
           width: Number(values.width),
           height: Number(values.height),
           format: values.format,
+          color_mode: values.color_mode,
           colors: [values.color_h1, values.color_h, values.color_t, values.color_p, values.color_f],
+          four_colors: [values.four_color_1, values.four_color_2, values.four_color_3, values.four_color_4],
           no_outline: Boolean(values.no_outline)
         };
         if (String(values.seed).trim()) {

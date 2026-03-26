@@ -20,6 +20,7 @@ if str(SRC_PATH) not in sys.path:
 
 from einstein_backend.cli import (  # noqa: E402
     DEFAULT_COLORS,
+    DEFAULT_FOUR_COLORS,
     DEFAULT_ITERATIONS,
     DEFAULT_SCALAR,
     render_pattern,
@@ -120,6 +121,20 @@ def _coerce_colors(payload):
     if not isinstance(colors, list) or len(colors) != 5:
         raise ValueError("'colors' must be a list of exactly five CSS-style color values.")
     return tuple(str(color) for color in colors)
+
+
+def _coerce_four_colors(payload):
+    colors = payload.get("four_colors", list(DEFAULT_FOUR_COLORS))
+    if not isinstance(colors, list) or len(colors) != 4:
+        raise ValueError("'four_colors' must be a list of exactly four CSS-style color values.")
+    return tuple(str(color) for color in colors)
+
+
+def _coerce_einstein_color_mode(payload):
+    color_mode = str(payload.get("color_mode", "families"))
+    if color_mode not in {"families", "four_color"}:
+        raise ValueError("'color_mode' must be 'families' or 'four_color'.")
+    return color_mode
 
 
 def _coerce_einstein_format(payload):
@@ -264,6 +279,8 @@ def api_index():
                 "height": DEFAULT_HTTP_HEIGHT,
                 "scalar": DEFAULT_SCALAR,
                 "colors": list(DEFAULT_COLORS),
+                "color_mode": "families",
+                "four_colors": list(DEFAULT_FOUR_COLORS),
                 "no_outline": False,
                 "seed": None,
                 "format": "png",
@@ -306,7 +323,9 @@ def render_einstein():
         scalar = _coerce_int(payload, "scalar", DEFAULT_SCALAR, minimum=1, maximum=MAX_SCALAR)
         width = _coerce_int(payload, "width", DEFAULT_HTTP_WIDTH, minimum=64, maximum=MAX_IMAGE_DIMENSION)
         height = _coerce_int(payload, "height", DEFAULT_HTTP_HEIGHT, minimum=64, maximum=MAX_IMAGE_DIMENSION)
+        color_mode = _coerce_einstein_color_mode(payload)
         colors = _coerce_colors(payload)
+        four_colors = _coerce_four_colors(payload)
         seed = payload.get("seed")
         no_outline = bool(payload.get("no_outline", False))
     except ValueError as exc:
@@ -325,12 +344,20 @@ def render_einstein():
                 height=height,
                 output=str(output_path),
                 colors=colors,
+                color_mode=color_mode,
+                four_colors=four_colors,
                 show_window=False,
                 draw_outline=not no_outline,
             )
         else:
             seed_value = _coerce_int(payload, "seed", seed, minimum=1)
-            seed_to_pattern(seed=seed_value, output_file_name=str(output_path), draw_outline=not no_outline)
+            seed_to_pattern(
+                seed=seed_value,
+                output_file_name=str(output_path),
+                draw_outline=not no_outline,
+                color_mode=color_mode,
+                four_colors=four_colors,
+            )
 
         return send_file(
             output_path,

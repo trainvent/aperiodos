@@ -1,7 +1,13 @@
 from pathlib import Path
 
 from .geometry import Vector
-from .pattern_generator import next_generation, reset_generator, vertices_to_draw
+from .pattern_generator import (
+    DEFAULT_FOUR_COLORS,
+    apply_four_coloring,
+    next_generation,
+    reset_generator,
+    vertices_to_draw,
+)
 
 
 def seed_to_coordinate(seed):
@@ -38,7 +44,13 @@ def seed_to_coordinate(seed):
     return output_coord
 
 
-def seed_to_pattern(seed=1, output_file_name="output/seed-pattern.png", draw_outline=True):
+def seed_to_pattern(
+    seed=1,
+    output_file_name="output/seed-pattern.png",
+    draw_outline=True,
+    color_mode="families",
+    four_colors=DEFAULT_FOUR_COLORS,
+):
     try:
         import cv2
         import numpy as np
@@ -57,6 +69,8 @@ def seed_to_pattern(seed=1, output_file_name="output/seed-pattern.png", draw_out
 
     while True:
         output_image = np.full((OUTPUT_IMAGE_DIMENSIONS.y, OUTPUT_IMAGE_DIMENSIONS.x, 3), 255)
+        if color_mode == "four_color":
+            apply_four_coloring(four_colors)
         for tile in vertices_to_draw:
             output_image = draw_tile(tile, output_image, offset_coord=offset_coordinate, draw_outline=draw_outline)
 

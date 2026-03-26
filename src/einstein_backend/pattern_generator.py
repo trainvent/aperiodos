@@ -1,8 +1,10 @@
 from .geometry import *
 from PIL import ImageColor
+import sys
 
 to_screen_mat = [1, 0, 0, 0, -1, 0]
 DEFAULT_COLORS = ("black", "seagreen", "white", "sandybrown", "sandybrown")
+DEFAULT_FOUR_COLORS = ("seagreen", "sienna", "goldenrod", "midnightblue")
 
 vertices_to_draw = []
 
@@ -280,11 +282,111 @@ def reset_generator():
 def next_generation(colorquintett=DEFAULT_COLORS):
     col = colorquintett
     colors = {
-        'H1': [col[0], ImageColor.getrgb(col[0])],
-        'H': [col[1], ImageColor.getrgb(col[1])],
-        'T': [col[2], ImageColor.getrgb(col[2])],
-        'P': [col[3], ImageColor.getrgb(col[3])],
-        'F': [col[4], ImageColor.getrgb(col[4])]
+        'H1': [col[0], ImageColor.getrgb(col[0]), 'H1'],
+        'H': [col[1], ImageColor.getrgb(col[1]), 'H'],
+        'T': [col[2], ImageColor.getrgb(col[2]), 'T'],
+        'P': [col[3], ImageColor.getrgb(col[3]), 'P'],
+        'F': [col[4], ImageColor.getrgb(col[4]), 'F']
     }
     draw(colors)
     build_supertiles()
+
+
+def apply_four_coloring(colorquadruple=DEFAULT_FOUR_COLORS):
+    if not vertices_to_draw:
+        return
+
+    palette = [[color, ImageColor.getrgb(color)] for color in colorquadruple]
+    special_indices = special_tile_indices(vertices_to_draw)
+    adjacency = build_edge_adjacency(vertices_to_draw)
+    color_indices = [None] * len(vertices_to_draw)
+
+    for index in special_indices:
+        color_indices[index] = 3
+
+    if not assign_three_colors(adjacency, color_indices):
+        raise RuntimeError("Einstein four-color solver could not find a valid three-coloring for the base hats.")
+
+    for index, tile in enumerate(vertices_to_draw):
+        tile[1] = palette[color_indices[index]]
+
+
+def assign_three_colors(adjacency, color_indices):
+    sys.setrecursionlimit(max(10000, len(color_indices) * 2))
+
+    def backtrack():
+        index = select_uncolored_vertex(adjacency, color_indices)
+        if index is None:
+            return True
+
+        for color in available_colors(index, adjacency, color_indices):
+            color_indices[index] = color
+            if backtrack():
+                return True
+            color_indices[index] = None
+
+        return False
+
+    return backtrack()
+
+
+def select_uncolored_vertex(adjacency, color_indices):
+    candidates = [index for index, color in enumerate(color_indices) if color is None]
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda index: coloring_priority(index, adjacency, color_indices))
+    return candidates[0]
+
+
+def available_colors(index, adjacency, color_indices):
+    used = [False, False, False]
+    for neighbor in adjacency[index]:
+        neighbor_color = color_indices[neighbor]
+        if neighbor_color is not None and neighbor_color < 3:
+            used[neighbor_color] = True
+
+    return [color for color in range(3) if not used[color]]
+
+
+def coloring_priority(index, adjacency, color_indices):
+    used = {color_indices[neighbor] for neighbor in adjacency[index] if color_indices[neighbor] is not None and color_indices[neighbor] < 3}
+    degree = sum(1 for neighbor in adjacency[index] if color_indices[neighbor] != 3)
+    return (-len(used), -degree, index)
+
+
+def special_tile_indices(tiles):
+    return {
+        index for index, tile in enumerate(tiles)
+        if len(tile) > 1 and isinstance(tile[1], (list, tuple)) and len(tile[1]) > 2 and tile[1][2] == 'H1'
+    }
+
+
+def build_edge_adjacency(tiles):
+    edge_map = {}
+    adjacency = [set() for _ in tiles]
+
+    for tile_index, tile in enumerate(tiles):
+        vertices = tile[0]
+        for index, start in enumerate(vertices):
+            end = vertices[(index + 1) % len(vertices)]
+            edge = normalized_edge_key(start, end)
+            edge_map.setdefault(edge, []).append(tile_index)
+
+    for tile_indices in edge_map.values():
+        for index, left in enumerate(tile_indices):
+            for right in tile_indices[index + 1:]:
+                adjacency[left].add(right)
+                adjacency[right].add(left)
+
+    return adjacency
+
+
+def normalized_edge_key(a, b):
+    start = vector_key(a)
+    end = vector_key(b)
+    return (start, end) if start <= end else (end, start)
+
+
+def vector_key(point):
+    return (round(point.x, 6), round(point.y, 6))

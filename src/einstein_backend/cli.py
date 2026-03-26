@@ -1,7 +1,14 @@
 import argparse
 
 from .graphics_tk import draw_tiles
-from .pattern_generator import DEFAULT_COLORS, next_generation, reset_generator, vertices_to_draw
+from .pattern_generator import (
+    DEFAULT_COLORS,
+    DEFAULT_FOUR_COLORS,
+    apply_four_coloring,
+    next_generation,
+    reset_generator,
+    vertices_to_draw,
+)
 from .seed_to_pattern import seed_to_pattern
 
 DEFAULT_ITERATIONS = 5
@@ -18,12 +25,17 @@ def render_pattern(
     height=DEFAULT_HEIGHT,
     output=DEFAULT_OUTPUT,
     colors=DEFAULT_COLORS,
+    color_mode="families",
+    four_colors=DEFAULT_FOUR_COLORS,
     show_window=False,
     draw_outline=True,
 ):
     reset_generator()
     for _ in range(iterations):
         next_generation(colors)
+
+    if color_mode == "four_color":
+        apply_four_coloring(four_colors)
 
     return draw_tiles(
         vertices_to_draw,
@@ -50,6 +62,19 @@ def build_parser():
         default=DEFAULT_COLORS,
         help="Five CSS-style colors for the H1, H, T, P, and F tile families.",
     )
+    parser.add_argument(
+        "--color-mode",
+        choices=("families", "four_color"),
+        default="families",
+        help="Use the existing five-family palette or an article-inspired four-color mode.",
+    )
+    parser.add_argument(
+        "--four-colors",
+        nargs=4,
+        metavar=("C1", "C2", "C3", "C4"),
+        default=DEFAULT_FOUR_COLORS,
+        help="Four CSS-style colors for the optional four-color Einstein mode.",
+    )
     parser.add_argument("--show-window", action="store_true", help="Open a Tk window in addition to saving the image.")
     parser.add_argument("--no-outline", action="store_true", help="Render filled tiles without black outlines.")
     parser.add_argument("--seed", type=int, help="Generate a seed-based cropped pattern instead of the full centered render.")
@@ -68,6 +93,8 @@ def main(argv=None):
             height=args.height,
             output=args.output,
             colors=tuple(args.colors),
+            color_mode=args.color_mode,
+            four_colors=tuple(args.four_colors),
             show_window=args.show_window,
             draw_outline=not args.no_outline,
         )
