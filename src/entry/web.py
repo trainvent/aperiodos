@@ -41,11 +41,15 @@ ALLOWED_EINSTEIN_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "i
 ABOUT_CONTENT = {
     "title": "About Aperiodos",
     "summary": (
-        "Aperiodos is a small playground for aperiodic monotiles, image generation, "
-        "and browser experiments. The site currently centers on monotiles."
-        "Plans to expand into other aperiodic patterns and Penrose tilings."
+        "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, "
+        "and browser experiments. The site currently centers on monotiles, with plans "
+        "to expand into other aperiodic patterns and Penrose tilings."
     ),
     "references": [
+        {
+            "label": "Trainvent",
+            "url": "https://www.trainvent.com/",
+        },
         {
             "label": "Hat monotile reference page",
             "url": "https://cs.uwaterloo.ca/~csk/hat/h7h8.html",
@@ -68,8 +72,8 @@ ABOUT_CONTENT = {
         },
     ],
     "credits": (
-        "This project draws on papers, mathematical references, and public open-source "
-        "experiments to explore how these tilings can be rendered and presented on the web."
+        "This Trainvent subservice draws on papers, mathematical references, and public "
+        "open-source experiments to explore how these tilings can be rendered and presented on the web."
     ),
     "technical_realizations": (
         "OpenAI helped with technical realization work across the project, including architecture "
@@ -77,7 +81,8 @@ ABOUT_CONTENT = {
     ),
     "notes": (
         "The Rust-based Spectre work is being adapted into src/spectre_rs, with the older "
-        "spectre clone kept as a reference source. Einstein and Spectre share one visual language."
+        "spectre clone kept as a reference source. Einstein and Spectre share one visual language "
+        "inside the broader Trainvent web presence."
     ),
 }
 

@@ -29,7 +29,7 @@ const CSS_COLOR_OPTIONS = [
 const ABOUT_FALLBACK = {
   title: "About Aperiodos",
   summary:
-    "Aperiodos is a small playground for aperiodic monotiles, image generation, and browser experiments.",
+    "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, and browser experiments.",
   references: [],
   credits: "",
   technical_realizations: "",
@@ -95,7 +95,12 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <div>Aperiodos, experiments in aperiodic tilings.</div>
+        <div>
+          Aperiodos is a Trainvent subservice for experiments in aperiodic tilings.{" "}
+          <a href="https://www.trainvent.com/" target="_blank" rel="noreferrer">
+            Trainvent
+          </a>
+        </div>
         <nav className="footer-nav">
           <TopNavLink to="/about">About</TopNavLink>
           <TopNavLink to="/einstein">Einstein</TopNavLink>
@@ -119,11 +124,12 @@ function HomePage() {
     <>
       <section className="hero hero-grid">
         <div>
-          <p className="eyebrow">Aperiodic playground</p>
+          <p className="eyebrow">Trainvent subservice</p>
           <h1>Choose a generator.</h1>
           <p className="lede">
-            Start with the classic Einstein image renderer or switch to Spectre, the chiral monotile
-            that does not need mirror flips. One interface, two render engines, and room to grow.
+            Aperiodos is part of Trainvent. Start with the classic Einstein image renderer or switch
+            to Spectre, the chiral monotile that does not need mirror flips. One interface, two
+            render engines, and room to grow.
           </p>
         </div>
         <aside className="hero-note panel">
