@@ -1,23 +1,25 @@
 # Aperiodic Monotiles Generator
 
-Generate images based on the "einstein" aperiodic monotile using a small Python CLI.
+Generate images based on aperiodic monotiles, with a Python Einstein generator and a new Rust Spectre renderer.
 
 The project currently focuses on offline image generation. The longer-term goal is to use this generator as the backend for a website where people can tweak colors, size, image dimensions, tile variants, and download finished artwork.
 
 ## What It Does
 
-- Renders a full monotile pattern as a JPG image.
-- Supports custom output size, scale, subdivision depth, and colors.
-- Includes a seed-based export mode for generating a unique cropped section of the pattern.
+- Renders Einstein tile patterns from Python.
+- Includes a seed-based Einstein export mode for generating a unique cropped section of the pattern.
+- Includes a new Rust Spectre renderer that writes SVG snapshots.
 
 ## Project Structure
 
 ```text
 .
-├── aperiodic-generator      # Executable launcher for GUI or direct CLI rendering
+├── aperiodic-generator      # Executable launcher for the Einstein Python generator
 ├── src/
 │   ├── entry/               # Launcher scripts for CLI and GUI entrypoints
-│   └── pattern_generation/  # Source package with the generator code
+│   ├── einstein_py/         # Einstein generator implementation in Python
+│   ├── pattern_generation/  # Compatibility wrappers to the Einstein package
+│   └── spectre_rs/          # Rust Spectre renderer crate
 ├── output/                  # Generated images are written here by default
 └── README.md
 ```
@@ -107,19 +109,42 @@ Open a Tk preview window while also saving the file:
 python3 src/entry/main.py --show-window
 ```
 
+### Spectre (Rust)
+
+Generate a Spectre SVG snapshot:
+
+```bash
+cargo run --manifest-path src/spectre_rs/Cargo.toml -- \
+  --output output/spectre.svg \
+  --width 1600 \
+  --height 1600 \
+  --scale 40 \
+  --level 5 \
+  --palette '#17313b,#1f6a5d,#b4552d,#d8b24c,#f6f1e8'
+```
+
+Useful Spectre flags:
+
+- `--center-x` and `--center-y` move the viewport in world coordinates.
+- `--background`, `--outline`, and `--stroke-width` control the SVG styling.
+- `--palette` accepts a comma-separated list of CSS-style colors.
+
 ## Cloud Run
 
 The easiest Google Cloud path for this repo is to run it as a tiny HTTP image-generation service on Cloud Run.
 
 This repo now includes:
 
-- `src/entry/web.py` for a small Flask API
-- `requirements.txt` for container dependencies
-- `Dockerfile` for Cloud Run builds
+- `web/` for the React + Vite frontend
+- `src/entry/web.py` for the Flask API and frontend static-file serving
+- `src/einstein_py/` for the Einstein generator implementation
+- `src/spectre_rs/` for the Rust Spectre renderer
+- `requirements.txt` for Python service dependencies
+- `Dockerfile` for the single-service Cloud Run build
 
 ### Local Container-Friendly Run
 
-Install the service dependencies:
+Install the Python service dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -127,20 +152,47 @@ python3 -m venv .venv
 pip install -r requirements.txt
 ```
 
-Start the web service locally:
+Install the frontend dependencies:
+
+```bash
+cd web
+npm install
+cd ..
+```
+
+Build the frontend:
+
+```bash
+cd web
+npm run build
+cd ..
+```
+
+Start the API/static service locally:
 
 ```bash
 python3 -m src.entry.web
 ```
 
-Test it from another terminal:
+For active frontend work, run the Vite dev server in another terminal:
 
 ```bash
-curl http://127.0.0.1:8080/healthz
-curl -X POST http://127.0.0.1:8080/render \
+cd web
+npm run dev
+```
+
+Test the API from another terminal:
+
+```bash
+curl http://127.0.0.1:8080/api/healthz
+curl -X POST http://127.0.0.1:8080/api/einstein/render \
   -H "Content-Type: application/json" \
   --data '{"iterations":5,"width":1400,"height":1400,"scalar":20,"format":"png"}' \
   --output pattern.png
+curl -X POST http://127.0.0.1:8080/api/spectre/render \
+  -H "Content-Type: application/json" \
+  --data '{"width":1400,"height":1400,"level":5,"scale":40}' \
+  --output spectre.svg
 ```
 
 ### Deploy To Cloud Run
@@ -175,13 +227,13 @@ Notes:
 
 - `--concurrency 1` is a safer default because renders can be CPU- and memory-heavy.
 - `--memory 2Gi` is a good starting point for moderate image sizes. Increase it for larger renders.
-- Cloud Run will expose an HTTPS URL you can call with `POST /render`.
+- Cloud Run will expose an HTTPS URL that serves both the frontend and the API.
 
 Example request after deploy:
 
 ```bash
 SERVICE_URL="https://YOUR-SERVICE-URL"
-curl -X POST "$SERVICE_URL/render" \
+curl -X POST "$SERVICE_URL/api/einstein/render" \
   -H "Content-Type: application/json" \
   --data '{"iterations":5,"width":1600,"height":1600,"scalar":20,"colors":["black","seagreen","white","sandybrown","gold"],"format":"png"}' \
   --output pattern.png
@@ -189,11 +241,14 @@ curl -X POST "$SERVICE_URL/render" \
 
 Available service endpoints:
 
-- `GET /` returns usage details
-- `GET /healthz` returns a simple health response
-- `POST /render` returns the generated image directly
+- `GET /` serves the React frontend
+- `GET /api` returns API usage details
+- `GET /api/about` returns references and acknowledgements
+- `GET /api/healthz` returns a simple health response
+- `POST /api/einstein/render` returns the generated Einstein image directly
+- `POST /api/spectre/render` returns the generated Spectre SVG directly
 
-`POST /render` JSON fields:
+`POST /api/einstein/render` JSON fields:
 
 ```json
 {
@@ -214,7 +269,24 @@ Service limits:
 - `width` and `height` max: `6000`
 - `scalar` max: `80`
 
-These limits are there to reduce the chance of Cloud Run instances timing out or running out of memory.
+`POST /api/spectre/render` JSON fields:
+
+```json
+{
+  "width": 1600,
+  "height": 1600,
+  "level": 5,
+  "scale": 40,
+  "center_x": 0,
+  "center_y": 0,
+  "palette": ["#17313b", "#1f6a5d", "#b4552d", "#d8b24c", "#f6f1e8"],
+  "background": "#f5f1e7",
+  "outline": "#17313b",
+  "stroke_width": 1.2
+}
+```
+
+These limits are there to reduce the chance of Cloud Run instances timing out or running out of memory while keeping both renderers responsive.
 
 ## CLI Options
 
@@ -242,5 +314,5 @@ These limits are there to reduce the chance of Cloud Run instances timing out or
 - David Smith: https://en.wikipedia.org/wiki/David_Smith_(amateur_mathematician)
 - Hat monotile reference page: https://cs.uwaterloo.ca/~csk/hat/h7h8.html
 - inspiration repository for Einstein: https://github.com/asmoly/Einstein_Tile_Generator
-  - spectre: https://github.com/necocen/spectre
-
+- spectre reference implementation: https://github.com/necocen/spectre
+- OpenAIs models where used for most of the technical work: https://openai.com/

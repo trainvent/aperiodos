@@ -3,4 +3,7 @@ __pycache__/
 *.py[cod]
 
 output/
-
+target/
+src/spectre_rs/target/
+web/node_modules/
+web/dist/
