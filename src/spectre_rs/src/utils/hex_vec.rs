@@ -5,7 +5,7 @@ use crate::math::Vec2;
 use super::{Angle, HexValue};
 
 /// 正六角形のタイリングに適した2次元ベクトル
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct HexVec {
     pub x: HexValue,
     pub y: HexValue,

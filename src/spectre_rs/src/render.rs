@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
@@ -59,6 +60,7 @@ pub fn render_svg(config: &SpectreSvgConfig) -> String {
         (content_bbox.min.y + content_bbox.max.y) * 0.5,
     );
     let render_scale = fitted_scale(config, &content_bbox);
+    let color_indices = adjacency_color_indices(&spectres, palette.len());
 
     let mut document = String::new();
     let _ = writeln!(
@@ -72,9 +74,9 @@ pub fn render_svg(config: &SpectreSvgConfig) -> String {
         config.background
     );
 
-    for spectre in spectres {
+    for (index, spectre) in spectres.iter().enumerate() {
         let points = svg_points(spectre, content_center, render_scale, config);
-        let fill = &palette[color_index_for(spectre, palette.len())];
+        let fill = &palette[color_indices[index]];
         let _ = writeln!(
             document,
             "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
@@ -130,6 +132,78 @@ fn content_bbox(spectres: &[&Spectre]) -> Option<Aabb> {
         bbox = bbox.union(&spectre.bbox());
     }
     Some(bbox)
+}
+
+fn adjacency_color_indices(spectres: &[&Spectre], palette_len: usize) -> Vec<usize> {
+    if spectres.is_empty() {
+        return Vec::new();
+    }
+
+    let palette_len = palette_len.max(1);
+    let mut edge_map: HashMap<(HexVec, HexVec), Vec<usize>> = HashMap::new();
+    let mut vertex_map: HashMap<HexVec, Vec<usize>> = HashMap::new();
+
+    for (tile_index, spectre) in spectres.iter().enumerate() {
+        let vertices = spectre.vertices();
+        for vertex in &vertices {
+            vertex_map.entry(*vertex).or_default().push(tile_index);
+        }
+        for index in 0..vertices.len() {
+            let start = vertices[index];
+            let end = vertices[(index + 1) % vertices.len()];
+            let edge = normalized_edge(start, end);
+            edge_map.entry(edge).or_default().push(tile_index);
+        }
+    }
+
+    let mut adjacency = vec![HashSet::<usize>::new(); spectres.len()];
+    for tile_indices in edge_map.values() {
+        connect_neighbors(tile_indices, &mut adjacency);
+    }
+
+    for tile_indices in vertex_map.values() {
+        connect_neighbors(tile_indices, &mut adjacency);
+    }
+
+    let mut colors = vec![usize::MAX; spectres.len()];
+    let mut ordering: Vec<usize> = (0..spectres.len()).collect();
+    ordering.sort_by_key(|&index| std::cmp::Reverse(adjacency[index].len()));
+
+    for index in ordering {
+        let mut used = HashSet::new();
+        for &neighbor in &adjacency[index] {
+            if colors[neighbor] != usize::MAX {
+                used.insert(colors[neighbor]);
+            }
+        }
+
+        let fallback = color_index_for(spectres[index], palette_len);
+        let chosen = (0..palette_len)
+            .find(|candidate| !used.contains(candidate))
+            .unwrap_or(fallback);
+        colors[index] = chosen;
+    }
+
+    colors
+}
+
+fn connect_neighbors(tile_indices: &[usize], adjacency: &mut [HashSet<usize>]) {
+    for index in 0..tile_indices.len() {
+        let a = tile_indices[index];
+        for other in (index + 1)..tile_indices.len() {
+            let b = tile_indices[other];
+            adjacency[a].insert(b);
+            adjacency[b].insert(a);
+        }
+    }
+}
+
+fn normalized_edge(a: HexVec, b: HexVec) -> (HexVec, HexVec) {
+    if a <= b {
+        (a, b)
+    } else {
+        (b, a)
+    }
 }
 
 fn fitted_scale(config: &SpectreSvgConfig, content_bbox: &Aabb) -> f32 {

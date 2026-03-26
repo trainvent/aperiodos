@@ -1,6 +1,31 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 
+const CSS_COLOR_OPTIONS = [
+  "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque", "black",
+  "blanchedalmond", "blue", "blueviolet", "brown", "burlywood", "cadetblue", "chartreuse",
+  "chocolate", "coral", "cornflowerblue", "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
+  "darkgoldenrod", "darkgray", "darkgreen", "darkgrey", "darkkhaki", "darkmagenta",
+  "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon", "darkseagreen",
+  "darkslateblue", "darkslategray", "darkslategrey", "darkturquoise", "darkviolet", "deeppink",
+  "deepskyblue", "dimgray", "dimgrey", "dodgerblue", "firebrick", "floralwhite", "forestgreen",
+  "fuchsia", "gainsboro", "ghostwhite", "gold", "goldenrod", "gray", "green", "greenyellow",
+  "grey", "honeydew", "hotpink", "indianred", "indigo", "ivory", "khaki", "lavender",
+  "lavenderblush", "lawngreen", "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
+  "lightgoldenrodyellow", "lightgray", "lightgreen", "lightgrey", "lightpink", "lightsalmon",
+  "lightseagreen", "lightskyblue", "lightslategray", "lightslategrey", "lightsteelblue",
+  "lightyellow", "lime", "limegreen", "linen", "magenta", "maroon", "mediumaquamarine",
+  "mediumblue", "mediumorchid", "mediumpurple", "mediumseagreen", "mediumslateblue",
+  "mediumspringgreen", "mediumturquoise", "mediumvioletred", "midnightblue", "mintcream",
+  "mistyrose", "moccasin", "navajowhite", "navy", "oldlace", "olive", "olivedrab", "orange",
+  "orangered", "orchid", "palegoldenrod", "palegreen", "paleturquoise", "palevioletred",
+  "papayawhip", "peachpuff", "peru", "pink", "plum", "powderblue", "purple", "rebeccapurple",
+  "red", "rosybrown", "royalblue", "saddlebrown", "salmon", "sandybrown", "seagreen",
+  "seashell", "sienna", "silver", "skyblue", "slateblue", "slategray", "slategrey", "snow",
+  "springgreen", "steelblue", "tan", "teal", "thistle", "tomato", "transparent", "turquoise",
+  "violet", "wheat", "white", "whitesmoke", "yellow", "yellowgreen"
+];
+
 const ABOUT_FALLBACK = {
   title: "About Aperiodos",
   summary:
@@ -27,16 +52,20 @@ const EINSTEIN_DEFAULTS = {
 };
 
 const SPECTRE_DEFAULTS = {
-  width: 1600,
-  height: 1600,
+  width: 2000,
+  height: 2000,
   level: 5,
-  scale: 40,
+  scale: 10,
   center_x: 0,
   center_y: 0,
-  background: "#f5f1e7",
-  outline: "#17313b",
+  background: "linen",
+  outline: "black",
   stroke_width: 1.2,
-  palette: "#17313b,#1f6a5d,#b4552d,#d8b24c,#f6f1e8"
+  palette_1: "midnightblue",
+  palette_2: "seagreen",
+  palette_3: "sienna",
+  palette_4: "goldenrod",
+  palette_5: "floralwhite"
 };
 
 export default function App() {
@@ -122,8 +151,8 @@ function HomePage() {
           <span className="tag">Rust renderer</span>
           <h2>Spectre</h2>
           <p>
-            Render bounded Spectre snapshots with palette, scale, center, and stroke controls, then
-            download the SVG directly.
+            Render bounded Spectre snapshots with a pattern variant, palette, framing, and stroke
+            controls, then download the SVG directly.
           </p>
           <NavLink className="button button-green" to="/spectre">
             Open Spectre Generator
@@ -159,11 +188,11 @@ function EinsteinPage() {
           />
           <TextField values={values} setValues={setValues} name="seed" label="Seed" placeholder="Optional" full />
           <div className="swatches full">
-            <TextField values={values} setValues={setValues} name="color_h1" label="H1" />
-            <TextField values={values} setValues={setValues} name="color_h" label="H" />
-            <TextField values={values} setValues={setValues} name="color_t" label="T" />
-            <TextField values={values} setValues={setValues} name="color_p" label="P" />
-            <TextField values={values} setValues={setValues} name="color_f" label="F" full />
+            <ColorField values={values} setValues={setValues} name="color_h1" label="H1" />
+            <ColorField values={values} setValues={setValues} name="color_h" label="H" />
+            <ColorField values={values} setValues={setValues} name="color_t" label="T" />
+            <ColorField values={values} setValues={setValues} name="color_p" label="P" />
+            <ColorField values={values} setValues={setValues} name="color_f" label="F" full />
           </div>
           <CheckboxField
             values={values}
@@ -203,26 +232,25 @@ function SpectrePage() {
   return (
     <GeneratorLayout
       title="Spectre Generator"
-      description="Render bounded Spectre snapshots from the Rust engine, adjust the viewport, and export SVG."
+      description="Render bounded Spectre snapshots from the Rust engine, choose a pattern variant, tune the palette and framing, and export SVG."
       controls={
         <>
           <NumberField values={values} setValues={setValues} name="width" label="Width" min={64} max={6000} />
           <NumberField values={values} setValues={setValues} name="height" label="Height" min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="level" label="Level" min={1} max={8} />
+          <NumberField values={values} setValues={setValues} name="level" label="Seed" min={1} max={8} />
           <NumberField values={values} setValues={setValues} name="scale" label="Scale" min={1} max={120} />
           <NumberField values={values} setValues={setValues} name="center_x" label="Center X" step="0.1" />
           <NumberField values={values} setValues={setValues} name="center_y" label="Center Y" step="0.1" />
-          <TextField values={values} setValues={setValues} name="background" label="Background" full />
-          <TextField values={values} setValues={setValues} name="outline" label="Outline" full />
+          <ColorField values={values} setValues={setValues} name="background" label="Background" full />
+          <ColorField values={values} setValues={setValues} name="outline" label="Outline" full />
           <NumberField values={values} setValues={setValues} name="stroke_width" label="Stroke Width" min={0} max={20} step="0.1" />
-          <TextField
-            values={values}
-            setValues={setValues}
-            name="palette"
-            label="Palette"
-            placeholder="#17313b,#1f6a5d,#b4552d,#d8b24c,#f6f1e8"
-            full
-          />
+          <div className="swatches full">
+            <ColorField values={values} setValues={setValues} name="palette_1" label="Palette 1" />
+            <ColorField values={values} setValues={setValues} name="palette_2" label="Palette 2" />
+            <ColorField values={values} setValues={setValues} name="palette_3" label="Palette 3" />
+            <ColorField values={values} setValues={setValues} name="palette_4" label="Palette 4" />
+            <ColorField values={values} setValues={setValues} name="palette_5" label="Palette 5" full />
+          </div>
         </>
       }
       payload={() => ({
@@ -235,9 +263,8 @@ function SpectrePage() {
         background: values.background,
         outline: values.outline,
         stroke_width: Number(values.stroke_width),
-        palette: String(values.palette)
-          .split(",")
-          .map((value) => value.trim())
+        palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4, values.palette_5]
+          .map((value) => String(value).trim())
           .filter(Boolean)
       })}
       endpoint="/api/spectre/render"
@@ -444,6 +471,31 @@ function TextField({ values, setValues, name, label, placeholder, full = false }
         value={values[name]}
         onChange={(event) => setValues((current) => ({ ...current, [name]: event.target.value }))}
       />
+    </label>
+  );
+}
+
+function ColorField({ values, setValues, name, label, placeholder = "Type or search a CSS color", full = false }) {
+  const listId = `color-options-${name}`;
+  return (
+    <label className={full ? "full color-field" : "color-field"}>
+      <span>{label}</span>
+      <div className="color-input-wrap">
+        <span className="color-chip" style={{ background: values[name] || "transparent" }} aria-hidden="true" />
+        <input
+          name={name}
+          type="text"
+          list={listId}
+          placeholder={placeholder}
+          value={values[name]}
+          onChange={(event) => setValues((current) => ({ ...current, [name]: event.target.value }))}
+        />
+        <datalist id={listId}>
+          {CSS_COLOR_OPTIONS.map((color) => (
+            <option key={color} value={color} />
+          ))}
+        </datalist>
+      </div>
     </label>
   );
 }

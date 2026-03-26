@@ -62,6 +62,10 @@ ABOUT_CONTENT = {
             "label": "necocen/spectre",
             "url": "https://github.com/necocen/spectre",
         },
+        {
+            "label": "OpenAI",
+            "url": "https://openai.com/",
+        },
     ],
     "credits": (
         "This project draws on papers, mathematical references, and public open-source "

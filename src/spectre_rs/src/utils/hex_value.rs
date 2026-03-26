@@ -4,7 +4,7 @@ use super::Angle;
 
 /// 正六角形のタイリングに適した実数値を表現する型
 /// i/2 + j*√3/2 の形で値を保持する
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 pub struct HexValue {
     /// 有理数部分の分子（分母は2で固定）
