@@ -57,12 +57,13 @@ const EINSTEIN_DEFAULTS = {
 };
 
 const SPECTRE_DEFAULTS = {
-  width: 2000,
-  height: 2000,
+  width: 900,
+  height: 900,
   level: 5,
-  scale: 10,
+  scale: 4,
   center_x: 0,
   center_y: 0,
+  draw_mode: "translation",
   background: "linen",
   outline: "black",
   stroke_width: 1,
@@ -273,6 +274,17 @@ function SpectrePage() {
           <NumberField values={values} setValues={setValues} name="scale" label="Scale" min={1} max={120} />
           <NumberField values={values} setValues={setValues} name="center_x" label="Center X" step="0.1" />
           <NumberField values={values} setValues={setValues} name="center_y" label="Center Y" step="0.1" />
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="draw_mode"
+            label="Drawing Logic"
+            options={[
+              { value: "generated", label: "Build" },
+              { value: "translation", label: "Translation" }
+            ]}
+            full
+          />
           <ColorField values={values} setValues={setValues} name="background" label="Background" full />
           <ColorField values={values} setValues={setValues} name="outline" label="Outline" full />
           <NumberField values={values} setValues={setValues} name="stroke_width" label="Stroke Width" min={0} max={20} step="0.1" />
@@ -291,6 +303,7 @@ function SpectrePage() {
         scale: Number(values.scale),
         center_x: Number(values.center_x),
         center_y: Number(values.center_y),
+        draw_mode: values.draw_mode,
         background: values.background,
         outline: values.outline,
         stroke_width: Number(values.stroke_width),

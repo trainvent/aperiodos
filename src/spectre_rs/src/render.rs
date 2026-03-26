@@ -7,6 +7,12 @@ use crate::math::Vec2;
 use crate::tiles::{Anchor, Skeleton, Spectre, SpectreCluster};
 use crate::utils::{Aabb, Angle, HexVec};
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DrawMode {
+    Generated,
+    Translation,
+}
+
 #[derive(Clone, Debug)]
 pub struct SpectreSvgConfig {
     pub width: u32,
@@ -19,6 +25,7 @@ pub struct SpectreSvgConfig {
     pub background: String,
     pub outline: String,
     pub stroke_width: f32,
+    pub draw_mode: DrawMode,
 }
 
 impl Default for SpectreSvgConfig {
@@ -39,6 +46,7 @@ impl Default for SpectreSvgConfig {
             background: "#f5f1e7".to_string(),
             outline: "#17313b".to_string(),
             stroke_width: 1.2,
+            draw_mode: DrawMode::Translation,
         }
     }
 }
@@ -54,17 +62,66 @@ pub fn render_svg(config: &SpectreSvgConfig) -> String {
         }
         palette
     };
+    match config.draw_mode {
+        DrawMode::Generated => render_svg_generated(config, &palette),
+        DrawMode::Translation => render_svg_translation(config, &palette),
+    }
+}
+
+fn render_svg_generated(config: &SpectreSvgConfig, palette: &[String]) -> String {
     let bbox = viewport_bbox(config);
     let mut cluster = root_cluster(config.level.max(1), &bbox);
     cluster.update(&bbox);
-    let spectres: Vec<_> = cluster.spectres_in(bbox).collect();
+    let spectres: Vec<_> = cluster.spectre_paths_in(bbox).collect();
     let content_bbox = content_bbox(&spectres).unwrap_or(bbox);
     let content_center = Vec2::new(
         (content_bbox.min.x + content_bbox.max.x) * 0.5,
         (content_bbox.min.y + content_bbox.max.y) * 0.5,
     );
     let render_scale = fitted_scale(config, &content_bbox);
-    let color_indices = spectre_color_indices(&spectres, palette.len());
+    let color_indices = spectre_color_indices_generated(&spectres, palette.len());
+
+    let mut document = String::new();
+    let _ = writeln!(
+        document,
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {} {}\" width=\"{}\" height=\"{}\">",
+        config.width, config.height, config.width, config.height
+    );
+    let _ = writeln!(
+        document,
+        "<rect width=\"100%\" height=\"100%\" fill=\"{}\" />",
+        config.background
+    );
+
+    for (index, spectre) in spectres.iter().enumerate() {
+        let points = svg_points(spectre.spectre, content_center, render_scale, config);
+        let fill = &palette[color_indices[index]];
+        let _ = writeln!(
+            document,
+            "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
+            points,
+            fill,
+            config.outline,
+            config.stroke_width
+        );
+    }
+
+    document.push_str("</svg>\n");
+    document
+}
+
+fn render_svg_translation(config: &SpectreSvgConfig, palette: &[String]) -> String {
+    let bbox = viewport_bbox(config);
+    let mut cluster = root_cluster(config.level.max(1), &bbox);
+    cluster.update(&bbox);
+    let spectres: Vec<_> = cluster.spectres_in(bbox).collect();
+    let content_bbox = content_bbox_spectres(&spectres).unwrap_or(bbox);
+    let content_center = Vec2::new(
+        (content_bbox.min.x + content_bbox.max.x) * 0.5,
+        (content_bbox.min.y + content_bbox.max.y) * 0.5,
+    );
+    let render_scale = fitted_scale(config, &content_bbox);
+    let color_indices = spectre_color_indices_translation(&spectres, palette.len());
 
     let mut document = String::new();
     let _ = writeln!(
@@ -142,7 +199,15 @@ fn content_bbox_from_iter<'a>(spectres: impl Iterator<Item = &'a Spectre>) -> Op
     }
 }
 
-fn content_bbox(spectres: &[&Spectre]) -> Option<Aabb> {
+fn content_bbox(spectres: &[crate::tiles::SpectreLeaf<'_>]) -> Option<Aabb> {
+    if spectres.is_empty() {
+        return None;
+    }
+
+    content_bbox_from_iter(spectres.iter().map(|leaf| leaf.spectre))
+}
+
+fn content_bbox_spectres(spectres: &[&Spectre]) -> Option<Aabb> {
     if spectres.is_empty() {
         return None;
     }
@@ -150,7 +215,10 @@ fn content_bbox(spectres: &[&Spectre]) -> Option<Aabb> {
     content_bbox_from_iter(spectres.iter().copied())
 }
 
-fn spectre_color_indices(spectres: &[&Spectre], palette_len: usize) -> Vec<usize> {
+fn spectre_color_indices_generated(
+    spectres: &[crate::tiles::SpectreLeaf<'_>],
+    palette_len: usize,
+) -> Vec<usize> {
     if spectres.is_empty() {
         return Vec::new();
     }
@@ -158,6 +226,57 @@ fn spectre_color_indices(spectres: &[&Spectre], palette_len: usize) -> Vec<usize
     let palette_len = palette_len.max(4);
     let special_color = 3usize.min(palette_len - 1);
     let adjacency = build_edge_adjacency(spectres);
+    let mut colors = vec![usize::MAX; spectres.len()];
+    let mut group_members: HashMap<Vec<crate::tiles::PathStep>, Vec<usize>> = HashMap::new();
+
+    for (index, spectre) in spectres.iter().enumerate() {
+        if is_special_spectre(spectre.spectre) {
+            colors[index] = special_color;
+        }
+        let group = first_order_group_key(&spectre.path);
+        group_members.entry(group).or_default().push(index);
+    }
+
+    let group_keys: Vec<_> = group_members.keys().cloned().collect();
+    let mut group_index = HashMap::new();
+    for (index, key) in group_keys.iter().enumerate() {
+        group_index.insert(key.clone(), index);
+    }
+    let mut group_adjacency = vec![Vec::<usize>::new(); group_keys.len()];
+
+    for (tile_index, neighbors) in adjacency.iter().enumerate() {
+        let group_a = group_index[&first_order_group_key(&spectres[tile_index].path)];
+        for &neighbor in neighbors {
+            let group_b = group_index[&first_order_group_key(&spectres[neighbor].path)];
+            if group_a != group_b && !group_adjacency[group_a].contains(&group_b) {
+                group_adjacency[group_a].push(group_b);
+            }
+        }
+    }
+
+    let mut group_colors = vec![usize::MAX; group_keys.len()];
+    color_group_graph(&group_adjacency, &mut group_colors);
+
+    for (group_key, members) in &group_members {
+        let group_color = group_colors[group_index[group_key]];
+        for &member in members {
+            if colors[member] == usize::MAX {
+                colors[member] = group_color;
+            }
+        }
+    }
+
+    colors
+}
+
+fn spectre_color_indices_translation(spectres: &[&Spectre], palette_len: usize) -> Vec<usize> {
+    if spectres.is_empty() {
+        return Vec::new();
+    }
+
+    let palette_len = palette_len.max(4);
+    let special_color = 3usize.min(palette_len - 1);
+    let adjacency = build_edge_adjacency_translation(spectres);
     let mut colors = vec![usize::MAX; spectres.len()];
 
     for (index, spectre) in spectres.iter().enumerate() {
@@ -204,14 +323,84 @@ fn spectre_color_indices(spectres: &[&Spectre], palette_len: usize) -> Vec<usize
                 used[color] = true;
             }
         }
-
         colors[index] = (0..3).find(|&color| !used[color]).unwrap_or(index % 3);
     }
 
     colors
 }
 
-fn build_edge_adjacency(spectres: &[&Spectre]) -> Vec<Vec<usize>> {
+fn first_order_group_key(path: &[crate::tiles::PathStep]) -> Vec<crate::tiles::PathStep> {
+    path.iter()
+        .copied()
+        .take_while(|step| step.parent_level > 1)
+        .collect()
+}
+
+fn color_group_graph(adjacency: &[Vec<usize>], colors: &mut [usize]) {
+    let mut uncolored: Vec<_> = (0..colors.len()).collect();
+
+    while !uncolored.is_empty() {
+        uncolored.sort_by_key(|&index| {
+            let saturation = adjacency[index]
+                .iter()
+                .filter_map(|&neighbor| {
+                    let color = colors[neighbor];
+                    if color < 3 {
+                        Some(color)
+                    } else {
+                        None
+                    }
+                })
+                .fold([false; 3], |mut used, color| {
+                    used[color] = true;
+                    used
+                })
+                .into_iter()
+                .filter(|used| *used)
+                .count();
+            (std::cmp::Reverse(saturation), std::cmp::Reverse(adjacency[index].len()), index)
+        });
+
+        let index = uncolored.remove(0);
+        let mut used = [false; 3];
+        for &neighbor in &adjacency[index] {
+            let color = colors[neighbor];
+            if color < 3 {
+                used[color] = true;
+            }
+        }
+        colors[index] = (0..3).find(|&color| !used[color]).unwrap_or(index % 3);
+    }
+}
+
+fn build_edge_adjacency(spectres: &[crate::tiles::SpectreLeaf<'_>]) -> Vec<Vec<usize>> {
+    let mut edge_map: HashMap<(HexVec, HexVec), Vec<usize>> = HashMap::new();
+    for (tile_index, spectre) in spectres.iter().enumerate() {
+        let vertices = spectre.spectre.vertices();
+        for index in 0..vertices.len() {
+            let start = vertices[index];
+            let end = vertices[(index + 1) % vertices.len()];
+            let edge = normalized_edge(start, end);
+            edge_map.entry(edge).or_default().push(tile_index);
+        }
+    }
+
+    let mut adjacency = vec![Vec::<usize>::new(); spectres.len()];
+    for tile_indices in edge_map.values() {
+        for index in 0..tile_indices.len() {
+            let a = tile_indices[index];
+            for other in (index + 1)..tile_indices.len() {
+                let b = tile_indices[other];
+                adjacency[a].push(b);
+                adjacency[b].push(a);
+            }
+        }
+    }
+
+    adjacency
+}
+
+fn build_edge_adjacency_translation(spectres: &[&Spectre]) -> Vec<Vec<usize>> {
     let mut edge_map: HashMap<(HexVec, HexVec), Vec<usize>> = HashMap::new();
     for (tile_index, spectre) in spectres.iter().enumerate() {
         let vertices = spectre.vertices();

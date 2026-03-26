@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use spectre_rs::{write_svg, SpectreSvgConfig};
+use spectre_rs::{write_svg, DrawMode, SpectreSvgConfig};
 
 fn main() {
     let (output, config) = parse_args(env::args().skip(1));
@@ -30,6 +30,16 @@ fn parse_args(args: impl Iterator<Item = String>) -> (PathBuf, SpectreSvgConfig)
             "--outline" => config.outline = next_arg(&mut args, "--outline"),
             "--stroke-width" => {
                 config.stroke_width = parse_value(next_arg(&mut args, "--stroke-width"), "--stroke-width")
+            }
+            "--draw-mode" => {
+                config.draw_mode = match next_arg(&mut args, "--draw-mode").as_str() {
+                    "generated" => DrawMode::Generated,
+                    "translation" => DrawMode::Translation,
+                    other => {
+                        eprintln!("invalid value for --draw-mode: {other}");
+                        std::process::exit(2);
+                    }
+                }
             }
             "--palette" => {
                 config.palette = next_arg(&mut args, "--palette")
@@ -85,6 +95,7 @@ fn print_help() {
            --background COLOR\n\
            --outline COLOR\n\
            --stroke-width PX\n\
+           --draw-mode generated|translation\n\
            --palette c1,c2,c3,..."
     );
 }

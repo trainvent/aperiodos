@@ -153,6 +153,13 @@ def _coerce_palette(payload):
     return [str(color) for color in palette]
 
 
+def _coerce_spectre_draw_mode(payload):
+    draw_mode = str(payload.get("draw_mode", "translation"))
+    if draw_mode not in {"generated", "translation"}:
+        raise ValueError("'draw_mode' must be 'generated' or 'translation'.")
+    return draw_mode
+
+
 def _frontend_available():
     return FRONTEND_DIST_DIR.exists() and (FRONTEND_DIST_DIR / "index.html").exists()
 
@@ -193,6 +200,7 @@ def _run_spectre_renderer(payload):
     outline = str(payload.get("outline", "#17313b"))
     stroke_width = _coerce_float(payload, "stroke_width", 1.2, minimum=0.0, maximum=20.0)
     palette = _coerce_palette(payload)
+    draw_mode = _coerce_spectre_draw_mode(payload)
 
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
         output_path = Path(tmp_file.name)
@@ -226,6 +234,8 @@ def _run_spectre_renderer(payload):
             outline,
             "--stroke-width",
             str(stroke_width),
+            "--draw-mode",
+            draw_mode,
         ]
     )
 
@@ -292,6 +302,7 @@ def api_index():
                 "scale": 40,
                 "center_x": 0,
                 "center_y": 0,
+                "draw_mode": "translation",
                 "palette": ["#1f6a5d", "#b4552d", "#d8b24c", "#17313b"],
                 "background": "#f5f1e7",
                 "outline": "#17313b",

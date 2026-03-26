@@ -120,6 +120,15 @@ impl<'a> Node<'a> {
             Node::Mystic(mystic) => mystic.bbox(),
         }
     }
+
+    fn level(&self) -> usize {
+        match self {
+            Node::SpectreCluster(cluster) => cluster.level(),
+            Node::MysticCluster(cluster) => cluster.level(),
+            Node::Spectre(_) => 0,
+            Node::Mystic(_) => 0,
+        }
+    }
 }
 
 impl<'a> From<&'a SpectreCluster> for Node<'a> {
@@ -128,10 +137,11 @@ impl<'a> From<&'a SpectreCluster> for Node<'a> {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct PathStep {
     pub index: usize,
     pub arity: usize,
+    pub parent_level: usize,
 }
 
 #[derive(Clone)]
@@ -206,6 +216,7 @@ impl<'a> Iterator for SpectrePathIter<'a> {
                         child_path.push(PathStep {
                             index: i,
                             arity: parent.num_children(),
+                            parent_level: parent.level(),
                         });
                         if let Node::Spectre(spectre) = child {
                             self.parents.push((parent, i + 1, path));
