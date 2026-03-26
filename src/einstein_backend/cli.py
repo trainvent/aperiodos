@@ -37,7 +37,7 @@ def render_pattern(
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="Generate aperiodic Einstein tile images.")
+    parser = argparse.ArgumentParser(description="Generate aperiodic Einstein tile images from the Einstein backend.")
     parser.add_argument("--iterations", type=int, default=DEFAULT_ITERATIONS, help="Number of subdivision rounds to render.")
     parser.add_argument("--scalar", type=int, default=DEFAULT_SCALAR, help="Pixel scale for each tile coordinate.")
     parser.add_argument("--width", type=int, default=DEFAULT_WIDTH, help="Output image width in pixels.")

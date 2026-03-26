@@ -7,3 +7,4 @@ output/
 web/node_modules/
 web/dist/
 src/spectre_rs/target/
+spectre/

@@ -1,7 +1,7 @@
 use crate::utils::{Aabb, Angle, HexVec};
 
 use super::{
-    Anchor, MysticCluster, MysticLike, Skeleton, SpectreIter, SpectreLike,
+    Anchor, MysticCluster, MysticLike, Skeleton, SpectreIter, SpectreLike, SpectrePathIter,
     MIN_PARTIAL_CLUSTER_LEVEL,
 };
 
@@ -241,6 +241,10 @@ impl SpectreCluster {
 
     pub fn spectres_in(&self, bbox: Aabb) -> SpectreIter<'_> {
         SpectreIter::new(self, bbox)
+    }
+
+    pub fn spectre_paths_in(&self, bbox: Aabb) -> SpectrePathIter<'_> {
+        SpectrePathIter::new(self, bbox)
     }
 
     pub fn coordinate(&self, anchor: Anchor) -> HexVec {

@@ -129,6 +129,12 @@ impl<'a> From<&'a SpectreCluster> for Node<'a> {
 }
 
 #[derive(Clone)]
+pub struct SpectreLeaf<'a> {
+    pub spectre: &'a Spectre,
+    pub path: Vec<usize>,
+}
+
+#[derive(Clone)]
 pub struct SpectreIter<'a> {
     parents: Vec<(Node<'a>, usize)>,
     bbox: Aabb,
@@ -138,6 +144,21 @@ impl<'a> SpectreIter<'a> {
     pub fn new(root: &'a SpectreCluster, bbox: Aabb) -> SpectreIter<'a> {
         SpectreIter {
             parents: vec![(root.into(), 0)],
+            bbox,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct SpectrePathIter<'a> {
+    parents: Vec<(Node<'a>, usize, Vec<usize>)>,
+    bbox: Aabb,
+}
+
+impl<'a> SpectrePathIter<'a> {
+    pub fn new(root: &'a SpectreCluster, bbox: Aabb) -> SpectrePathIter<'a> {
+        SpectrePathIter {
+            parents: vec![(root.into(), 0, Vec::new())],
             bbox,
         }
     }
@@ -157,6 +178,35 @@ impl<'a> Iterator for SpectreIter<'a> {
                         } else {
                             self.parents.push((parent, i + 1));
                             self.parents.push((child, 0));
+                            continue 'outer;
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
+impl<'a> Iterator for SpectrePathIter<'a> {
+    type Item = SpectreLeaf<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        'outer: while let Some((parent, index, path)) = self.parents.pop() {
+            for i in index..parent.num_children() {
+                if let Some(child) = parent.get_child(i) {
+                    if child.bbox().has_intersection(&self.bbox) {
+                        let mut child_path = path.clone();
+                        child_path.push(i);
+                        if let Node::Spectre(spectre) = child {
+                            self.parents.push((parent, i + 1, path));
+                            return Some(SpectreLeaf {
+                                spectre,
+                                path: child_path,
+                            });
+                        } else {
+                            self.parents.push((parent, i + 1, path));
+                            self.parents.push((child, 0, child_path));
                             continue 'outer;
                         }
                     }

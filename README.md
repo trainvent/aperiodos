@@ -1,6 +1,6 @@
 # Aperiodic Monotiles Generator
 
-Generate images based on aperiodic monotiles, with a Python Einstein generator and a new Rust Spectre renderer.
+Generate images based on aperiodic monotiles, with a Python Einstein backend and a Rust Spectre renderer.
 
 The project currently focuses on offline image generation. The longer-term goal is to use this generator as the backend for a website where people can tweak colors, size, image dimensions, tile variants, and download finished artwork.
 
@@ -16,9 +16,8 @@ The project currently focuses on offline image generation. The longer-term goal 
 .
 ├── aperiodic-generator      # Executable launcher for the Einstein Python generator
 ├── src/
-│   ├── entry/               # Launcher scripts for CLI and GUI entrypoints
-│   ├── einstein_py/         # Einstein generator implementation in Python
-│   ├── pattern_generation/  # Compatibility wrappers to the Einstein package
+│   ├── entry/               # Thin launcher scripts for CLI, GUI, and HTTP entrypoints
+│   ├── einstein_backend/    # Einstein backend implementation in Python
 │   └── spectre_rs/          # Rust Spectre renderer crate
 ├── output/                  # Generated images are written here by default
 └── README.md
@@ -137,7 +136,7 @@ This repo now includes:
 
 - `web/` for the React + Vite frontend
 - `src/entry/web.py` for the Flask API and frontend static-file serving
-- `src/einstein_py/` for the Einstein generator implementation
+- `src/einstein_backend/` for the Einstein backend implementation
 - `src/spectre_rs/` for the Rust Spectre renderer
 - `requirements.txt` for Python service dependencies
 - `Dockerfile` for the single-service Cloud Run build

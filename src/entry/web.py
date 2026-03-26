@@ -18,13 +18,13 @@ DEBUG_SPECTRE_BINARY = PROJECT_ROOT / "src" / "spectre_rs" / "target" / "debug" 
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 
-from einstein_py.cli import (  # noqa: E402
+from einstein_backend.cli import (  # noqa: E402
     DEFAULT_COLORS,
     DEFAULT_ITERATIONS,
     DEFAULT_SCALAR,
     render_pattern,
 )
-from einstein_py.seed_to_pattern import seed_to_pattern  # noqa: E402
+from einstein_backend.seed_to_pattern import seed_to_pattern  # noqa: E402
 
 
 app = Flask(__name__)
@@ -42,8 +42,8 @@ ABOUT_CONTENT = {
     "title": "About Aperiodos",
     "summary": (
         "Aperiodos is a small playground for aperiodic monotiles, image generation, "
-        "and browser experiments. The site currently centers on the Einstein renderer "
-        "and is expanding toward Spectre and other tiling references."
+        "and browser experiments. The site currently centers on monotiles."
+        "Plans to expand into other aperiodic patterns and Penrose tilings."
     ),
     "references": [
         {
