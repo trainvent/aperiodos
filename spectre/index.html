@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:locale:alternate" content="ja_JP" />
+        <meta property="og:title" content="Infinite Spectres" />
+        <meta property="og:description" content="Infinite tessellation of Spectre (Tile(1,1))" />
+        <meta property="og:description:ja_JP" content="Spectre（Tile(1,1)）を無限に表示するよ" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://spectre.necocen.info/" />
+        <meta property="og:image" content="https://spectre.necocen.info/ogp.png" />
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:site" content="@necocen">
+        <title>Infinite Spectres</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #text-display {
+                position: fixed;
+                bottom: 10px;
+                right: 10px;
+                z-index: 10;
+                background-color: rgba(128, 128, 128, 0.7);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-size: 14px;
+                font-family: -apple-system, Roboto, sans-serif;
+            }
+            #text-display a {
+                color: white;
+                text-decoration: underline;
+            }
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="text-display">Infinite Spectres<br>GitHub: <a href="https://github.com/necocen/spectre" target="_blank">necocen/spectre</a></div>
+        <script type="module">
+            import init, { run } from "./pkg/spectre.js";
+
+            try {
+                await init();
+                console.log("WASM initialized");
+                await run();
+            } catch (error) {
+                if (
+                    !error.message.startsWith(
+                        "Using exceptions for control flow, don't mind me. This isn't actually an error!",
+                    )
+                ) {
+                    throw error;
+                }
+            }
+        </script>
+    </body>
+</html>

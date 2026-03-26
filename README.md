@@ -44,7 +44,10 @@ Package notes:
 - `python3-tk` is only needed for `--show-window`.
 
 ## Usage
+### Web
+https://www.aperiodos.com/
 
+### Offline
 Generate the default full pattern:
 
 ```bash
@@ -238,5 +241,6 @@ These limits are there to reduce the chance of Cloud Run instances timing out or
 
 - David Smith: https://en.wikipedia.org/wiki/David_Smith_(amateur_mathematician)
 - Hat monotile reference page: https://cs.uwaterloo.ca/~csk/hat/h7h8.html
-- Earlier inspiration repository: https://github.com/asmoly/Einstein_Tile_Generator
--
+- inspiration repository for Einstein: https://github.com/asmoly/Einstein_Tile_Generator
+  - spectre: https://github.com/necocen/spectre
+
