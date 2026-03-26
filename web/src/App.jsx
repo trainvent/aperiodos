@@ -60,12 +60,11 @@ const SPECTRE_DEFAULTS = {
   center_y: 0,
   background: "linen",
   outline: "black",
-  stroke_width: 1.2,
-  palette_1: "midnightblue",
-  palette_2: "seagreen",
-  palette_3: "sienna",
-  palette_4: "goldenrod",
-  palette_5: "floralwhite"
+  stroke_width: 1,
+  palette_1: "seagreen",
+  palette_2: "sienna",
+  palette_3: "goldenrod",
+  palette_4: "midnightblue"
 };
 
 export default function App() {
@@ -251,11 +250,10 @@ function SpectrePage() {
           <ColorField values={values} setValues={setValues} name="outline" label="Outline" full />
           <NumberField values={values} setValues={setValues} name="stroke_width" label="Stroke Width" min={0} max={20} step="0.1" />
           <div className="swatches full">
-            <ColorField values={values} setValues={setValues} name="palette_1" label="Palette 1" />
-            <ColorField values={values} setValues={setValues} name="palette_2" label="Palette 2" />
-            <ColorField values={values} setValues={setValues} name="palette_3" label="Palette 3" />
-            <ColorField values={values} setValues={setValues} name="palette_4" label="Palette 4" />
-            <ColorField values={values} setValues={setValues} name="palette_5" label="Palette 5" full />
+            <ColorField values={values} setValues={setValues} name="palette_1" label="Color 1" />
+            <ColorField values={values} setValues={setValues} name="palette_2" label="Color 2" />
+            <ColorField values={values} setValues={setValues} name="palette_3" label="Color 3" />
+            <ColorField values={values} setValues={setValues} name="palette_4" label="Color 4" />
           </div>
         </>
       }
@@ -269,7 +267,7 @@ function SpectrePage() {
         background: values.background,
         outline: values.outline,
         stroke_width: Number(values.stroke_width),
-        palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4, values.palette_5]
+        palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4]
           .map((value) => String(value).trim())
           .filter(Boolean)
       })}

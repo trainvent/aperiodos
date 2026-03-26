@@ -128,10 +128,16 @@ impl<'a> From<&'a SpectreCluster> for Node<'a> {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PathStep {
+    pub index: usize,
+    pub arity: usize,
+}
+
 #[derive(Clone)]
 pub struct SpectreLeaf<'a> {
     pub spectre: &'a Spectre,
-    pub path: Vec<usize>,
+    pub path: Vec<PathStep>,
 }
 
 #[derive(Clone)]
@@ -151,7 +157,7 @@ impl<'a> SpectreIter<'a> {
 
 #[derive(Clone)]
 pub struct SpectrePathIter<'a> {
-    parents: Vec<(Node<'a>, usize, Vec<usize>)>,
+    parents: Vec<(Node<'a>, usize, Vec<PathStep>)>,
     bbox: Aabb,
 }
 
@@ -197,7 +203,10 @@ impl<'a> Iterator for SpectrePathIter<'a> {
                 if let Some(child) = parent.get_child(i) {
                     if child.bbox().has_intersection(&self.bbox) {
                         let mut child_path = path.clone();
-                        child_path.push(i);
+                        child_path.push(PathStep {
+                            index: i,
+                            arity: parent.num_children(),
+                        });
                         if let Node::Spectre(spectre) = child {
                             self.parents.push((parent, i + 1, path));
                             return Some(SpectreLeaf {

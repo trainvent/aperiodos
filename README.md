@@ -315,3 +315,4 @@ These limits are there to reduce the chance of Cloud Run instances timing out or
 - inspiration repository for Einstein: https://github.com/asmoly/Einstein_Tile_Generator
 - spectre reference implementation: https://github.com/necocen/spectre
 - OpenAIs models where used for most of the technical work: https://openai.com/
+- https://mathoverflow.net/questions/443377/how-can-one-construct-a-four-coloring-of-a-tiling-of-the-plane-with-smith-myers

@@ -275,7 +275,7 @@ def api_index():
                 "scale": 40,
                 "center_x": 0,
                 "center_y": 0,
-                "palette": ["#17313b", "#1f6a5d", "#b4552d", "#d8b24c", "#f6f1e8"],
+                "palette": ["#1f6a5d", "#b4552d", "#d8b24c", "#17313b"],
                 "background": "#f5f1e7",
                 "outline": "#17313b",
                 "stroke_width": 1.2,
