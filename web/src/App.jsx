@@ -132,9 +132,8 @@ function HomePage() {
           <p className="eyebrow">Trainvent subservice</p>
           <h1>Choose a generator.</h1>
           <p className="lede">
-            Aperiodos is part of Trainvent. Start with the classic Einstein image renderer or switch
-            to Spectre, the chiral monotile that does not need mirror flips. One interface, two
-            render engines, and room to grow.
+            Start with the classic Einstein image renderer or switch
+            to Spectre, the chiral monotile that does not need mirror flips.
           </p>
         </div>
         <aside className="hero-note panel">
