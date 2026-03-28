@@ -366,6 +366,7 @@ def render_einstein():
                 seed=seed_value,
                 output_file_name=str(output_path),
                 draw_outline=not no_outline,
+                colors=colors,
                 color_mode=color_mode,
                 four_colors=four_colors,
             )

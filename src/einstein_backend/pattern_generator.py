@@ -3,7 +3,7 @@ from PIL import ImageColor
 import sys
 
 to_screen_mat = [1, 0, 0, 0, -1, 0]
-DEFAULT_COLORS = ("black", "seagreen", "white", "sandybrown", "sandybrown")
+DEFAULT_COLORS = ("black", "seagreen", "white", "sandybrown", "gold")
 DEFAULT_FOUR_COLORS = ("seagreen", "sienna", "goldenrod", "midnightblue")
 
 vertices_to_draw = []
@@ -288,6 +288,7 @@ def next_generation(colorquintett=DEFAULT_COLORS):
         'P': [col[3], ImageColor.getrgb(col[3]), 'P'],
         'F': [col[4], ImageColor.getrgb(col[4]), 'F']
     }
+    vertices_to_draw.clear()
     draw(colors)
     build_supertiles()
 

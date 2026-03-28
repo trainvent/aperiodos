@@ -84,7 +84,14 @@ def build_parser():
 def main(argv=None):
     args = build_parser().parse_args(argv)
     if args.seed is not None:
-        output = seed_to_pattern(seed=args.seed, output_file_name=args.output, draw_outline=not args.no_outline)
+        output = seed_to_pattern(
+            seed=args.seed,
+            output_file_name=args.output,
+            draw_outline=not args.no_outline,
+            colors=tuple(args.colors),
+            color_mode=args.color_mode,
+            four_colors=tuple(args.four_colors),
+        )
     else:
         output = render_pattern(
             iterations=args.iterations,
