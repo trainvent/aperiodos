@@ -2,6 +2,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from .svg import save_tiles_svg
+
 try:
     from tkinter import Canvas, Tk
     TK_AVAILABLE = True
@@ -87,11 +89,15 @@ def draw_tiles(
     outline = "black" if draw_outline else None
     outline_width = 2 if draw_outline else 0
     if filename:
-        img = EinsteinImage(width, height, bg="white", scalar=scalar)
-        for tile in tiles:
-            img.draw_polygon(tile[0], fill=tile[1][1], outline=outline)
+        output_path = Path(filename)
+        if output_path.suffix.lower() == ".svg":
+            save_tiles_svg(tiles, width=width, height=height, scalar=scalar, filename=filename, draw_outline=draw_outline)
+        else:
+            img = EinsteinImage(width, height, bg="white", scalar=scalar)
+            for tile in tiles:
+                img.draw_polygon(tile[0], fill=tile[1][1], outline=outline)
 
-        img.save(filename)
+            img.save(filename)
     if show_window:
         if not TK_AVAILABLE:
             raise RuntimeError(

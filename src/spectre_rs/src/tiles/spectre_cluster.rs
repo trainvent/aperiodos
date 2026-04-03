@@ -1,8 +1,8 @@
 use crate::utils::{Aabb, Angle, HexVec};
 
 use super::{
-    Anchor, MysticCluster, MysticLike, Skeleton, SpectreIter, SpectreLike, SpectrePathIter,
-    MIN_PARTIAL_CLUSTER_LEVEL,
+    Anchor, MIN_PARTIAL_CLUSTER_LEVEL, MysticCluster, MysticLike, Skeleton, SpectreIter,
+    SpectreLike, SpectrePathIter,
 };
 
 pub struct SpectreCluster {

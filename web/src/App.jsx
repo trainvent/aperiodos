@@ -63,6 +63,7 @@ const SPECTRE_DEFAULTS = {
   scale: 4,
   center_x: 0,
   center_y: 0,
+  format: "svg",
   draw_mode: "translation",
   background: "linen",
   outline: "black",
@@ -203,7 +204,8 @@ function EinsteinPage() {
             label="Format"
             options={[
               { value: "png", label: "PNG" },
-              { value: "jpg", label: "JPG" }
+              { value: "jpg", label: "JPG" },
+              { value: "svg", label: "SVG" }
             ]}
             full
           />
@@ -251,7 +253,15 @@ function EinsteinPage() {
       }}
       endpoint="/api/einstein/render"
       downloadName={(payload) => `aperiodic-pattern.${payload.format}`}
-      previewType={(payload) => (payload.format === "jpg" ? "image/jpeg" : "image/png")}
+      previewType={(payload) => {
+        if (payload.format === "jpg") {
+          return "image/jpeg";
+        }
+        if (payload.format === "svg") {
+          return "image/svg+xml";
+        }
+        return "image/png";
+      }}
       values={values}
       setValues={setValues}
       defaults={EINSTEIN_DEFAULTS}
@@ -273,6 +283,17 @@ function SpectrePage() {
           <NumberField values={values} setValues={setValues} name="scale" label="Scale" min={1} max={120} />
           <NumberField values={values} setValues={setValues} name="center_x" label="Center X" step="0.1" />
           <NumberField values={values} setValues={setValues} name="center_y" label="Center Y" step="0.1" />
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="format"
+            label="Format"
+            options={[
+              { value: "svg", label: "SVG" },
+              { value: "png", label: "PNG" }
+            ]}
+            full
+          />
           <SelectField
             values={values}
             setValues={setValues}
@@ -302,6 +323,7 @@ function SpectrePage() {
         scale: Number(values.scale),
         center_x: Number(values.center_x),
         center_y: Number(values.center_y),
+        format: values.format,
         draw_mode: values.draw_mode,
         background: values.background,
         outline: values.outline,
@@ -311,8 +333,8 @@ function SpectrePage() {
           .filter(Boolean)
       })}
       endpoint="/api/spectre/render"
-      downloadName={() => "spectre.svg"}
-      previewType={() => "image/svg+xml"}
+      downloadName={(payload) => `spectre.${payload.format}`}
+      previewType={(payload) => (payload.format === "png" ? "image/png" : "image/svg+xml")}
       values={values}
       setValues={setValues}
       defaults={SPECTRE_DEFAULTS}

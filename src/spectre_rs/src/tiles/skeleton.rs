@@ -1,6 +1,6 @@
 use crate::utils::{Aabb, Angle, HexVec};
 
-use super::{Anchor, Spectre, SpectreCluster, SpectreLike, MIN_PARTIAL_CLUSTER_LEVEL};
+use super::{Anchor, MIN_PARTIAL_CLUSTER_LEVEL, Spectre, SpectreCluster, SpectreLike};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Skeleton {

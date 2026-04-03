@@ -8,3 +8,8 @@ In another terminal, start the frontend dev server
 cd web
 npm run dev
 ```
+do
+for refreshing rust backend:
+```
+cargo build --release --manifest-path src/spectre_rs/Cargo.toml
+```

@@ -9,6 +9,7 @@ from .pattern_generator import (
     reset_generator,
     vertices_to_draw,
 )
+from .svg import save_seed_tiles_svg
 
 
 def seed_to_coordinate(seed):
@@ -60,7 +61,7 @@ def seed_to_pattern(
         raise RuntimeError(
             "Seed-based rendering requires NumPy and OpenCV. Install dependencies from requirements.txt first."
         ) from exc
-    from .graphics_cv2 import OUTPUT_IMAGE_DIMENSIONS, draw_tile
+    from .graphics_cv2 import OUTPUT_IMAGE_DIMENSIONS, SCALAR, draw_tile
 
     output_path = Path(output_file_name)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -70,14 +71,25 @@ def seed_to_pattern(
     next_generation(colors)
 
     while True:
-        output_image = np.full((OUTPUT_IMAGE_DIMENSIONS.y, OUTPUT_IMAGE_DIMENSIONS.x, 3), 255)
+        output_image = np.full((OUTPUT_IMAGE_DIMENSIONS.y, OUTPUT_IMAGE_DIMENSIONS.x, 3), 255, dtype=np.uint8)
         if color_mode == "four_color":
             apply_four_coloring(four_colors)
         for tile in vertices_to_draw:
             output_image = draw_tile(tile, output_image, offset_coord=offset_coordinate, draw_outline=draw_outline)
 
         if np.count_nonzero(output_image == 255) <= 9:
-            cv2.imwrite(str(output_path), output_image)
+            if output_path.suffix.lower() == ".svg":
+                save_seed_tiles_svg(
+                    vertices_to_draw,
+                    width=int(OUTPUT_IMAGE_DIMENSIONS.x),
+                    height=int(OUTPUT_IMAGE_DIMENSIONS.y),
+                    scalar=SCALAR,
+                    offset_coord=offset_coordinate,
+                    filename=str(output_path),
+                    draw_outline=draw_outline,
+                )
+            else:
+                cv2.imwrite(str(output_path), output_image)
             return str(output_path)
 
         next_generation(colors)

@@ -3,8 +3,10 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from xml.etree import ElementTree
 
 from flask import Flask, jsonify, request, send_file, send_from_directory
+from PIL import Image, ImageColor, ImageDraw
 
 
 LAUNCHER_DIR = Path(__file__).resolve().parent
@@ -37,7 +39,8 @@ MAX_ITERATIONS = 6
 MAX_SCALAR = 80
 MAX_SPECTRE_LEVEL = 8
 MAX_SPECTRE_SCALE = 120
-ALLOWED_EINSTEIN_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png"}
+ALLOWED_EINSTEIN_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
+ALLOWED_SPECTRE_FORMATS = {"png": "image/png", "svg": "image/svg+xml"}
 
 ABOUT_CONTENT = {
     "title": "About Aperiodos",
@@ -160,6 +163,67 @@ def _coerce_spectre_draw_mode(payload):
     return draw_mode
 
 
+def _coerce_spectre_format(payload):
+    image_format = str(payload.get("format", "svg")).lower()
+    if image_format not in ALLOWED_SPECTRE_FORMATS:
+        raise ValueError(f"'format' must be one of: {', '.join(sorted(ALLOWED_SPECTRE_FORMATS))}.")
+    return image_format
+
+
+def _parse_svg_dimension(raw_value, fallback):
+    if not raw_value:
+        return fallback
+    normalized = str(raw_value).strip().removesuffix("px")
+    try:
+        return int(round(float(normalized)))
+    except ValueError:
+        return fallback
+
+
+def _parse_pillow_color(raw_value):
+    if not raw_value or raw_value == "none":
+        return None
+    return ImageColor.getrgb(str(raw_value))
+
+
+def _parse_svg_points(raw_points):
+    points = []
+    for pair in str(raw_points).replace("\n", " ").split():
+        x_str, y_str = pair.split(",", 1)
+        points.append((float(x_str), float(y_str)))
+    return points
+
+
+def _rasterize_spectre_svg(svg_path, png_path, fallback_width, fallback_height):
+    document = ElementTree.parse(svg_path)
+    root = document.getroot()
+    width = _parse_svg_dimension(root.attrib.get("width"), fallback_width)
+    height = _parse_svg_dimension(root.attrib.get("height"), fallback_height)
+
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+
+    for node in root:
+        tag = node.tag.rsplit("}", 1)[-1]
+        if tag == "rect":
+            fill = _parse_pillow_color(node.attrib.get("fill"))
+            if fill is not None:
+                draw.rectangle([(0, 0), (width, height)], fill=fill)
+        elif tag == "polygon":
+            points = _parse_svg_points(node.attrib.get("points", ""))
+            fill = _parse_pillow_color(node.attrib.get("fill"))
+            outline = _parse_pillow_color(node.attrib.get("stroke"))
+            stroke_width = float(node.attrib.get("stroke-width", "1"))
+            draw.polygon(
+                points,
+                fill=fill,
+                outline=outline if stroke_width > 0 else None,
+                width=max(1, int(round(stroke_width))) if stroke_width > 0 else 0,
+            )
+
+    image.save(png_path)
+
+
 def _frontend_available():
     return FRONTEND_DIST_DIR.exists() and (FRONTEND_DIST_DIR / "index.html").exists()
 
@@ -168,10 +232,10 @@ def _spectre_binary_path():
     configured = os.environ.get("SPECTRE_BIN")
     if configured:
         return Path(configured)
-    if DEFAULT_SPECTRE_BINARY.exists():
-        return DEFAULT_SPECTRE_BINARY
-    if DEBUG_SPECTRE_BINARY.exists():
-        return DEBUG_SPECTRE_BINARY
+
+    candidates = [path for path in (DEFAULT_SPECTRE_BINARY, DEBUG_SPECTRE_BINARY) if path.exists()]
+    if candidates:
+        return max(candidates, key=lambda path: path.stat().st_mtime)
     return None
 
 
@@ -201,9 +265,11 @@ def _run_spectre_renderer(payload):
     stroke_width = _coerce_float(payload, "stroke_width", 1.2, minimum=0.0, maximum=20.0)
     palette = _coerce_palette(payload)
     draw_mode = _coerce_spectre_draw_mode(payload)
+    image_format = _coerce_spectre_format(payload)
 
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
         output_path = Path(tmp_file.name)
+    png_output_path = None
 
     binary_path = _spectre_binary_path()
     command = []
@@ -256,9 +322,20 @@ def _run_spectre_renderer(payload):
             stderr = result.stderr.strip() or result.stdout.strip() or "Spectre renderer failed."
             raise RuntimeError(stderr)
 
+        if image_format == "png":
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False, dir="/tmp") as png_file:
+                png_output_path = Path(png_file.name)
+            _rasterize_spectre_svg(output_path, png_output_path, width, height)
+            return send_file(
+                png_output_path,
+                mimetype=ALLOWED_SPECTRE_FORMATS[image_format],
+                as_attachment=False,
+                download_name="spectre.png",
+            )
+
         return send_file(
             output_path,
-            mimetype="image/svg+xml",
+            mimetype=ALLOWED_SPECTRE_FORMATS[image_format],
             as_attachment=False,
             download_name="spectre.svg",
         )
@@ -267,6 +344,11 @@ def _run_spectre_renderer(payload):
             os.unlink(output_path)
         except FileNotFoundError:
             pass
+        if png_output_path is not None:
+            try:
+                os.unlink(png_output_path)
+            except FileNotFoundError:
+                pass
 
 
 @app.get("/api")
@@ -281,7 +363,7 @@ def api_index():
                 "GET /api/healthz": "Basic health check",
                 "GET /api/about": "References and acknowledgements",
                 "POST /api/einstein/render": "Generate an Einstein image and return it directly",
-                "POST /api/spectre/render": "Generate a Spectre SVG and return it directly",
+                "POST /api/spectre/render": "Generate a Spectre SVG or PNG and return it directly",
             },
             "einstein_example_payload": {
                 "iterations": DEFAULT_ITERATIONS,
@@ -302,6 +384,7 @@ def api_index():
                 "scale": 40,
                 "center_x": 0,
                 "center_y": 0,
+                "format": "svg",
                 "draw_mode": "translation",
                 "palette": ["#1f6a5d", "#b4552d", "#d8b24c", "#17313b"],
                 "background": "#f5f1e7",

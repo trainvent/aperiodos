@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use spectre_rs::{write_svg, DrawMode, SpectreSvgConfig};
+use spectre_rs::{DrawMode, SpectreSvgConfig, write_svg};
 
 fn main() {
     let (output, config) = parse_args(env::args().skip(1));
@@ -24,12 +24,17 @@ fn parse_args(args: impl Iterator<Item = String>) -> (PathBuf, SpectreSvgConfig)
             "--height" => config.height = parse_value(next_arg(&mut args, "--height"), "--height"),
             "--level" => config.level = parse_value(next_arg(&mut args, "--level"), "--level"),
             "--scale" => config.scale = parse_value(next_arg(&mut args, "--scale"), "--scale"),
-            "--center-x" => config.center_x = parse_value(next_arg(&mut args, "--center-x"), "--center-x"),
-            "--center-y" => config.center_y = parse_value(next_arg(&mut args, "--center-y"), "--center-y"),
+            "--center-x" => {
+                config.center_x = parse_value(next_arg(&mut args, "--center-x"), "--center-x")
+            }
+            "--center-y" => {
+                config.center_y = parse_value(next_arg(&mut args, "--center-y"), "--center-y")
+            }
             "--background" => config.background = next_arg(&mut args, "--background"),
             "--outline" => config.outline = next_arg(&mut args, "--outline"),
             "--stroke-width" => {
-                config.stroke_width = parse_value(next_arg(&mut args, "--stroke-width"), "--stroke-width")
+                config.stroke_width =
+                    parse_value(next_arg(&mut args, "--stroke-width"), "--stroke-width")
             }
             "--draw-mode" => {
                 config.draw_mode = match next_arg(&mut args, "--draw-mode").as_str() {

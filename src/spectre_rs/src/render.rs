@@ -99,10 +99,7 @@ fn render_svg_generated(config: &SpectreSvgConfig, palette: &[String]) -> String
         let _ = writeln!(
             document,
             "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
-            points,
-            fill,
-            config.outline,
-            config.stroke_width
+            points, fill, config.outline, config.stroke_width
         );
     }
 
@@ -141,10 +138,7 @@ fn render_svg_translation(config: &SpectreSvgConfig, palette: &[String]) -> Stri
         let _ = writeln!(
             document,
             "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
-            points,
-            fill,
-            config.outline,
-            config.stroke_width
+            points, fill, config.outline, config.stroke_width
         );
     }
 
@@ -169,8 +163,9 @@ fn viewport_bbox(config: &SpectreSvgConfig) -> Aabb {
 }
 
 fn root_cluster(level: usize, bbox: &Aabb) -> SpectreCluster {
-    let mut cluster = Skeleton::with_anchor(Anchor::Anchor1, HexVec::ZERO, Angle::ZERO, level, None)
-        .to_spectre_cluster(bbox);
+    let mut cluster =
+        Skeleton::with_anchor(Anchor::Anchor1, HexVec::ZERO, Angle::ZERO, level, None)
+            .to_spectre_cluster(bbox);
 
     while !cluster.bbox().contains_bbox(bbox) {
         cluster = if cluster.level() % 2 == 0 {
@@ -192,11 +187,7 @@ fn content_bbox_from_iter<'a>(spectres: impl Iterator<Item = &'a Spectre>) -> Op
         has_content = true;
     }
 
-    if has_content {
-        Some(bbox)
-    } else {
-        None
-    }
+    if has_content { Some(bbox) } else { None }
 }
 
 fn content_bbox(spectres: &[crate::tiles::SpectreLeaf<'_>]) -> Option<Aabb> {
@@ -295,11 +286,7 @@ fn spectre_color_indices_translation(spectres: &[&Spectre], palette_len: usize) 
                 .iter()
                 .filter_map(|&neighbor| {
                     let color = colors[neighbor];
-                    if color < 3 {
-                        Some(color)
-                    } else {
-                        None
-                    }
+                    if color < 3 { Some(color) } else { None }
                 })
                 .fold([false; 3], |mut used, color| {
                     used[color] = true;
@@ -312,7 +299,11 @@ fn spectre_color_indices_translation(spectres: &[&Spectre], palette_len: usize) 
                 .iter()
                 .filter(|&&neighbor| colors[neighbor] != special_color)
                 .count();
-            (std::cmp::Reverse(saturation), std::cmp::Reverse(degree), index)
+            (
+                std::cmp::Reverse(saturation),
+                std::cmp::Reverse(degree),
+                index,
+            )
         });
 
         let index = uncolored.remove(0);
@@ -345,11 +336,7 @@ fn color_group_graph(adjacency: &[Vec<usize>], colors: &mut [usize]) {
                 .iter()
                 .filter_map(|&neighbor| {
                     let color = colors[neighbor];
-                    if color < 3 {
-                        Some(color)
-                    } else {
-                        None
-                    }
+                    if color < 3 { Some(color) } else { None }
                 })
                 .fold([false; 3], |mut used, color| {
                     used[color] = true;
@@ -358,7 +345,11 @@ fn color_group_graph(adjacency: &[Vec<usize>], colors: &mut [usize]) {
                 .into_iter()
                 .filter(|used| *used)
                 .count();
-            (std::cmp::Reverse(saturation), std::cmp::Reverse(adjacency[index].len()), index)
+            (
+                std::cmp::Reverse(saturation),
+                std::cmp::Reverse(adjacency[index].len()),
+                index,
+            )
         });
 
         let index = uncolored.remove(0);
@@ -428,11 +419,7 @@ fn build_edge_adjacency_translation(spectres: &[&Spectre]) -> Vec<Vec<usize>> {
 }
 
 fn normalized_edge(a: HexVec, b: HexVec) -> (HexVec, HexVec) {
-    if a <= b {
-        (a, b)
-    } else {
-        (b, a)
-    }
+    if a <= b { (a, b) } else { (b, a) }
 }
 
 fn is_special_spectre(spectre: &Spectre) -> bool {
@@ -447,7 +434,12 @@ fn fitted_scale(config: &SpectreSvgConfig, content_bbox: &Aabb) -> f32 {
     config.scale.min(width_scale.min(height_scale))
 }
 
-fn svg_points(spectre: &Spectre, content_center: Vec2, render_scale: f32, config: &SpectreSvgConfig) -> String {
+fn svg_points(
+    spectre: &Spectre,
+    content_center: Vec2,
+    render_scale: f32,
+    config: &SpectreSvgConfig,
+) -> String {
     let mut points = String::new();
 
     for (index, vertex) in spectre.vertices().into_iter().enumerate() {
