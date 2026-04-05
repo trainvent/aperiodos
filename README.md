@@ -48,17 +48,6 @@ Package notes:
 ### Web
 https://www.aperiodos.com/
 
-### Frontend Deployment
-
-The React frontend in `web/` is configured for GitHub Pages deployments.
-
-- The live Pages target is the custom domain `https://www.aperiodos.com/`, so Pages builds run in root mode with `PAGES_BASE_PATH` left empty.
-- The GitHub Actions workflow publishes the static Vite output from `web/dist`.
-- `web/public/CNAME` is included so the exported site keeps the `www.aperiodos.com` custom domain on GitHub Pages.
-- GitHub Pages only hosts the static frontend. The current UI still calls `/api/*`, so those backend endpoints must remain available separately if you want the generators to keep working after the frontend deploy.
-
-After pushing the workflow, set the repository Pages source to `GitHub Actions`. If you are keeping the custom domain, also verify the DNS records and the Pages custom-domain setting in GitHub.
-
 ### Offline
 Generate the default full pattern:
 
