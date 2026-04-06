@@ -125,8 +125,10 @@ impl HalfTile {
 
     fn pairing_edge(&self) -> SharedEdge {
         let edge = match self.kind {
-            HalfTileKind::Kite => longest_edge(&self.vertices),
-            HalfTileKind::Dart => shortest_edge(&self.vertices),
+            // A kite is two acute Robinson triangles glued along the short base,
+            // while a dart is two obtuse triangles glued along the long base.
+            HalfTileKind::Kite => shortest_edge(&self.vertices),
+            HalfTileKind::Dart => longest_edge(&self.vertices),
         };
         SharedEdge {
             key: edge_key(edge.0, edge.1),
