@@ -74,6 +74,25 @@ const SPECTRE_DEFAULTS = {
   palette_4: "midnightblue"
 };
 
+const PENROSE_DEFAULTS = {
+  width: 1200,
+  height: 1200,
+  iterations: 7,
+  scale: 320,
+  center_x: 0,
+  center_y: 0,
+  format: "svg",
+  seed: "sun",
+  color_mode: "tile_type",
+  background: "linen",
+  outline: "black",
+  stroke_width: 1.1,
+  palette_1: "#204f7a",
+  palette_2: "#d18c45",
+  palette_3: "#eadfc8",
+  palette_4: "#7e2f39"
+};
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 function apiUrl(path) {
@@ -87,13 +106,14 @@ export default function App() {
       <div className="ambient ambient-right" />
       <header className="topbar">
         <NavLink className="brand" to="/">
-          <img className="brand-mark" src="/custom-pattern_1024.jpg" alt="" />
+          <img className="brand-mark" src="/custom-pattern_1024.png" alt="" />
           <span className="brand-copy">Aperiodos</span>
         </NavLink>
         <nav className="topnav">
           <TopNavLink to="/">Home</TopNavLink>
           <TopNavLink to="/einstein">Einstein</TopNavLink>
           <TopNavLink to="/spectre">Spectre</TopNavLink>
+          <TopNavLink to="/penrose">Penrose</TopNavLink>
           <TopNavLink to="/about">About</TopNavLink>
         </nav>
       </header>
@@ -103,6 +123,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/einstein" element={<EinsteinPage />} />
           <Route path="/spectre" element={<SpectrePage />} />
+          <Route path="/penrose" element={<PenrosePage />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>
@@ -118,6 +139,7 @@ export default function App() {
           <TopNavLink to="/about">About</TopNavLink>
           <TopNavLink to="/einstein">Einstein</TopNavLink>
           <TopNavLink to="/spectre">Spectre</TopNavLink>
+          <TopNavLink to="/penrose">Penrose</TopNavLink>
         </nav>
       </footer>
     </div>
@@ -141,12 +163,12 @@ function HomePage() {
           <h1>Choose a generator.</h1>
           <p className="lede">
             Start with the classic Einstein image renderer or switch
-            to Spectre, the chiral monotile that does not need mirror flips.
+            to Spectre, or explore a first Penrose kite-and-dart renderer built in Rust.
           </p>
         </div>
         <aside className="hero-note panel">
           <strong>Current build</strong>
-          <p>Einstein renders PNG/JPG today. Spectre v1 renders SVG through the new Rust backend.</p>
+          <p>Einstein renders PNG/JPG. Spectre and Penrose both render from Rust backends with SVG-first export.</p>
         </aside>
       </section>
 
@@ -174,6 +196,18 @@ function HomePage() {
           </p>
           <NavLink className="button button-green" to="/spectre">
             Open Spectre Generator
+          </NavLink>
+        </article>
+
+        <article className="feature-card feature-penrose panel">
+          <span className="tag">Rust renderer</span>
+          <h2>Penrose</h2>
+          <p>
+            Build kite-and-dart tilings from a classic sun or star seed, tune the viewport, and
+            export the result as SVG or PNG.
+          </p>
+          <NavLink className="button button-ink" to="/penrose">
+            Open Penrose Generator
           </NavLink>
         </article>
       </section>
@@ -345,6 +379,89 @@ function SpectrePage() {
       values={values}
       setValues={setValues}
       defaults={SPECTRE_DEFAULTS}
+    />
+  );
+}
+
+function PenrosePage() {
+  const [values, setValues] = useState(PENROSE_DEFAULTS);
+  return (
+    <GeneratorLayout
+      title="Penrose Generator"
+      description="Generate Penrose P2 kite-and-dart tilings from a sun or star seed, then adjust the framing, coloring, and export format."
+      controls={
+        <>
+          <NumberField values={values} setValues={setValues} name="width" label="Width" min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="height" label="Height" min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="iterations" label="Iterations" min={0} max={10} />
+          <NumberField values={values} setValues={setValues} name="scale" label="Scale" min={10} max={1200} />
+          <NumberField values={values} setValues={setValues} name="center_x" label="Center X" step="0.01" />
+          <NumberField values={values} setValues={setValues} name="center_y" label="Center Y" step="0.01" />
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="seed"
+            label="Seed"
+            options={[
+              { value: "sun", label: "Sun" },
+              { value: "star", label: "Star" }
+            ]}
+          />
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="color_mode"
+            label="Coloring"
+            options={[
+              { value: "tile_type", label: "Tile Type" },
+              { value: "orientation", label: "Orientation" }
+            ]}
+          />
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="format"
+            label="Format"
+            options={[
+              { value: "svg", label: "SVG" },
+              { value: "png", label: "PNG" }
+            ]}
+            full
+          />
+          <ColorField values={values} setValues={setValues} name="background" label="Background" full />
+          <ColorField values={values} setValues={setValues} name="outline" label="Outline" full />
+          <NumberField values={values} setValues={setValues} name="stroke_width" label="Stroke Width" min={0} max={20} step="0.1" />
+          <div className="swatches full">
+            <ColorField values={values} setValues={setValues} name="palette_1" label="Color 1" />
+            <ColorField values={values} setValues={setValues} name="palette_2" label="Color 2" />
+            <ColorField values={values} setValues={setValues} name="palette_3" label="Color 3" />
+            <ColorField values={values} setValues={setValues} name="palette_4" label="Color 4" />
+          </div>
+        </>
+      }
+      payload={() => ({
+        width: Number(values.width),
+        height: Number(values.height),
+        iterations: Number(values.iterations),
+        scale: Number(values.scale),
+        center_x: Number(values.center_x),
+        center_y: Number(values.center_y),
+        format: values.format,
+        seed: values.seed,
+        color_mode: values.color_mode,
+        background: values.background,
+        outline: values.outline,
+        stroke_width: Number(values.stroke_width),
+        palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4]
+          .map((value) => String(value).trim())
+          .filter(Boolean)
+      })}
+      endpoint={apiUrl("/api/penrose/render")}
+      downloadName={(payload) => `penrose.${payload.format}`}
+      previewType={(payload) => (payload.format === "png" ? "image/png" : "image/svg+xml")}
+      values={values}
+      setValues={setValues}
+      defaults={PENROSE_DEFAULTS}
     />
   );
 }

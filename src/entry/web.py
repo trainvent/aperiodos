@@ -16,6 +16,8 @@ FRONTEND_DIST_DIR = PROJECT_ROOT / "web" / "dist"
 FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
 DEFAULT_SPECTRE_BINARY = PROJECT_ROOT / "src" / "spectre_rs" / "target" / "release" / "spectre_rs"
 DEBUG_SPECTRE_BINARY = PROJECT_ROOT / "src" / "spectre_rs" / "target" / "debug" / "spectre_rs"
+DEFAULT_PENROSE_BINARY = PROJECT_ROOT / "penrose" / "target" / "release" / "penrose_rs"
+DEBUG_PENROSE_BINARY = PROJECT_ROOT / "penrose" / "target" / "debug" / "penrose_rs"
 
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
@@ -39,8 +41,11 @@ MAX_ITERATIONS = 6
 MAX_SCALAR = 80
 MAX_SPECTRE_LEVEL = 8
 MAX_SPECTRE_SCALE = 120
+MAX_PENROSE_ITERATIONS = 10
+MAX_PENROSE_SCALE = 1200
 ALLOWED_EINSTEIN_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
 ALLOWED_SPECTRE_FORMATS = {"png": "image/png", "svg": "image/svg+xml"}
+ALLOWED_PENROSE_FORMATS = {"png": "image/png", "svg": "image/svg+xml"}
 
 ABOUT_CONTENT = {
     "title": "About Aperiodos",
@@ -191,6 +196,27 @@ def _coerce_spectre_format(payload):
     return image_format
 
 
+def _coerce_penrose_seed(payload):
+    seed = str(payload.get("seed", "sun"))
+    if seed not in {"sun", "star"}:
+        raise ValueError("'seed' must be 'sun' or 'star'.")
+    return seed
+
+
+def _coerce_penrose_color_mode(payload):
+    color_mode = str(payload.get("color_mode", "tile_type"))
+    if color_mode not in {"tile_type", "orientation"}:
+        raise ValueError("'color_mode' must be 'tile_type' or 'orientation'.")
+    return color_mode
+
+
+def _coerce_penrose_format(payload):
+    image_format = str(payload.get("format", "svg")).lower()
+    if image_format not in ALLOWED_PENROSE_FORMATS:
+        raise ValueError(f"'format' must be one of: {', '.join(sorted(ALLOWED_PENROSE_FORMATS))}.")
+    return image_format
+
+
 def _parse_svg_dimension(raw_value, fallback):
     if not raw_value:
         return fallback
@@ -215,7 +241,7 @@ def _parse_svg_points(raw_points):
     return points
 
 
-def _rasterize_spectre_svg(svg_path, png_path, fallback_width, fallback_height):
+def _rasterize_svg(svg_path, png_path, fallback_width, fallback_height):
     document = ElementTree.parse(svg_path)
     root = document.getroot()
     width = _parse_svg_dimension(root.attrib.get("width"), fallback_width)
@@ -255,6 +281,17 @@ def _spectre_binary_path():
         return Path(configured)
 
     candidates = [path for path in (DEFAULT_SPECTRE_BINARY, DEBUG_SPECTRE_BINARY) if path.exists()]
+    if candidates:
+        return max(candidates, key=lambda path: path.stat().st_mtime)
+    return None
+
+
+def _penrose_binary_path():
+    configured = os.environ.get("PENROSE_BIN")
+    if configured:
+        return Path(configured)
+
+    candidates = [path for path in (DEFAULT_PENROSE_BINARY, DEBUG_PENROSE_BINARY) if path.exists()]
     if candidates:
         return max(candidates, key=lambda path: path.stat().st_mtime)
     return None
@@ -359,7 +396,7 @@ def _run_spectre_renderer(payload):
         if image_format == "png":
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False, dir="/tmp") as png_file:
                 png_output_path = Path(png_file.name)
-            _rasterize_spectre_svg(output_path, png_output_path, width, height)
+            _rasterize_svg(output_path, png_output_path, width, height)
             return send_file(
                 png_output_path,
                 mimetype=ALLOWED_SPECTRE_FORMATS[image_format],
@@ -372,6 +409,102 @@ def _run_spectre_renderer(payload):
             mimetype=ALLOWED_SPECTRE_FORMATS[image_format],
             as_attachment=False,
             download_name="spectre.svg",
+        )
+    finally:
+        try:
+            os.unlink(output_path)
+        except FileNotFoundError:
+            pass
+        if png_output_path is not None:
+            try:
+                os.unlink(png_output_path)
+            except FileNotFoundError:
+                pass
+
+
+def _run_penrose_renderer(payload):
+    width = _coerce_int(payload, "width", DEFAULT_HTTP_WIDTH, minimum=64, maximum=MAX_IMAGE_DIMENSION)
+    height = _coerce_int(payload, "height", DEFAULT_HTTP_HEIGHT, minimum=64, maximum=MAX_IMAGE_DIMENSION)
+    iterations = _coerce_int(payload, "iterations", 7, minimum=0, maximum=MAX_PENROSE_ITERATIONS)
+    scale = _coerce_float(payload, "scale", 320.0, minimum=10.0, maximum=MAX_PENROSE_SCALE)
+    center_x = _coerce_float(payload, "center_x", 0.0)
+    center_y = _coerce_float(payload, "center_y", 0.0)
+    background = str(payload.get("background", "#f5f1e7"))
+    outline = str(payload.get("outline", "#17313b"))
+    stroke_width = _coerce_float(payload, "stroke_width", 1.1, minimum=0.0, maximum=20.0)
+    palette = _coerce_palette(payload)
+    seed = _coerce_penrose_seed(payload)
+    color_mode = _coerce_penrose_color_mode(payload)
+    image_format = _coerce_penrose_format(payload)
+
+    with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
+        output_path = Path(tmp_file.name)
+    png_output_path = None
+
+    binary_path = _penrose_binary_path()
+    command = [str(binary_path)] if binary_path and binary_path.exists() else ["cargo", "run", "--quiet", "--release", "--"]
+    command.extend(
+        [
+            "--output",
+            str(output_path),
+            "--width",
+            str(width),
+            "--height",
+            str(height),
+            "--iterations",
+            str(iterations),
+            "--scale",
+            str(scale),
+            "--center-x",
+            str(center_x),
+            "--center-y",
+            str(center_y),
+            "--background",
+            background,
+            "--outline",
+            outline,
+            "--stroke-width",
+            str(stroke_width),
+            "--seed",
+            seed,
+            "--color-mode",
+            color_mode,
+        ]
+    )
+
+    if palette:
+        command.extend(["--palette", ",".join(palette)])
+
+    cwd = PROJECT_ROOT / "penrose" if command[0] == "cargo" else None
+
+    try:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            stderr = result.stderr.strip() or result.stdout.strip() or "Penrose renderer failed."
+            raise RuntimeError(stderr)
+
+        if image_format == "png":
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False, dir="/tmp") as png_file:
+                png_output_path = Path(png_file.name)
+            _rasterize_svg(output_path, png_output_path, width, height)
+            return send_file(
+                png_output_path,
+                mimetype=ALLOWED_PENROSE_FORMATS[image_format],
+                as_attachment=False,
+                download_name="penrose.png",
+            )
+
+        return send_file(
+            output_path,
+            mimetype=ALLOWED_PENROSE_FORMATS[image_format],
+            as_attachment=False,
+            download_name="penrose.svg",
         )
     finally:
         try:
@@ -398,6 +531,7 @@ def api_index():
                 "GET /api/about": "References and acknowledgements",
                 "POST /api/einstein/render": "Generate an Einstein image and return it directly",
                 "POST /api/spectre/render": "Generate a Spectre SVG or PNG and return it directly",
+                "POST /api/penrose/render": "Generate a Penrose kite-and-dart SVG or PNG and return it directly",
             },
             "einstein_example_payload": {
                 "iterations": DEFAULT_ITERATIONS,
@@ -424,6 +558,21 @@ def api_index():
                 "background": "#f5f1e7",
                 "outline": "#17313b",
                 "stroke_width": 1.2,
+            },
+            "penrose_example_payload": {
+                "width": DEFAULT_HTTP_WIDTH,
+                "height": DEFAULT_HTTP_HEIGHT,
+                "iterations": 7,
+                "scale": 320,
+                "center_x": 0,
+                "center_y": 0,
+                "format": "svg",
+                "seed": "sun",
+                "color_mode": "tile_type",
+                "palette": ["#204f7a", "#d18c45", "#eadfc8", "#7e2f39"],
+                "background": "#f5f1e7",
+                "outline": "#17313b",
+                "stroke_width": 1.1,
             },
         }
     )
@@ -514,6 +663,19 @@ def render_spectre():
         return jsonify({"error": "Spectre renderer binary not found."}), 500
 
 
+@app.post("/api/penrose/render")
+def render_penrose():
+    payload = request.get_json(silent=True) or {}
+    try:
+        return _run_penrose_renderer(payload)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 500
+    except FileNotFoundError:
+        return jsonify({"error": "Penrose renderer binary not found."}), 500
+
+
 @app.get("/assets/<path:filename>")
 def frontend_assets(filename):
     if not FRONTEND_ASSETS_DIR.exists():
@@ -534,6 +696,7 @@ def frontend_public_file(filename):
 @app.get("/")
 @app.get("/einstein")
 @app.get("/spectre")
+@app.get("/penrose")
 @app.get("/about")
 def spa_routes():
     return _serve_spa()
