@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::f64::consts::PI;
 use std::fmt::Write as _;
 use std::fs;
@@ -75,29 +74,8 @@ struct HalfTile {
     vertices: [Vec2; 3],
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum TileKind {
-    Kite,
-    Dart,
-}
-
-#[derive(Clone, Debug)]
-struct PolygonTile {
-    kind: TileKind,
-    vertices: [Vec2; 4],
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-struct EdgeKey {
-    ax: i64,
-    ay: i64,
-    bx: i64,
-    by: i64,
-}
-
 #[derive(Clone, Debug)]
 struct SharedEdge {
-    key: EdgeKey,
     endpoints: (Vec2, Vec2),
 }
 
@@ -125,29 +103,12 @@ impl HalfTile {
 
     fn pairing_edge(&self) -> SharedEdge {
         let edge = match self.kind {
-            // A kite is two acute Robinson triangles glued along the short base,
-            // while a dart is two obtuse triangles glued along the long base.
-            HalfTileKind::Kite => shortest_edge(&self.vertices),
-            HalfTileKind::Dart => longest_edge(&self.vertices),
+            // A kite is two acute Robinson triangles glued along a long edge,
+            // while a dart is two obtuse triangles glued along a short edge.
+            HalfTileKind::Kite => longest_edge(&self.vertices),
+            HalfTileKind::Dart => shortest_edge(&self.vertices),
         };
-        SharedEdge {
-            key: edge_key(edge.0, edge.1),
-            endpoints: edge,
-        }
-    }
-
-    fn outer_vertex(&self, edge: (Vec2, Vec2)) -> Vec2 {
-        *self.vertices.iter().find(|&&point| !same_point(point, edge.0) && !same_point(point, edge.1)).unwrap()
-    }
-}
-
-impl PolygonTile {
-    fn center(&self) -> Vec2 {
-        let mut center = Vec2::default();
-        for vertex in self.vertices {
-            center = center + vertex;
-        }
-        center / 4.0
+        SharedEdge { endpoints: edge }
     }
 }
 
@@ -157,8 +118,6 @@ pub fn render_svg(config: &PenroseSvgConfig) -> String {
     for _ in 0..config.iterations {
         halves = halves.into_iter().flat_map(|tile| tile.subdivide()).collect();
     }
-
-    let tiles = pair_tiles(&halves);
     let mut document = String::new();
     let _ = writeln!(
         document,
@@ -171,17 +130,32 @@ pub fn render_svg(config: &PenroseSvgConfig) -> String {
         config.background
     );
 
-    for tile in tiles {
-        if !tile_visible(&tile, config) {
+    for tile in &halves {
+        if !half_tile_visible(tile, config) {
             continue;
         }
-        let fill = tile_color(&tile, config, &palette);
-        let points = svg_points(&tile.vertices, config);
+        let fill = half_tile_color(tile, config, &palette);
+        let points = svg_triangle_points(&tile.vertices, config);
         let _ = writeln!(
             document,
-            "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
-            points, fill, config.outline, config.stroke_width
+            "<polygon points=\"{}\" fill=\"{}\" stroke=\"none\" />",
+            points, fill
         );
+
+        let hidden = tile.pairing_edge().endpoints;
+        for (start, end) in triangle_edges(&tile.vertices) {
+            if same_undirected_edge((start, end), hidden) {
+                continue;
+            }
+            let (x1, y1) = svg_point(start, config);
+            let (x2, y2) = svg_point(end, config);
+            let _ = writeln!(
+                document,
+                "<line x1=\"{x1:.2}\" y1=\"{y1:.2}\" x2=\"{x2:.2}\" y2=\"{y2:.2}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\" />",
+                config.outline,
+                config.stroke_width
+            );
+        }
     }
 
     document.push_str("</svg>\n");
@@ -269,63 +243,18 @@ fn weighted_point(a: Vec2, b: Vec2) -> Vec2 {
     a.lerp(b, WEIGHT)
 }
 
-fn pair_tiles(halves: &[HalfTile]) -> Vec<PolygonTile> {
-    let mut edge_map: HashMap<EdgeKey, Vec<(usize, SharedEdge)>> = HashMap::new();
-    for (index, tile) in halves.iter().enumerate() {
-        let edge = tile.pairing_edge();
-        edge_map.entry(edge.key).or_default().push((index, edge));
-    }
-
-    let mut polygons = Vec::new();
-    for entries in edge_map.into_values() {
-        if entries.len() != 2 {
-            continue;
-        }
-
-        let left = &halves[entries[0].0];
-        let right = &halves[entries[1].0];
-        if left.kind != right.kind {
-            continue;
-        }
-
-        let shared = entries[0].1.endpoints;
-        let outer_a = left.outer_vertex(shared);
-        let outer_b = right.outer_vertex(shared);
-        let mut points = vec![outer_a, shared.0, outer_b, shared.1];
-        sort_points_clockwise(&mut points);
-        polygons.push(PolygonTile {
-            kind: match left.kind {
-                HalfTileKind::Kite => TileKind::Kite,
-                HalfTileKind::Dart => TileKind::Dart,
-            },
-            vertices: [points[0], points[1], points[2], points[3]],
-        });
-    }
-
-    polygons
-}
-
-fn sort_points_clockwise(points: &mut [Vec2]) {
-    let center = points.iter().copied().fold(Vec2::default(), |sum, point| sum + point) / points.len() as f64;
-    points.sort_by(|a, b| {
-        let aa = (a.y - center.y).atan2(a.x - center.x);
-        let bb = (b.y - center.y).atan2(b.x - center.x);
-        aa.total_cmp(&bb)
-    });
-}
-
-fn tile_color<'a>(
-    tile: &PolygonTile,
+fn half_tile_color<'a>(
+    tile: &HalfTile,
     config: &PenroseSvgConfig,
     palette: &'a [String],
 ) -> &'a str {
     match config.color_mode {
         PenroseColorMode::TileType => match tile.kind {
-            TileKind::Kite => &palette[0],
-            TileKind::Dart => &palette[1],
+            HalfTileKind::Kite => &palette[0],
+            HalfTileKind::Dart => &palette[1],
         },
         PenroseColorMode::Orientation => {
-            let center = tile.center();
+            let center = triangle_center(&tile.vertices);
             let angle = center.y.atan2(center.x);
             let normalized = ((angle + PI) / (2.0 * PI)).rem_euclid(1.0);
             let bucket = ((normalized * palette.len() as f64).floor() as usize).min(palette.len() - 1);
@@ -334,7 +263,7 @@ fn tile_color<'a>(
     }
 }
 
-fn tile_visible(tile: &PolygonTile, config: &PenroseSvgConfig) -> bool {
+fn half_tile_visible(tile: &HalfTile, config: &PenroseSvgConfig) -> bool {
     let half_width = config.width as f64 / (2.0 * config.scale);
     let half_height = config.height as f64 / (2.0 * config.scale);
     let min_x = config.center_x - half_width - 0.2;
@@ -344,16 +273,30 @@ fn tile_visible(tile: &PolygonTile, config: &PenroseSvgConfig) -> bool {
     tile.vertices.iter().any(|point| point.x >= min_x && point.x <= max_x && point.y >= min_y && point.y <= max_y)
 }
 
-fn svg_points(vertices: &[Vec2; 4], config: &PenroseSvgConfig) -> String {
+fn svg_triangle_points(vertices: &[Vec2; 3], config: &PenroseSvgConfig) -> String {
     vertices
         .iter()
         .map(|point| {
-            let x = (point.x - config.center_x) * config.scale + config.width as f64 / 2.0;
-            let y = config.height as f64 / 2.0 - (point.y - config.center_y) * config.scale;
+            let (x, y) = svg_point(*point, config);
             format!("{x:.2},{y:.2}")
         })
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+fn svg_point(point: Vec2, config: &PenroseSvgConfig) -> (f64, f64) {
+    let x = (point.x - config.center_x) * config.scale + config.width as f64 / 2.0;
+    let y = config.height as f64 / 2.0 - (point.y - config.center_y) * config.scale;
+    (x, y)
+}
+
+fn triangle_center(vertices: &[Vec2; 3]) -> Vec2 {
+    vertices.iter().copied().fold(Vec2::default(), |sum, point| sum + point) / 3.0
+}
+
+fn same_undirected_edge(left: (Vec2, Vec2), right: (Vec2, Vec2)) -> bool {
+    (same_point(left.0, right.0) && same_point(left.1, right.1))
+        || (same_point(left.0, right.1) && same_point(left.1, right.0))
 }
 
 fn longest_edge(vertices: &[Vec2; 3]) -> (Vec2, Vec2) {
@@ -379,20 +322,6 @@ fn triangle_edges(vertices: &[Vec2; 3]) -> [(Vec2, Vec2); 3] {
 fn edge_length_sq(a: Vec2, b: Vec2) -> f64 {
     let delta = a - b;
     delta.x * delta.x + delta.y * delta.y
-}
-
-fn edge_key(a: Vec2, b: Vec2) -> EdgeKey {
-    let (first, second) = if a.x < b.x || (same_coord(a.x, b.x) && a.y <= b.y) { (a, b) } else { (b, a) };
-    EdgeKey {
-        ax: quantize(first.x),
-        ay: quantize(first.y),
-        bx: quantize(second.x),
-        by: quantize(second.y),
-    }
-}
-
-fn quantize(value: f64) -> i64 {
-    (value / EDGE_EPSILON).round() as i64
 }
 
 fn same_point(a: Vec2, b: Vec2) -> bool {
