@@ -74,6 +74,12 @@ const SPECTRE_DEFAULTS = {
   palette_4: "midnightblue"
 };
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
+function apiUrl(path) {
+  return `${API_BASE_URL}${path}`;
+}
+
 export default function App() {
   return (
     <div className="shell">
@@ -252,7 +258,7 @@ function EinsteinPage() {
         }
         return payload;
       }}
-      endpoint="/api/einstein/render"
+      endpoint={apiUrl("/api/einstein/render")}
       downloadName={(payload) => `aperiodic-pattern.${payload.format}`}
       previewType={(payload) => {
         if (payload.format === "jpg") {
@@ -333,7 +339,7 @@ function SpectrePage() {
           .map((value) => String(value).trim())
           .filter(Boolean)
       })}
-      endpoint="/api/spectre/render"
+      endpoint={apiUrl("/api/spectre/render")}
       downloadName={(payload) => `spectre.${payload.format}`}
       previewType={(payload) => (payload.format === "png" ? "image/png" : "image/svg+xml")}
       values={values}
@@ -458,7 +464,7 @@ function AboutPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/about")
+    fetch(apiUrl("/api/about"))
       .then((response) => response.json())
       .then((data) => {
         if (!cancelled) {

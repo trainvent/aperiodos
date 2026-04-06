@@ -247,6 +247,22 @@ Available service endpoints:
 - `POST /api/einstein/render` returns the generated Einstein image directly
 - `POST /api/spectre/render` returns the generated Spectre SVG directly
 
+### Deploy Frontend To GitHub Pages
+
+This repo now also includes a GitHub Pages workflow at `.github/workflows/deploy-pages.yml`.
+
+Important:
+
+- GitHub Pages only publishes the static frontend from `web/`.
+- The generator API still needs a separate backend deployment.
+- The included workflow builds the frontend for `/Aperiodos/` and points API requests to `https://www.aperiodos.com`.
+
+After pushing to `main`, enable GitHub Pages in the repository settings and use `GitHub Actions` as the source. The Pages URL should be:
+
+```text
+https://trainvent.github.io/Aperiodos/
+```
+
 `POST /api/einstein/render` JSON fields:
 
 ```json

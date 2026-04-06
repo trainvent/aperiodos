@@ -91,6 +91,27 @@ ABOUT_CONTENT = {
 }
 
 
+def _allowed_cors_origins():
+    configured = os.environ.get("CORS_ALLOWED_ORIGINS")
+    if configured:
+        return {origin.strip() for origin in configured.split(",") if origin.strip()}
+    return {
+        "https://trainvent.github.io",
+        "https://www.aperiodos.com",
+        "https://aperiodos.com",
+    }
+
+
+def _apply_cors_headers(response):
+    origin = request.headers.get("Origin", "")
+    if origin in _allowed_cors_origins():
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    return response
+
+
 def _coerce_int(payload, key, default, minimum=1, maximum=None):
     raw_value = payload.get(key, default)
     try:
@@ -251,6 +272,19 @@ def _serve_spa():
             503,
         )
     return send_from_directory(FRONTEND_DIST_DIR, "index.html")
+
+
+@app.before_request
+def _handle_api_preflight():
+    if request.method == "OPTIONS" and request.path.startswith("/api/"):
+        return _apply_cors_headers(app.response_class(status=204))
+
+
+@app.after_request
+def _set_cors_headers(response):
+    if request.path.startswith("/api/"):
+        return _apply_cors_headers(response)
+    return response
 
 
 def _run_spectre_renderer(payload):
