@@ -7,7 +7,6 @@ use crate::math::Vec2;
 
 const PHI: f64 = 1.618_033_988_749_895;
 const INV_PHI: f64 = 1.0 / PHI;
-const WEIGHT: f64 = INV_PHI / (1.0 + INV_PHI);
 const EDGE_EPSILON: f64 = 1e-6;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -103,8 +102,6 @@ impl HalfTile {
 
     fn pairing_edge(&self) -> SharedEdge {
         let edge = match self.kind {
-            // A kite is two acute Robinson triangles glued along a long edge,
-            // while a dart is two obtuse triangles glued along a short edge.
             HalfTileKind::Kite => longest_edge(&self.vertices),
             HalfTileKind::Dart => shortest_edge(&self.vertices),
         };
@@ -181,12 +178,12 @@ fn normalized_palette(config: &PenroseSvgConfig) -> Vec<String> {
 
 fn initial_seed(seed: PenroseSeed) -> Vec<HalfTile> {
     match seed {
-        PenroseSeed::Sun => sun_seed(),
+        PenroseSeed::Sun => decagon_seed(),
         PenroseSeed::Star => star_seed(),
     }
 }
 
-fn sun_seed() -> Vec<HalfTile> {
+fn decagon_seed() -> Vec<HalfTile> {
     let center = Vec2::new(0.0, 0.0);
     let radius = 1.0;
     let ring: Vec<_> = (0..10)
@@ -197,7 +194,15 @@ fn sun_seed() -> Vec<HalfTile> {
         .collect();
 
     (0..10)
-        .map(|index| HalfTile::acute(ring[index], ring[(index + 1) % 10], center))
+        .map(|index| {
+            let left = ring[index];
+            let right = ring[(index + 1) % 10];
+            if index % 2 == 0 {
+                HalfTile::acute(center, left, right)
+            } else {
+                HalfTile::acute(center, right, left)
+            }
+        })
         .collect()
 }
 
@@ -214,33 +219,30 @@ fn star_seed() -> Vec<HalfTile> {
     for index in 0..5 {
         let left = ring[index];
         let right = ring[(index + 1) % 5];
-        let midpoint = (left + right) / 2.0;
-        let inward = midpoint * (1.0 / PHI);
-        tiles.push(HalfTile::obtuse(inward, left, right));
-        tiles.push(HalfTile::obtuse(inward, right, left));
+        let center = Vec2::new(0.0, 0.0);
+        tiles.push(HalfTile::obtuse(center, left, right));
+        tiles.push(HalfTile::obtuse(center, right, left));
     }
     tiles
 }
 
 fn split_kite_half(tile: &HalfTile) -> Vec<HalfTile> {
-    let [x1, x2, x3] = tile.vertices;
-    let a = weighted_point(x3, x2);
-    let b = weighted_point(x1, x3);
+    let [a, b, c] = tile.vertices;
+    let p = weighted_point(a, b);
     vec![
-        HalfTile::acute(b, x1, x2),
-        HalfTile::acute(b, a, x2),
-        HalfTile::obtuse(a, b, x3),
+        HalfTile::acute(c, p, b),
+        HalfTile::obtuse(p, c, a),
     ]
 }
 
 fn split_dart_half(tile: &HalfTile) -> Vec<HalfTile> {
-    let [x1, x2, x3] = tile.vertices;
-    let c = weighted_point(x2, x3);
-    vec![HalfTile::acute(x1, c, x3), HalfTile::obtuse(c, x1, x2)]
+    let [a, b, c] = tile.vertices;
+    let q = weighted_point(b, a);
+    vec![HalfTile::obtuse(q, c, a), HalfTile::acute(q, b, c)]
 }
 
 fn weighted_point(a: Vec2, b: Vec2) -> Vec2 {
-    a.lerp(b, WEIGHT)
+    a.lerp(b, INV_PHI)
 }
 
 fn half_tile_color<'a>(
@@ -299,6 +301,14 @@ fn same_undirected_edge(left: (Vec2, Vec2), right: (Vec2, Vec2)) -> bool {
         || (same_point(left.0, right.1) && same_point(left.1, right.0))
 }
 
+fn triangle_edges(vertices: &[Vec2; 3]) -> [(Vec2, Vec2); 3] {
+    [
+        (vertices[0], vertices[1]),
+        (vertices[1], vertices[2]),
+        (vertices[2], vertices[0]),
+    ]
+}
+
 fn longest_edge(vertices: &[Vec2; 3]) -> (Vec2, Vec2) {
     let mut edges = triangle_edges(vertices);
     edges.sort_by(|(a0, a1), (b0, b1)| edge_length_sq(*a0, *a1).total_cmp(&edge_length_sq(*b0, *b1)));
@@ -309,14 +319,6 @@ fn shortest_edge(vertices: &[Vec2; 3]) -> (Vec2, Vec2) {
     let mut edges = triangle_edges(vertices);
     edges.sort_by(|(a0, a1), (b0, b1)| edge_length_sq(*a0, *a1).total_cmp(&edge_length_sq(*b0, *b1)));
     edges[0]
-}
-
-fn triangle_edges(vertices: &[Vec2; 3]) -> [(Vec2, Vec2); 3] {
-    [
-        (vertices[0], vertices[1]),
-        (vertices[1], vertices[2]),
-        (vertices[2], vertices[0]),
-    ]
 }
 
 fn edge_length_sq(a: Vec2, b: Vec2) -> f64 {
