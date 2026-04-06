@@ -81,7 +81,8 @@ export default function App() {
       <div className="ambient ambient-right" />
       <header className="topbar">
         <NavLink className="brand" to="/">
-          Aperiodos
+          <img className="brand-mark" src="/custom-pattern_1024.jpg" alt="" />
+          <span className="brand-copy">Aperiodos</span>
         </NavLink>
         <nav className="topnav">
           <TopNavLink to="/">Home</TopNavLink>

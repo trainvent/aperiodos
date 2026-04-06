@@ -85,11 +85,28 @@ select {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
   font-size: 0.98rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   text-decoration: none;
+}
+
+.brand-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid rgba(23, 49, 59, 0.12);
+  box-shadow: 0 10px 26px rgba(23, 49, 59, 0.14);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.brand-copy {
+  line-height: 1;
 }
 
 .topnav,
@@ -453,5 +470,15 @@ select {
 
   .preview-panel {
     min-height: unset;
+  }
+
+  .brand {
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
   }
 }
