@@ -521,6 +521,16 @@ def frontend_assets(filename):
     return send_from_directory(FRONTEND_ASSETS_DIR, filename)
 
 
+@app.get("/<path:filename>")
+def frontend_public_file(filename):
+    file_path = FRONTEND_DIST_DIR / filename
+    if file_path.is_file():
+        return send_from_directory(FRONTEND_DIST_DIR, filename)
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Not found"}), 404
+    return _serve_spa()
+
+
 @app.get("/")
 @app.get("/einstein")
 @app.get("/spectre")
