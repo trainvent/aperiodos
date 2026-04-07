@@ -65,7 +65,7 @@ const SPECTRE_DEFAULTS = {
   center_y: 0,
   format: "svg",
   draw_mode: "translation",
-  background: "linen",
+  background: "white",
   outline: "black",
   stroke_width: 1,
   palette_1: "seagreen",
@@ -83,14 +83,11 @@ const PENROSE_DEFAULTS = {
   center_y: 0,
   format: "svg",
   seed: "sun",
-  color_mode: "tile_type",
-  background: "#f5f1e7",
-  outline: "#17313b",
+  background: "#ffffff",
+  outline: "black",
   stroke_width: 1.1,
   palette_1: "#e4d1ab",
-  palette_2: "#d01916",
-  palette_3: "#f1e4c5",
-  palette_4: "#a31614"
+  palette_2: "#d01916"
 };
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -410,16 +407,6 @@ function PenrosePage() {
           <SelectField
             values={values}
             setValues={setValues}
-            name="color_mode"
-            label="Coloring"
-            options={[
-              { value: "tile_type", label: "Tile Type" },
-              { value: "orientation", label: "Orientation" }
-            ]}
-          />
-          <SelectField
-            values={values}
-            setValues={setValues}
             name="format"
             label="Format"
             options={[
@@ -434,8 +421,6 @@ function PenrosePage() {
           <div className="swatches full">
             <ColorField values={values} setValues={setValues} name="palette_1" label="Color 1" />
             <ColorField values={values} setValues={setValues} name="palette_2" label="Color 2" />
-            <ColorField values={values} setValues={setValues} name="palette_3" label="Color 3" />
-            <ColorField values={values} setValues={setValues} name="palette_4" label="Color 4" />
           </div>
         </>
       }
@@ -448,11 +433,10 @@ function PenrosePage() {
         center_y: Number(values.center_y),
         format: values.format,
         seed: values.seed,
-        color_mode: values.color_mode,
         background: values.background,
         outline: values.outline,
         stroke_width: Number(values.stroke_width),
-        palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4]
+        palette: [values.palette_1, values.palette_2]
           .map((value) => String(value).trim())
           .filter(Boolean)
       })}

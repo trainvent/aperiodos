@@ -13,12 +13,6 @@ pub enum PenroseSeed {
     Star,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PenroseColorMode {
-    TileType,
-    Orientation,
-}
-
 #[derive(Clone, Debug)]
 pub struct PenroseSvgConfig {
     pub width: u32,
@@ -32,7 +26,6 @@ pub struct PenroseSvgConfig {
     pub outline: String,
     pub stroke_width: f64,
     pub seed: PenroseSeed,
-    pub color_mode: PenroseColorMode,
 }
 
 impl Default for PenroseSvgConfig {
@@ -47,14 +40,11 @@ impl Default for PenroseSvgConfig {
             palette: vec![
                 "#e4d1ab".to_string(),
                 "#d01916".to_string(),
-                "#f1e4c5".to_string(),
-                "#a31614".to_string(),
             ],
-            background: "#f5f1e7".to_string(),
-            outline: "#17313b".to_string(),
+            background: "#ffffff".to_string(),
+            outline: "black".to_string(),
             stroke_width: 1.1,
             seed: PenroseSeed::Sun,
-            color_mode: PenroseColorMode::TileType,
         }
     }
 }
@@ -83,15 +73,6 @@ impl Vertex {
     }
 }
 
-impl Triangle {
-    fn center(&self) -> Vec2 {
-        self.vertices
-            .iter()
-            .fold(Vec2::default(), |sum, vertex| sum + vertex.position)
-            / 3.0
-    }
-}
-
 pub fn render_svg(config: &PenroseSvgConfig) -> String {
     let palette = normalized_palette(config);
     let mut triangles = initial_seed(config.seed);
@@ -115,7 +96,7 @@ pub fn render_svg(config: &PenroseSvgConfig) -> String {
         if !triangle_visible(triangle, config) {
             continue;
         }
-        let fill = triangle_color(triangle, config, &palette);
+        let fill = triangle_color(triangle, &palette);
         let points = svg_triangle_points(triangle, config);
         let _ = writeln!(
             document,
@@ -139,7 +120,7 @@ fn normalized_palette(config: &PenroseSvgConfig) -> Vec<String> {
 
     let mut palette = config.palette.clone();
     let defaults = PenroseSvgConfig::default().palette;
-    while palette.len() < 4 {
+    while palette.len() < 2 {
         palette.push(defaults[palette.len()].clone());
     }
     palette
@@ -277,22 +258,11 @@ fn distance(left: Vec2, right: Vec2) -> f64 {
 
 fn triangle_color<'a>(
     triangle: &Triangle,
-    config: &PenroseSvgConfig,
     palette: &'a [String],
 ) -> &'a str {
-    match config.color_mode {
-        PenroseColorMode::TileType => match triangle.kind {
-            TriangleKind::Acute => &palette[0],
-            TriangleKind::Obtuse => &palette[1],
-        },
-        PenroseColorMode::Orientation => {
-            let center = triangle.center();
-            let angle = center.y.atan2(center.x);
-            let normalized = ((angle + PI) / (2.0 * PI)).rem_euclid(1.0);
-            let bucket =
-                ((normalized * palette.len() as f64).floor() as usize).min(palette.len() - 1);
-            &palette[bucket]
-        }
+    match triangle.kind {
+        TriangleKind::Acute => &palette[0],
+        TriangleKind::Obtuse => &palette[1],
     }
 }
 

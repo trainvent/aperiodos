@@ -203,13 +203,6 @@ def _coerce_penrose_seed(payload):
     return seed
 
 
-def _coerce_penrose_color_mode(payload):
-    color_mode = str(payload.get("color_mode", "tile_type"))
-    if color_mode not in {"tile_type", "orientation"}:
-        raise ValueError("'color_mode' must be 'tile_type' or 'orientation'.")
-    return color_mode
-
-
 def _coerce_penrose_format(payload):
     image_format = str(payload.get("format", "svg")).lower()
     if image_format not in ALLOWED_PENROSE_FORMATS:
@@ -331,8 +324,8 @@ def _run_spectre_renderer(payload):
     scale = _coerce_float(payload, "scale", 40.0, minimum=1.0, maximum=MAX_SPECTRE_SCALE)
     center_x = _coerce_float(payload, "center_x", 0.0)
     center_y = _coerce_float(payload, "center_y", 0.0)
-    background = str(payload.get("background", "#f5f1e7"))
-    outline = str(payload.get("outline", "#17313b"))
+    background = str(payload.get("background", "#ffffff"))
+    outline = str(payload.get("outline", "black"))
     stroke_width = _coerce_float(payload, "stroke_width", 1.2, minimum=0.0, maximum=20.0)
     palette = _coerce_palette(payload)
     draw_mode = _coerce_spectre_draw_mode(payload)
@@ -429,12 +422,11 @@ def _run_penrose_renderer(payload):
     scale = _coerce_float(payload, "scale", 320.0, minimum=10.0, maximum=MAX_PENROSE_SCALE)
     center_x = _coerce_float(payload, "center_x", 0.0)
     center_y = _coerce_float(payload, "center_y", 0.0)
-    background = str(payload.get("background", "#f5f1e7"))
-    outline = str(payload.get("outline", "#17313b"))
+    background = str(payload.get("background", "#ffffff"))
+    outline = str(payload.get("outline", "black"))
     stroke_width = _coerce_float(payload, "stroke_width", 1.1, minimum=0.0, maximum=20.0)
     palette = _coerce_palette(payload)
     seed = _coerce_penrose_seed(payload)
-    color_mode = _coerce_penrose_color_mode(payload)
     image_format = _coerce_penrose_format(payload)
 
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
@@ -467,8 +459,6 @@ def _run_penrose_renderer(payload):
             str(stroke_width),
             "--seed",
             seed,
-            "--color-mode",
-            color_mode,
         ]
     )
 
@@ -555,8 +545,8 @@ def api_index():
                 "format": "svg",
                 "draw_mode": "translation",
                 "palette": ["#1f6a5d", "#b4552d", "#d8b24c", "#17313b"],
-                "background": "#f5f1e7",
-                "outline": "#17313b",
+                "background": "#ffffff",
+                "outline": "black",
                 "stroke_width": 1.2,
             },
             "penrose_example_payload": {
@@ -568,10 +558,9 @@ def api_index():
                 "center_y": 0,
                 "format": "svg",
                 "seed": "sun",
-                "color_mode": "tile_type",
-                "palette": ["#e4d1ab", "#d01916", "#f1e4c5", "#a31614"],
-                "background": "#f5f1e7",
-                "outline": "#17313b",
+                "palette": ["#e4d1ab", "#d01916"],
+                "background": "#ffffff",
+                "outline": "black",
                 "stroke_width": 1.1,
             },
         }

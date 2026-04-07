@@ -43,8 +43,8 @@ impl Default for SpectreSvgConfig {
                 "#d8b24c".to_string(),
                 "#17313b".to_string(),
             ],
-            background: "#f5f1e7".to_string(),
-            outline: "#17313b".to_string(),
+            background: "#ffffff".to_string(),
+            outline: "black".to_string(),
             stroke_width: 1.2,
             draw_mode: DrawMode::Translation,
         }

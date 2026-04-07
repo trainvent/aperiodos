@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use penrose_rs::{PenroseColorMode, PenroseSeed, PenroseSvgConfig, write_svg};
+use penrose_rs::{PenroseSeed, PenroseSvgConfig, write_svg};
 
 fn main() {
     let (output, config) = parse_args(env::args().skip(1));
@@ -44,16 +44,6 @@ fn parse_args(args: impl Iterator<Item = String>) -> (PathBuf, PenroseSvgConfig)
                     "star" => PenroseSeed::Star,
                     other => {
                         eprintln!("invalid value for --seed: {other}");
-                        std::process::exit(2);
-                    }
-                }
-            }
-            "--color-mode" => {
-                config.color_mode = match next_arg(&mut args, "--color-mode").as_str() {
-                    "tile_type" => PenroseColorMode::TileType,
-                    "orientation" => PenroseColorMode::Orientation,
-                    other => {
-                        eprintln!("invalid value for --color-mode: {other}");
                         std::process::exit(2);
                     }
                 }
@@ -113,7 +103,6 @@ fn print_help() {
            --outline COLOR\n\
            --stroke-width PX\n\
            --seed sun|star\n\
-           --color-mode tile_type|orientation\n\
            --palette c1,c2,c3,..."
     );
 }
