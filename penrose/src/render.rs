@@ -1,4 +1,6 @@
-use std::f64::consts::PI;
+mod classic_logic;
+mod rhombs_logic;
+
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
@@ -11,6 +13,12 @@ const PHI: f64 = 1.618_033_988_749_895;
 pub enum PenroseSeed {
     Sun,
     Star,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PenroseTileMode {
+    KiteDart,
+    Rhombs,
 }
 
 #[derive(Clone, Debug)]
@@ -26,6 +34,7 @@ pub struct PenroseSvgConfig {
     pub outline: String,
     pub stroke_width: f64,
     pub seed: PenroseSeed,
+    pub tile_mode: PenroseTileMode,
 }
 
 impl Default for PenroseSvgConfig {
@@ -37,48 +46,28 @@ impl Default for PenroseSvgConfig {
             scale: 320.0,
             center_x: 0.0,
             center_y: 0.0,
-            palette: vec![
-                "#e4d1ab".to_string(),
-                "#d01916".to_string(),
-            ],
-            background: "#ffffff".to_string(),
+            palette: vec!["wheat".to_string(), "crimson".to_string()],
+            background: "white".to_string(),
             outline: "black".to_string(),
-            stroke_width: 1.1,
+            stroke_width: 1.0,
             seed: PenroseSeed::Sun,
+            tile_mode: PenroseTileMode::KiteDart,
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum TriangleKind {
-    Acute,
-    Obtuse,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct Vertex {
-    position: Vec2,
-    parity: bool,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct Triangle {
-    kind: TriangleKind,
-    vertices: [Vertex; 3],
-}
-
-impl Vertex {
-    fn new(position: Vec2, parity: bool) -> Self {
-        Self { position, parity }
-    }
+#[derive(Clone, Debug)]
+pub(super) struct RenderTile {
+    pub(super) points: Vec<Vec2>,
+    pub(super) fill_index: usize,
 }
 
 pub fn render_svg(config: &PenroseSvgConfig) -> String {
     let palette = normalized_palette(config);
-    let mut triangles = initial_seed(config.seed);
-    for _ in 0..config.iterations {
-        triangles = subdivide(&triangles);
-    }
+    let tiles = match config.tile_mode {
+        PenroseTileMode::KiteDart => classic_logic::render_tiles(config.seed, config.iterations),
+        PenroseTileMode::Rhombs => rhombs_logic::render_tiles(config.seed, config.iterations),
+    };
 
     let mut document = String::new();
     let _ = writeln!(
@@ -92,12 +81,12 @@ pub fn render_svg(config: &PenroseSvgConfig) -> String {
         config.background
     );
 
-    for triangle in &triangles {
-        if !triangle_visible(triangle, config) {
+    for tile in tiles {
+        if !tile_visible(&tile, config) {
             continue;
         }
-        let fill = triangle_color(triangle, &palette);
-        let points = svg_triangle_points(triangle, config);
+        let fill = &palette[tile.fill_index];
+        let points = svg_polygon_points(&tile.points, config);
         let _ = writeln!(
             document,
             "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
@@ -126,147 +115,7 @@ fn normalized_palette(config: &PenroseSvgConfig) -> Vec<String> {
     palette
 }
 
-fn initial_seed(seed: PenroseSeed) -> Vec<Triangle> {
-    match seed {
-        PenroseSeed::Sun => initial_sun(10, 1.0),
-        PenroseSeed::Star => initial_star(10, 1.0),
-    }
-}
-
-fn initial_star(count: usize, size: f64) -> Vec<Triangle> {
-    let mut triangles = Vec::with_capacity(count);
-    for index in 0..count {
-        let first = if index % 2 == 0 { size } else { size / PHI };
-        let second = if index % 2 == 0 { size / PHI } else { size };
-        let (a, b) = init_vertex_pair(index as f64, first, second);
-        triangles.push(Triangle {
-            kind: TriangleKind::Obtuse,
-            vertices: [
-                Vertex::new(Vec2::new(0.0, 0.0), true),
-                Vertex::new(a, index % 2 != 0),
-                Vertex::new(b, index % 2 == 0),
-            ],
-        });
-    }
-    triangles
-}
-
-fn initial_sun(count: usize, size: f64) -> Vec<Triangle> {
-    let mut triangles = Vec::with_capacity(count);
-    for index in 0..count {
-        let (mut a, mut b) = init_vertex_pair(index as f64, size, size);
-        if index % 2 == 0 {
-            std::mem::swap(&mut a, &mut b);
-        }
-        triangles.push(Triangle {
-            kind: TriangleKind::Acute,
-            vertices: [
-                Vertex::new(Vec2::new(0.0, 0.0), false),
-                Vertex::new(a, false),
-                Vertex::new(b, true),
-            ],
-        });
-    }
-    triangles
-}
-
-fn init_vertex_pair(index: f64, first: f64, second: f64) -> (Vec2, Vec2) {
-    let angle = PI / 5.0;
-    let a = polar(first, index * angle);
-    let b = polar(second, (index + 1.0) * angle);
-    (a, b)
-}
-
-fn polar(radius: f64, angle: f64) -> Vec2 {
-    Vec2::new(radius * angle.cos(), radius * angle.sin())
-}
-
-fn subdivide(triangles: &[Triangle]) -> Vec<Triangle> {
-    let mut result = Vec::with_capacity(triangles.len() * 3);
-    for triangle in triangles {
-        match triangle.kind {
-            TriangleKind::Acute => subdivide_acute(*triangle, &mut result),
-            TriangleKind::Obtuse => subdivide_obtuse(*triangle, &mut result),
-        }
-    }
-    result
-}
-
-fn subdivide_acute(triangle: Triangle, output: &mut Vec<Triangle>) {
-    let [a, b, c] = triangle.vertices;
-    let (pbisect_edge, qbisect_edge) = if b.parity == a.parity {
-        (b, c)
-    } else {
-        (c, b)
-    };
-
-    let short_side = distance(pbisect_edge.position, qbisect_edge.position);
-    let p = project(a.position, pbisect_edge.position, short_side);
-    let q = project(a.position, qbisect_edge.position, short_side / PHI);
-
-    let p_p = Vertex::new(p, a.parity);
-    let p_q = Vertex::new(q, !a.parity);
-    let p_a = Vertex::new(a.position, !a.parity);
-    let p_c = Vertex::new(qbisect_edge.position, a.parity);
-    let p_b = Vertex::new(pbisect_edge.position, !a.parity);
-
-    output.push(Triangle {
-        kind: TriangleKind::Acute,
-        vertices: [p_c, p_q, p_p],
-    });
-    output.push(Triangle {
-        kind: TriangleKind::Acute,
-        vertices: [p_c, p_b, p_p],
-    });
-    output.push(Triangle {
-        kind: TriangleKind::Obtuse,
-        vertices: [p_a, p_p, p_q],
-    });
-}
-
-fn subdivide_obtuse(triangle: Triangle, output: &mut Vec<Triangle>) {
-    let [a, b, c] = triangle.vertices;
-    let (bisect_edge, unmodified_edge) = if b.parity != a.parity { (b, c) } else { (c, b) };
-
-    let p = project(
-        a.position,
-        bisect_edge.position,
-        distance(a.position, bisect_edge.position) / PHI,
-    );
-    let p_p = Vertex::new(p, bisect_edge.parity);
-
-    output.push(Triangle {
-        kind: TriangleKind::Obtuse,
-        vertices: [bisect_edge, p_p, unmodified_edge],
-    });
-    output.push(Triangle {
-        kind: TriangleKind::Acute,
-        vertices: [a, p_p, unmodified_edge],
-    });
-}
-
-fn project(from: Vec2, toward: Vec2, size: f64) -> Vec2 {
-    let delta = toward - from;
-    let magnitude = distance(from, toward);
-    from + delta * (size / magnitude)
-}
-
-fn distance(left: Vec2, right: Vec2) -> f64 {
-    let delta = right - left;
-    (delta.x * delta.x + delta.y * delta.y).sqrt()
-}
-
-fn triangle_color<'a>(
-    triangle: &Triangle,
-    palette: &'a [String],
-) -> &'a str {
-    match triangle.kind {
-        TriangleKind::Acute => &palette[0],
-        TriangleKind::Obtuse => &palette[1],
-    }
-}
-
-fn triangle_visible(triangle: &Triangle, config: &PenroseSvgConfig) -> bool {
+fn tile_visible(tile: &RenderTile, config: &PenroseSvgConfig) -> bool {
     let half_width = config.width as f64 / (2.0 * config.scale);
     let half_height = config.height as f64 / (2.0 * config.scale);
     let min_x = config.center_x - half_width - 1.0;
@@ -274,22 +123,33 @@ fn triangle_visible(triangle: &Triangle, config: &PenroseSvgConfig) -> bool {
     let min_y = config.center_y - half_height - 1.0;
     let max_y = config.center_y + half_height + 1.0;
 
-    triangle.vertices.iter().any(|vertex| {
-        let point = vertex.position;
-        point.x >= min_x && point.x <= max_x && point.y >= min_y && point.y <= max_y
-    })
+    tile.points
+        .iter()
+        .any(|point| point.x >= min_x && point.x <= max_x && point.y >= min_y && point.y <= max_y)
 }
 
-fn svg_triangle_points(triangle: &Triangle, config: &PenroseSvgConfig) -> String {
-    triangle
-        .vertices
+fn svg_polygon_points(points: &[Vec2], config: &PenroseSvgConfig) -> String {
+    points
         .iter()
-        .map(|vertex| {
-            let (x, y) = svg_point(vertex.position, config);
+        .map(|point| {
+            let (x, y) = svg_point(*point, config);
             format!("{x:.2},{y:.2}")
         })
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+pub(super) fn polar(radius: f64, angle: f64) -> Vec2 {
+    Vec2::new(radius * angle.cos(), radius * angle.sin())
+}
+
+pub(super) fn distance(left: Vec2, right: Vec2) -> f64 {
+    let delta = right - left;
+    (delta.x * delta.x + delta.y * delta.y).sqrt()
+}
+
+pub(super) fn approx_eq(left: f64, right: f64) -> bool {
+    (left - right).abs() <= 1e-6
 }
 
 fn svg_point(point: Vec2, config: &PenroseSvgConfig) -> (f64, f64) {

@@ -203,6 +203,13 @@ def _coerce_penrose_seed(payload):
     return seed
 
 
+def _coerce_penrose_tile_mode(payload):
+    tile_mode = str(payload.get("tile_mode", "kite-dart"))
+    if tile_mode not in {"kite-dart", "rhombs"}:
+        raise ValueError("'tile_mode' must be 'kite-dart' or 'rhombs'.")
+    return tile_mode
+
+
 def _coerce_penrose_format(payload):
     image_format = str(payload.get("format", "svg")).lower()
     if image_format not in ALLOWED_PENROSE_FORMATS:
@@ -286,7 +293,20 @@ def _penrose_binary_path():
 
     candidates = [path for path in (DEFAULT_PENROSE_BINARY, DEBUG_PENROSE_BINARY) if path.exists()]
     if candidates:
-        return max(candidates, key=lambda path: path.stat().st_mtime)
+        newest_source = max(
+            (
+                PROJECT_ROOT / "penrose" / "src" / "main.rs",
+                PROJECT_ROOT / "penrose" / "src" / "lib.rs",
+                PROJECT_ROOT / "penrose" / "src" / "render.rs",
+                PROJECT_ROOT / "penrose" / "src" / "math.rs",
+            ),
+            key=lambda path: path.stat().st_mtime,
+        ).stat().st_mtime
+        fresh_candidates = [
+            path for path in candidates if path.stat().st_mtime >= newest_source
+        ]
+        if fresh_candidates:
+            return max(fresh_candidates, key=lambda path: path.stat().st_mtime)
     return None
 
 
@@ -424,9 +444,10 @@ def _run_penrose_renderer(payload):
     center_y = _coerce_float(payload, "center_y", 0.0)
     background = str(payload.get("background", "#ffffff"))
     outline = str(payload.get("outline", "black"))
-    stroke_width = _coerce_float(payload, "stroke_width", 1.1, minimum=0.0, maximum=20.0)
+    stroke_width = _coerce_float(payload, "stroke_width", 1.0, minimum=0.0, maximum=20.0)
     palette = _coerce_palette(payload)
     seed = _coerce_penrose_seed(payload)
+    tile_mode = _coerce_penrose_tile_mode(payload)
     image_format = _coerce_penrose_format(payload)
 
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
@@ -459,6 +480,8 @@ def _run_penrose_renderer(payload):
             str(stroke_width),
             "--seed",
             seed,
+            "--tile-mode",
+            tile_mode,
         ]
     )
 
@@ -521,7 +544,7 @@ def api_index():
                 "GET /api/about": "References and acknowledgements",
                 "POST /api/einstein/render": "Generate an Einstein image and return it directly",
                 "POST /api/spectre/render": "Generate a Spectre SVG or PNG and return it directly",
-                "POST /api/penrose/render": "Generate a Penrose kite-and-dart SVG or PNG and return it directly",
+                "POST /api/penrose/render": "Generate a Penrose kite-dart or rhomb SVG or PNG and return it directly",
             },
             "einstein_example_payload": {
                 "iterations": DEFAULT_ITERATIONS,
@@ -558,10 +581,11 @@ def api_index():
                 "center_y": 0,
                 "format": "svg",
                 "seed": "sun",
-                "palette": ["#e4d1ab", "#d01916"],
-                "background": "#ffffff",
+                "tile_mode": "kite-dart",
+                "palette": ["wheat", "crimson"],
+                "background": "white",
                 "outline": "black",
-                "stroke_width": 1.1,
+                "stroke_width": 1.0,
             },
         }
     )

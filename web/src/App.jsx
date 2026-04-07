@@ -83,11 +83,12 @@ const PENROSE_DEFAULTS = {
   center_y: 0,
   format: "svg",
   seed: "sun",
-  background: "#ffffff",
+  tile_mode: "kite-dart",
+  background: "white",
   outline: "black",
-  stroke_width: 1.1,
-  palette_1: "#e4d1ab",
-  palette_2: "#d01916"
+  stroke_width: 1,
+  palette_1: "wheat",
+  palette_2: "crimson"
 };
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -160,7 +161,7 @@ function HomePage() {
           <h1>Choose a generator.</h1>
           <p className="lede">
             Start with the classic Einstein image renderer or switch
-            to Spectre, or explore a first Penrose kite-and-dart renderer built in Rust.
+            to Spectre, or explore a Penrose renderer that can draw kite-dart and rhomb tilings in Rust.
           </p>
         </div>
         <aside className="hero-note panel">
@@ -200,7 +201,7 @@ function HomePage() {
           <span className="tag">Rust renderer</span>
           <h2>Penrose</h2>
           <p>
-            Build kite-and-dart tilings from a classic sun or star seed, tune the viewport, and
+            Build Penrose kite-dart or rhomb tilings from a classic sun or star seed, tune the viewport, and
             export the result as SVG or PNG.
           </p>
           <NavLink className="button button-ink" to="/penrose">
@@ -385,7 +386,7 @@ function PenrosePage() {
   return (
     <GeneratorLayout
       title="Penrose Generator"
-      description="Generate Penrose P2 kite-and-dart tilings from a sun or star seed, then adjust the framing, coloring, and export format."
+      description="Generate Penrose tilings as kite-dart tiles or rhombs from a sun or star seed, then adjust the framing, coloring, and export format."
       controls={
         <>
           <NumberField values={values} setValues={setValues} name="width" label="Width" min={64} max={6000} />
@@ -402,6 +403,16 @@ function PenrosePage() {
             options={[
               { value: "sun", label: "Sun" },
               { value: "star", label: "Star" }
+            ]}
+          />
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="tile_mode"
+            label="Tiles"
+            options={[
+              { value: "kite-dart", label: "Kite & Dart" },
+              { value: "rhombs", label: "Rhombs" }
             ]}
           />
           <SelectField
@@ -433,6 +444,7 @@ function PenrosePage() {
         center_y: Number(values.center_y),
         format: values.format,
         seed: values.seed,
+        tile_mode: values.tile_mode,
         background: values.background,
         outline: values.outline,
         stroke_width: Number(values.stroke_width),
