@@ -22,14 +22,21 @@ fn parse_args(args: impl Iterator<Item = String>) -> (PathBuf, PenroseSvgConfig)
             "--output" => output = PathBuf::from(next_arg(&mut args, "--output")),
             "--width" => config.width = parse_value(next_arg(&mut args, "--width"), "--width"),
             "--height" => config.height = parse_value(next_arg(&mut args, "--height"), "--height"),
-            "--iterations" => config.iterations = parse_value(next_arg(&mut args, "--iterations"), "--iterations"),
+            "--iterations" => {
+                config.iterations = parse_value(next_arg(&mut args, "--iterations"), "--iterations")
+            }
             "--scale" => config.scale = parse_value(next_arg(&mut args, "--scale"), "--scale"),
-            "--center-x" => config.center_x = parse_value(next_arg(&mut args, "--center-x"), "--center-x"),
-            "--center-y" => config.center_y = parse_value(next_arg(&mut args, "--center-y"), "--center-y"),
+            "--center-x" => {
+                config.center_x = parse_value(next_arg(&mut args, "--center-x"), "--center-x")
+            }
+            "--center-y" => {
+                config.center_y = parse_value(next_arg(&mut args, "--center-y"), "--center-y")
+            }
             "--background" => config.background = next_arg(&mut args, "--background"),
             "--outline" => config.outline = next_arg(&mut args, "--outline"),
             "--stroke-width" => {
-                config.stroke_width = parse_value(next_arg(&mut args, "--stroke-width"), "--stroke-width")
+                config.stroke_width =
+                    parse_value(next_arg(&mut args, "--stroke-width"), "--stroke-width")
             }
             "--seed" => {
                 config.seed = match next_arg(&mut args, "--seed").as_str() {

@@ -569,7 +569,7 @@ def api_index():
                 "format": "svg",
                 "seed": "sun",
                 "color_mode": "tile_type",
-                "palette": ["#204f7a", "#d18c45", "#eadfc8", "#7e2f39"],
+                "palette": ["#e4d1ab", "#d01916", "#f1e4c5", "#a31614"],
                 "background": "#f5f1e7",
                 "outline": "#17313b",
                 "stroke_width": 1.1,

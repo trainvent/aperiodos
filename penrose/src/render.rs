@@ -6,8 +6,6 @@ use std::path::Path;
 use crate::math::Vec2;
 
 const PHI: f64 = 1.618_033_988_749_895;
-const INV_PHI: f64 = 1.0 / PHI;
-const EDGE_EPSILON: f64 = 1e-6;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PenroseSeed {
@@ -47,10 +45,10 @@ impl Default for PenroseSvgConfig {
             center_x: 0.0,
             center_y: 0.0,
             palette: vec![
-                "#204f7a".to_string(),
-                "#d18c45".to_string(),
-                "#eadfc8".to_string(),
-                "#7e2f39".to_string(),
+                "#e4d1ab".to_string(),
+                "#d01916".to_string(),
+                "#f1e4c5".to_string(),
+                "#a31614".to_string(),
             ],
             background: "#f5f1e7".to_string(),
             outline: "#17313b".to_string(),
@@ -62,59 +60,45 @@ impl Default for PenroseSvgConfig {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum HalfTileKind {
-    Kite,
-    Dart,
+enum TriangleKind {
+    Acute,
+    Obtuse,
 }
 
-#[derive(Clone, Debug)]
-struct HalfTile {
-    kind: HalfTileKind,
-    vertices: [Vec2; 3],
+#[derive(Clone, Copy, Debug)]
+struct Vertex {
+    position: Vec2,
+    parity: bool,
 }
 
-#[derive(Clone, Debug)]
-struct SharedEdge {
-    endpoints: (Vec2, Vec2),
+#[derive(Clone, Copy, Debug)]
+struct Triangle {
+    kind: TriangleKind,
+    vertices: [Vertex; 3],
 }
 
-impl HalfTile {
-    fn acute(base_left: Vec2, base_right: Vec2, apex: Vec2) -> Self {
-        Self {
-            kind: HalfTileKind::Kite,
-            vertices: [base_left, base_right, apex],
-        }
+impl Vertex {
+    fn new(position: Vec2, parity: bool) -> Self {
+        Self { position, parity }
     }
+}
 
-    fn obtuse(apex: Vec2, base_left: Vec2, base_right: Vec2) -> Self {
-        Self {
-            kind: HalfTileKind::Dart,
-            vertices: [apex, base_left, base_right],
-        }
-    }
-
-    fn subdivide(&self) -> Vec<Self> {
-        match self.kind {
-            HalfTileKind::Kite => split_kite_half(self),
-            HalfTileKind::Dart => split_dart_half(self),
-        }
-    }
-
-    fn pairing_edge(&self) -> SharedEdge {
-        let edge = match self.kind {
-            HalfTileKind::Kite => longest_edge(&self.vertices),
-            HalfTileKind::Dart => shortest_edge(&self.vertices),
-        };
-        SharedEdge { endpoints: edge }
+impl Triangle {
+    fn center(&self) -> Vec2 {
+        self.vertices
+            .iter()
+            .fold(Vec2::default(), |sum, vertex| sum + vertex.position)
+            / 3.0
     }
 }
 
 pub fn render_svg(config: &PenroseSvgConfig) -> String {
     let palette = normalized_palette(config);
-    let mut halves = initial_seed(config.seed);
+    let mut triangles = initial_seed(config.seed);
     for _ in 0..config.iterations {
-        halves = halves.into_iter().flat_map(|tile| tile.subdivide()).collect();
+        triangles = subdivide(&triangles);
     }
+
     let mut document = String::new();
     let _ = writeln!(
         document,
@@ -127,32 +111,17 @@ pub fn render_svg(config: &PenroseSvgConfig) -> String {
         config.background
     );
 
-    for tile in &halves {
-        if !half_tile_visible(tile, config) {
+    for triangle in &triangles {
+        if !triangle_visible(triangle, config) {
             continue;
         }
-        let fill = half_tile_color(tile, config, &palette);
-        let points = svg_triangle_points(&tile.vertices, config);
+        let fill = triangle_color(triangle, config, &palette);
+        let points = svg_triangle_points(triangle, config);
         let _ = writeln!(
             document,
-            "<polygon points=\"{}\" fill=\"{}\" stroke=\"none\" />",
-            points, fill
+            "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
+            points, fill, config.outline, config.stroke_width
         );
-
-        let hidden = tile.pairing_edge().endpoints;
-        for (start, end) in triangle_edges(&tile.vertices) {
-            if same_undirected_edge((start, end), hidden) {
-                continue;
-            }
-            let (x1, y1) = svg_point(start, config);
-            let (x2, y2) = svg_point(end, config);
-            let _ = writeln!(
-                document,
-                "<line x1=\"{x1:.2}\" y1=\"{y1:.2}\" x2=\"{x2:.2}\" y2=\"{y2:.2}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\" />",
-                config.outline,
-                config.stroke_width
-            );
-        }
     }
 
     document.push_str("</svg>\n");
@@ -176,110 +145,177 @@ fn normalized_palette(config: &PenroseSvgConfig) -> Vec<String> {
     palette
 }
 
-fn initial_seed(seed: PenroseSeed) -> Vec<HalfTile> {
+fn initial_seed(seed: PenroseSeed) -> Vec<Triangle> {
     match seed {
-        PenroseSeed::Sun => decagon_seed(),
-        PenroseSeed::Star => star_seed(),
+        PenroseSeed::Sun => initial_sun(10, 1.0),
+        PenroseSeed::Star => initial_star(10, 1.0),
     }
 }
 
-fn decagon_seed() -> Vec<HalfTile> {
-    let center = Vec2::new(0.0, 0.0);
-    let radius = 1.0;
-    let ring: Vec<_> = (0..10)
-        .map(|index| {
-            let angle = (index as f64 * 36.0 - 90.0) * PI / 180.0;
-            Vec2::new(radius * angle.cos(), radius * angle.sin())
-        })
-        .collect();
-
-    (0..10)
-        .map(|index| {
-            let left = ring[index];
-            let right = ring[(index + 1) % 10];
-            if index % 2 == 0 {
-                HalfTile::acute(center, left, right)
-            } else {
-                HalfTile::acute(center, right, left)
-            }
-        })
-        .collect()
-}
-
-fn star_seed() -> Vec<HalfTile> {
-    let radius = 1.0;
-    let ring: Vec<_> = (0..5)
-        .map(|index| {
-            let angle = (index as f64 * 72.0 - 90.0) * PI / 180.0;
-            Vec2::new(radius * angle.cos(), radius * angle.sin())
-        })
-        .collect();
-
-    let mut tiles = Vec::new();
-    for index in 0..5 {
-        let left = ring[index];
-        let right = ring[(index + 1) % 5];
-        let center = Vec2::new(0.0, 0.0);
-        tiles.push(HalfTile::obtuse(center, left, right));
-        tiles.push(HalfTile::obtuse(center, right, left));
+fn initial_star(count: usize, size: f64) -> Vec<Triangle> {
+    let mut triangles = Vec::with_capacity(count);
+    for index in 0..count {
+        let first = if index % 2 == 0 { size } else { size / PHI };
+        let second = if index % 2 == 0 { size / PHI } else { size };
+        let (a, b) = init_vertex_pair(index as f64, first, second);
+        triangles.push(Triangle {
+            kind: TriangleKind::Obtuse,
+            vertices: [
+                Vertex::new(Vec2::new(0.0, 0.0), true),
+                Vertex::new(a, index % 2 != 0),
+                Vertex::new(b, index % 2 == 0),
+            ],
+        });
     }
-    tiles
+    triangles
 }
 
-fn split_kite_half(tile: &HalfTile) -> Vec<HalfTile> {
-    let [a, b, c] = tile.vertices;
-    let p = weighted_point(a, b);
-    vec![
-        HalfTile::acute(c, p, b),
-        HalfTile::obtuse(p, c, a),
-    ]
+fn initial_sun(count: usize, size: f64) -> Vec<Triangle> {
+    let mut triangles = Vec::with_capacity(count);
+    for index in 0..count {
+        let (mut a, mut b) = init_vertex_pair(index as f64, size, size);
+        if index % 2 == 0 {
+            std::mem::swap(&mut a, &mut b);
+        }
+        triangles.push(Triangle {
+            kind: TriangleKind::Acute,
+            vertices: [
+                Vertex::new(Vec2::new(0.0, 0.0), false),
+                Vertex::new(a, false),
+                Vertex::new(b, true),
+            ],
+        });
+    }
+    triangles
 }
 
-fn split_dart_half(tile: &HalfTile) -> Vec<HalfTile> {
-    let [a, b, c] = tile.vertices;
-    let q = weighted_point(b, a);
-    vec![HalfTile::obtuse(q, c, a), HalfTile::acute(q, b, c)]
+fn init_vertex_pair(index: f64, first: f64, second: f64) -> (Vec2, Vec2) {
+    let angle = PI / 5.0;
+    let a = polar(first, index * angle);
+    let b = polar(second, (index + 1.0) * angle);
+    (a, b)
 }
 
-fn weighted_point(a: Vec2, b: Vec2) -> Vec2 {
-    a.lerp(b, INV_PHI)
+fn polar(radius: f64, angle: f64) -> Vec2 {
+    Vec2::new(radius * angle.cos(), radius * angle.sin())
 }
 
-fn half_tile_color<'a>(
-    tile: &HalfTile,
+fn subdivide(triangles: &[Triangle]) -> Vec<Triangle> {
+    let mut result = Vec::with_capacity(triangles.len() * 3);
+    for triangle in triangles {
+        match triangle.kind {
+            TriangleKind::Acute => subdivide_acute(*triangle, &mut result),
+            TriangleKind::Obtuse => subdivide_obtuse(*triangle, &mut result),
+        }
+    }
+    result
+}
+
+fn subdivide_acute(triangle: Triangle, output: &mut Vec<Triangle>) {
+    let [a, b, c] = triangle.vertices;
+    let (pbisect_edge, qbisect_edge) = if b.parity == a.parity {
+        (b, c)
+    } else {
+        (c, b)
+    };
+
+    let short_side = distance(pbisect_edge.position, qbisect_edge.position);
+    let p = project(a.position, pbisect_edge.position, short_side);
+    let q = project(a.position, qbisect_edge.position, short_side / PHI);
+
+    let p_p = Vertex::new(p, a.parity);
+    let p_q = Vertex::new(q, !a.parity);
+    let p_a = Vertex::new(a.position, !a.parity);
+    let p_c = Vertex::new(qbisect_edge.position, a.parity);
+    let p_b = Vertex::new(pbisect_edge.position, !a.parity);
+
+    output.push(Triangle {
+        kind: TriangleKind::Acute,
+        vertices: [p_c, p_q, p_p],
+    });
+    output.push(Triangle {
+        kind: TriangleKind::Acute,
+        vertices: [p_c, p_b, p_p],
+    });
+    output.push(Triangle {
+        kind: TriangleKind::Obtuse,
+        vertices: [p_a, p_p, p_q],
+    });
+}
+
+fn subdivide_obtuse(triangle: Triangle, output: &mut Vec<Triangle>) {
+    let [a, b, c] = triangle.vertices;
+    let (bisect_edge, unmodified_edge) = if b.parity != a.parity { (b, c) } else { (c, b) };
+
+    let p = project(
+        a.position,
+        bisect_edge.position,
+        distance(a.position, bisect_edge.position) / PHI,
+    );
+    let p_p = Vertex::new(p, bisect_edge.parity);
+
+    output.push(Triangle {
+        kind: TriangleKind::Obtuse,
+        vertices: [bisect_edge, p_p, unmodified_edge],
+    });
+    output.push(Triangle {
+        kind: TriangleKind::Acute,
+        vertices: [a, p_p, unmodified_edge],
+    });
+}
+
+fn project(from: Vec2, toward: Vec2, size: f64) -> Vec2 {
+    let delta = toward - from;
+    let magnitude = distance(from, toward);
+    from + delta * (size / magnitude)
+}
+
+fn distance(left: Vec2, right: Vec2) -> f64 {
+    let delta = right - left;
+    (delta.x * delta.x + delta.y * delta.y).sqrt()
+}
+
+fn triangle_color<'a>(
+    triangle: &Triangle,
     config: &PenroseSvgConfig,
     palette: &'a [String],
 ) -> &'a str {
     match config.color_mode {
-        PenroseColorMode::TileType => match tile.kind {
-            HalfTileKind::Kite => &palette[0],
-            HalfTileKind::Dart => &palette[1],
+        PenroseColorMode::TileType => match triangle.kind {
+            TriangleKind::Acute => &palette[0],
+            TriangleKind::Obtuse => &palette[1],
         },
         PenroseColorMode::Orientation => {
-            let center = triangle_center(&tile.vertices);
+            let center = triangle.center();
             let angle = center.y.atan2(center.x);
             let normalized = ((angle + PI) / (2.0 * PI)).rem_euclid(1.0);
-            let bucket = ((normalized * palette.len() as f64).floor() as usize).min(palette.len() - 1);
+            let bucket =
+                ((normalized * palette.len() as f64).floor() as usize).min(palette.len() - 1);
             &palette[bucket]
         }
     }
 }
 
-fn half_tile_visible(tile: &HalfTile, config: &PenroseSvgConfig) -> bool {
+fn triangle_visible(triangle: &Triangle, config: &PenroseSvgConfig) -> bool {
     let half_width = config.width as f64 / (2.0 * config.scale);
     let half_height = config.height as f64 / (2.0 * config.scale);
-    let min_x = config.center_x - half_width - 0.2;
-    let max_x = config.center_x + half_width + 0.2;
-    let min_y = config.center_y - half_height - 0.2;
-    let max_y = config.center_y + half_height + 0.2;
-    tile.vertices.iter().any(|point| point.x >= min_x && point.x <= max_x && point.y >= min_y && point.y <= max_y)
+    let min_x = config.center_x - half_width - 1.0;
+    let max_x = config.center_x + half_width + 1.0;
+    let min_y = config.center_y - half_height - 1.0;
+    let max_y = config.center_y + half_height + 1.0;
+
+    triangle.vertices.iter().any(|vertex| {
+        let point = vertex.position;
+        point.x >= min_x && point.x <= max_x && point.y >= min_y && point.y <= max_y
+    })
 }
 
-fn svg_triangle_points(vertices: &[Vec2; 3], config: &PenroseSvgConfig) -> String {
-    vertices
+fn svg_triangle_points(triangle: &Triangle, config: &PenroseSvgConfig) -> String {
+    triangle
+        .vertices
         .iter()
-        .map(|point| {
-            let (x, y) = svg_point(*point, config);
+        .map(|vertex| {
+            let (x, y) = svg_point(vertex.position, config);
             format!("{x:.2},{y:.2}")
         })
         .collect::<Vec<_>>()
@@ -290,46 +326,4 @@ fn svg_point(point: Vec2, config: &PenroseSvgConfig) -> (f64, f64) {
     let x = (point.x - config.center_x) * config.scale + config.width as f64 / 2.0;
     let y = config.height as f64 / 2.0 - (point.y - config.center_y) * config.scale;
     (x, y)
-}
-
-fn triangle_center(vertices: &[Vec2; 3]) -> Vec2 {
-    vertices.iter().copied().fold(Vec2::default(), |sum, point| sum + point) / 3.0
-}
-
-fn same_undirected_edge(left: (Vec2, Vec2), right: (Vec2, Vec2)) -> bool {
-    (same_point(left.0, right.0) && same_point(left.1, right.1))
-        || (same_point(left.0, right.1) && same_point(left.1, right.0))
-}
-
-fn triangle_edges(vertices: &[Vec2; 3]) -> [(Vec2, Vec2); 3] {
-    [
-        (vertices[0], vertices[1]),
-        (vertices[1], vertices[2]),
-        (vertices[2], vertices[0]),
-    ]
-}
-
-fn longest_edge(vertices: &[Vec2; 3]) -> (Vec2, Vec2) {
-    let mut edges = triangle_edges(vertices);
-    edges.sort_by(|(a0, a1), (b0, b1)| edge_length_sq(*a0, *a1).total_cmp(&edge_length_sq(*b0, *b1)));
-    edges[2]
-}
-
-fn shortest_edge(vertices: &[Vec2; 3]) -> (Vec2, Vec2) {
-    let mut edges = triangle_edges(vertices);
-    edges.sort_by(|(a0, a1), (b0, b1)| edge_length_sq(*a0, *a1).total_cmp(&edge_length_sq(*b0, *b1)));
-    edges[0]
-}
-
-fn edge_length_sq(a: Vec2, b: Vec2) -> f64 {
-    let delta = a - b;
-    delta.x * delta.x + delta.y * delta.y
-}
-
-fn same_point(a: Vec2, b: Vec2) -> bool {
-    same_coord(a.x, b.x) && same_coord(a.y, b.y)
-}
-
-fn same_coord(a: f64, b: f64) -> bool {
-    (a - b).abs() <= EDGE_EPSILON
 }

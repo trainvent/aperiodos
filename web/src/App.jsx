@@ -84,13 +84,13 @@ const PENROSE_DEFAULTS = {
   format: "svg",
   seed: "sun",
   color_mode: "tile_type",
-  background: "linen",
-  outline: "black",
+  background: "#f5f1e7",
+  outline: "#17313b",
   stroke_width: 1.1,
-  palette_1: "#204f7a",
-  palette_2: "#d18c45",
-  palette_3: "#eadfc8",
-  palette_4: "#7e2f39"
+  palette_1: "#e4d1ab",
+  palette_2: "#d01916",
+  palette_3: "#f1e4c5",
+  palette_4: "#a31614"
 };
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
