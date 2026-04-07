@@ -50,7 +50,6 @@ pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTi
 }
 
 fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<RenderTile> {
-    let mut used = vec![false; triangles.len()];
     let mut tiles = Vec::with_capacity(triangles.len());
     let mut edges: HashMap<EdgeKey, Vec<(usize, usize)>> = HashMap::new();
 
@@ -87,10 +86,6 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
     candidates.sort_unstable();
 
     for (left_index, right_index, left_edge, right_edge) in candidates {
-        if used[left_index] || used[right_index] {
-            continue;
-        }
-
         let left = triangles[left_index];
         let right = triangles[right_index];
         if !triangles_form_tile(left, right, left_edge, right_edge, tile_mode) {
@@ -100,22 +95,6 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
         tiles.push(RenderTile {
             points: merged_polygon_points(left, right),
             fill_index: tile_fill_index(left.kind),
-        });
-        used[left_index] = true;
-        used[right_index] = true;
-    }
-
-    for (index, triangle) in triangles.iter().enumerate() {
-        if used[index] {
-            continue;
-        }
-        tiles.push(RenderTile {
-            points: triangle
-                .vertices
-                .iter()
-                .map(|vertex| vertex.position)
-                .collect(),
-            fill_index: tile_fill_index(triangle.kind),
         });
     }
 

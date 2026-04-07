@@ -104,7 +104,6 @@ fn subdivide(triangles: &[Triangle]) -> Vec<Triangle> {
 
 fn assemble_rhombs(triangles: &[Triangle]) -> Vec<RenderTile> {
     let mut shared_edges: HashMap<EdgeKey, Vec<usize>> = HashMap::new();
-    let mut used = vec![false; triangles.len()];
     let mut tiles = Vec::with_capacity(triangles.len());
 
     for (index, triangle) in triangles.iter().enumerate() {
@@ -130,22 +129,7 @@ fn assemble_rhombs(triangles: &[Triangle]) -> Vec<RenderTile> {
                     TriangleKind::Thick => 1,
                 },
             });
-            used[*left_index] = true;
-            used[*right_index] = true;
         }
-    }
-
-    for (index, triangle) in triangles.iter().enumerate() {
-        if used[index] {
-            continue;
-        }
-        tiles.push(RenderTile {
-            points: triangle.points.into_iter().collect(),
-            fill_index: match triangle.kind {
-                TriangleKind::Thin => 0,
-                TriangleKind::Thick => 1,
-            },
-        });
     }
 
     tiles
