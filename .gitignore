@@ -9,3 +9,7 @@ web/node_modules/
 web/dist/
 penrose/target/
 PenroseGenerator/
+
+*.svg
+*.png
+*.jpg
