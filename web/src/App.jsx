@@ -166,7 +166,7 @@ function HomePage() {
         </div>
         <aside className="hero-note panel">
           <strong>Current build</strong>
-          <p>Einstein renders PNG, JPG, and SVG. Spectre and Penrose focus on SVG-first export, with PNG also available for Penrose.</p>
+          <p>Einstein, Spectre, and Penrose can all export SVG, PNG, and JPG.</p>
         </aside>
       </section>
 
@@ -188,7 +188,7 @@ function HomePage() {
           <h2>Spectre</h2>
           <p>
             Render bounded Spectre snapshots with a pattern variant, palette, framing, and stroke
-            controls, then download the SVG directly.
+            controls, then download the result as SVG, PNG, or JPG.
           </p>
           <NavLink className="button button-green" to="/spectre">
             Open Spectre Generator
@@ -199,7 +199,7 @@ function HomePage() {
           <h2>Penrose</h2>
           <p>
             Build Penrose kite-dart or rhomb tilings from a classic sun or star seed, tune the viewport, and
-            export the result as SVG or PNG.
+            export the result as SVG, PNG, or JPG.
           </p>
           <NavLink className="button button-ink" to="/penrose">
             Open Penrose Generator
@@ -326,7 +326,8 @@ function SpectrePage() {
             label="Format"
             options={[
               { value: "svg", label: "SVG" },
-              { value: "png", label: "PNG" }
+              { value: "png", label: "PNG" },
+              { value: "jpg", label: "JPG" }
             ]}
             full
           />
@@ -370,7 +371,15 @@ function SpectrePage() {
       })}
       endpoint={apiUrl("/api/spectre/render")}
       downloadName={(payload) => `spectre.${payload.format}`}
-      previewType={(payload) => (payload.format === "png" ? "image/png" : "image/svg+xml")}
+      previewType={(payload) => {
+        if (payload.format === "png") {
+          return "image/png";
+        }
+        if (payload.format === "jpg") {
+          return "image/jpeg";
+        }
+        return "image/svg+xml";
+      }}
       values={values}
       setValues={setValues}
       defaults={SPECTRE_DEFAULTS}
@@ -419,7 +428,8 @@ function PenrosePage() {
             label="Format"
             options={[
               { value: "svg", label: "SVG" },
-              { value: "png", label: "PNG" }
+              { value: "png", label: "PNG" },
+              { value: "jpg", label: "JPG" }
             ]}
             full
           />
@@ -451,7 +461,15 @@ function PenrosePage() {
       })}
       endpoint={apiUrl("/api/penrose/render")}
       downloadName={(payload) => `penrose.${payload.format}`}
-      previewType={(payload) => (payload.format === "png" ? "image/png" : "image/svg+xml")}
+      previewType={(payload) => {
+        if (payload.format === "png") {
+          return "image/png";
+        }
+        if (payload.format === "jpg") {
+          return "image/jpeg";
+        }
+        return "image/svg+xml";
+      }}
       values={values}
       setValues={setValues}
       defaults={PENROSE_DEFAULTS}

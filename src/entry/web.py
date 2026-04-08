@@ -44,8 +44,8 @@ MAX_SPECTRE_SCALE = 120
 MAX_PENROSE_ITERATIONS = 10
 MAX_PENROSE_SCALE = 1200
 ALLOWED_EINSTEIN_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
-ALLOWED_SPECTRE_FORMATS = {"png": "image/png", "svg": "image/svg+xml"}
-ALLOWED_PENROSE_FORMATS = {"png": "image/png", "svg": "image/svg+xml"}
+ALLOWED_SPECTRE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
+ALLOWED_PENROSE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
 
 ABOUT_CONTENT = {
     "title": "About Aperiodos",
@@ -241,7 +241,7 @@ def _parse_svg_points(raw_points):
     return points
 
 
-def _rasterize_svg(svg_path, png_path, fallback_width, fallback_height):
+def _rasterize_svg(svg_path, output_path, fallback_width, fallback_height, image_format):
     document = ElementTree.parse(svg_path)
     root = document.getroot()
     width = _parse_svg_dimension(root.attrib.get("width"), fallback_width)
@@ -268,7 +268,8 @@ def _rasterize_svg(svg_path, png_path, fallback_width, fallback_height):
                 width=max(1, int(round(stroke_width))) if stroke_width > 0 else 0,
             )
 
-    image.save(png_path)
+    save_format = "JPEG" if image_format in {"jpg", "jpeg"} else "PNG"
+    image.save(output_path, format=save_format)
 
 
 def _frontend_available():
@@ -353,7 +354,7 @@ def _run_spectre_renderer(payload):
 
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
         output_path = Path(tmp_file.name)
-    png_output_path = None
+    raster_output_path = None
 
     binary_path = _spectre_binary_path()
     command = []
@@ -406,15 +407,15 @@ def _run_spectre_renderer(payload):
             stderr = result.stderr.strip() or result.stdout.strip() or "Spectre renderer failed."
             raise RuntimeError(stderr)
 
-        if image_format == "png":
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False, dir="/tmp") as png_file:
-                png_output_path = Path(png_file.name)
-            _rasterize_svg(output_path, png_output_path, width, height)
+        if image_format in {"png", "jpg", "jpeg"}:
+            with tempfile.NamedTemporaryFile(suffix=f".{image_format}", delete=False, dir="/tmp") as raster_file:
+                raster_output_path = Path(raster_file.name)
+            _rasterize_svg(output_path, raster_output_path, width, height, image_format)
             return send_file(
-                png_output_path,
+                raster_output_path,
                 mimetype=ALLOWED_SPECTRE_FORMATS[image_format],
                 as_attachment=False,
-                download_name="spectre.png",
+                download_name=f"spectre.{image_format}",
             )
 
         return send_file(
@@ -428,9 +429,9 @@ def _run_spectre_renderer(payload):
             os.unlink(output_path)
         except FileNotFoundError:
             pass
-        if png_output_path is not None:
+        if raster_output_path is not None:
             try:
-                os.unlink(png_output_path)
+                os.unlink(raster_output_path)
             except FileNotFoundError:
                 pass
 
@@ -452,7 +453,7 @@ def _run_penrose_renderer(payload):
 
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
         output_path = Path(tmp_file.name)
-    png_output_path = None
+    raster_output_path = None
 
     binary_path = _penrose_binary_path()
     command = [str(binary_path)] if binary_path and binary_path.exists() else ["cargo", "run", "--quiet", "--release", "--"]
@@ -502,15 +503,15 @@ def _run_penrose_renderer(payload):
             stderr = result.stderr.strip() or result.stdout.strip() or "Penrose renderer failed."
             raise RuntimeError(stderr)
 
-        if image_format == "png":
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False, dir="/tmp") as png_file:
-                png_output_path = Path(png_file.name)
-            _rasterize_svg(output_path, png_output_path, width, height)
+        if image_format in {"png", "jpg", "jpeg"}:
+            with tempfile.NamedTemporaryFile(suffix=f".{image_format}", delete=False, dir="/tmp") as raster_file:
+                raster_output_path = Path(raster_file.name)
+            _rasterize_svg(output_path, raster_output_path, width, height, image_format)
             return send_file(
-                png_output_path,
+                raster_output_path,
                 mimetype=ALLOWED_PENROSE_FORMATS[image_format],
                 as_attachment=False,
-                download_name="penrose.png",
+                download_name=f"penrose.{image_format}",
             )
 
         return send_file(
@@ -524,9 +525,9 @@ def _run_penrose_renderer(payload):
             os.unlink(output_path)
         except FileNotFoundError:
             pass
-        if png_output_path is not None:
+        if raster_output_path is not None:
             try:
-                os.unlink(png_output_path)
+                os.unlink(raster_output_path)
             except FileNotFoundError:
                 pass
 
@@ -543,8 +544,8 @@ def api_index():
                 "GET /api/healthz": "Basic health check",
                 "GET /api/about": "References and acknowledgements",
                 "POST /api/einstein/render": "Generate an Einstein image and return it directly",
-                "POST /api/spectre/render": "Generate a Spectre SVG or PNG and return it directly",
-                "POST /api/penrose/render": "Generate a Penrose kite-dart or rhomb SVG or PNG and return it directly",
+                "POST /api/spectre/render": "Generate a Spectre SVG, PNG, or JPG and return it directly",
+                "POST /api/penrose/render": "Generate a Penrose kite-dart or rhomb SVG, PNG, or JPG and return it directly",
             },
             "einstein_example_payload": {
                 "iterations": DEFAULT_ITERATIONS,
