@@ -229,6 +229,10 @@ fn triangles_form_tile(
         return false;
     }
 
+    if left_edge != assembly_edge_index(left) || right_edge != assembly_edge_index(right) {
+        return false;
+    }
+
     match (tile_mode, left.kind) {
         (PenroseTileMode::KiteDart, TriangleKind::Acute) => {
             triangle_edge_class(left, left_edge) == EdgeClass::Long
@@ -242,10 +246,28 @@ fn triangles_form_tile(
     }
 }
 
+fn assembly_edge_index(triangle: Triangle) -> usize {
+    (0..3)
+        .find(|edge_index| {
+            let (left, right) = triangle_edge_vertices(triangle, *edge_index);
+            left.parity == right.parity
+        })
+        .expect("every Robinson triangle should have a decorated edge")
+}
+
 fn tile_fill_index(kind: TriangleKind) -> usize {
     match kind {
         TriangleKind::Acute => 0,
         TriangleKind::Obtuse => 1,
+    }
+}
+
+fn triangle_edge_vertices(triangle: Triangle, edge_index: usize) -> (Vertex, Vertex) {
+    match edge_index {
+        0 => (triangle.vertices[0], triangle.vertices[1]),
+        1 => (triangle.vertices[1], triangle.vertices[2]),
+        2 => (triangle.vertices[2], triangle.vertices[0]),
+        _ => unreachable!("invalid triangle edge index"),
     }
 }
 
@@ -349,4 +371,71 @@ fn point_key(point: Vec2) -> PointKey {
         (point.x * SCALE).round() as i64,
         (point.y * SCALE).round() as i64,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn shape_signature(points: &[Vec2]) -> Vec<i64> {
+        let mut lengths = points
+            .iter()
+            .enumerate()
+            .flat_map(|(left_index, left)| {
+                points.iter().skip(left_index + 1).map(move |right| {
+                    (distance(*left, *right) * 1_000_000.0).round() as i64
+                })
+            })
+            .collect::<Vec<_>>();
+        lengths.sort_unstable();
+        lengths
+    }
+
+    #[test]
+    fn sun_seed_assembles_into_five_kites() {
+        let triangles = initial_seed(PenroseSeed::Sun);
+        let tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
+
+        assert_eq!(tiles.len(), 5);
+        assert!(tiles.iter().all(|tile| tile.points.len() == 4));
+
+        let signatures = tiles
+            .iter()
+            .map(|tile| shape_signature(&tile.points))
+            .collect::<Vec<_>>();
+        assert!(signatures.windows(2).all(|window| window[0] == window[1]));
+    }
+
+    #[test]
+    fn star_seed_assembles_into_five_darts() {
+        let triangles = initial_seed(PenroseSeed::Star);
+        let tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
+
+        assert_eq!(tiles.len(), 5);
+        assert!(tiles.iter().all(|tile| tile.points.len() == 4));
+
+        let signatures = tiles
+            .iter()
+            .map(|tile| shape_signature(&tile.points))
+            .collect::<Vec<_>>();
+        assert!(signatures.windows(2).all(|window| window[0] == window[1]));
+    }
+
+    #[test]
+    fn subdivided_sun_only_contains_kite_and_dart_shapes() {
+        let mut triangles = initial_seed(PenroseSeed::Sun);
+        for _ in 0..3 {
+            triangles = subdivide(&triangles);
+        }
+
+        let tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
+        let mut signatures = tiles
+            .iter()
+            .map(|tile| shape_signature(&tile.points))
+            .collect::<Vec<_>>();
+        signatures.sort_unstable();
+        signatures.dedup();
+
+        assert_eq!(signatures.len(), 2);
+    }
 }
