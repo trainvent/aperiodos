@@ -161,18 +161,17 @@ function HomePage() {
           <h1>Choose a generator.</h1>
           <p className="lede">
             Start with the classic Einstein image renderer or switch
-            to Spectre, or explore a Penrose renderer that can draw kite-dart and rhomb tilings in Rust.
+            to Spectre, or explore a Penrose renderer that can draw kite-dart and rhomb tilings.
           </p>
         </div>
         <aside className="hero-note panel">
           <strong>Current build</strong>
-          <p>Einstein renders PNG/JPG. Spectre and Penrose both render from Rust backends with SVG-first export.</p>
+          <p>Einstein renders PNG, JPG, and SVG. Spectre and Penrose focus on SVG-first export, with PNG also available for Penrose.</p>
         </aside>
       </section>
 
       <section className="card-grid">
         <article className="feature-card feature-einstein panel">
-          <span className="tag">Python renderer</span>
           <h2>Einstein</h2>
           <p>Fine-tune iterations, palette, image size, and seed crops, then export a finished still image.</p>
           <div className="swatch-row" aria-hidden="true">
@@ -186,7 +185,6 @@ function HomePage() {
         </article>
 
         <article className="feature-card feature-spectre panel">
-          <span className="tag">Rust renderer</span>
           <h2>Spectre</h2>
           <p>
             Render bounded Spectre snapshots with a pattern variant, palette, framing, and stroke
@@ -198,7 +196,6 @@ function HomePage() {
         </article>
 
         <article className="feature-card feature-penrose panel">
-          <span className="tag">Rust renderer</span>
           <h2>Penrose</h2>
           <p>
             Build Penrose kite-dart or rhomb tilings from a classic sun or star seed, tune the viewport, and
@@ -313,7 +310,7 @@ function SpectrePage() {
   return (
     <GeneratorLayout
       title="Spectre Generator"
-      description="Render bounded Spectre snapshots from the Rust engine, choose a pattern variant, tune the palette and framing, and export SVG."
+      description="Render bounded Spectre snapshots, choose a pattern variant, tune the palette and framing, and export SVG."
       controls={
         <>
           <NumberField values={values} setValues={setValues} name="width" label="Width" min={64} max={6000} />
