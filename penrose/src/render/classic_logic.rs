@@ -52,6 +52,7 @@ pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTi
 fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<RenderTile> {
     let mut tiles = Vec::with_capacity(triangles.len());
     let mut edges: HashMap<EdgeKey, Vec<(usize, usize)>> = HashMap::new();
+    let mut used = vec![false; triangles.len()];
 
     for (triangle_index, triangle) in triangles.iter().enumerate() {
         for edge_index in 0..3 {
@@ -86,9 +87,18 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
     candidates.sort_unstable();
 
     for (left_index, right_index, left_edge, right_edge) in candidates {
+        if used[left_index] || used[right_index] {
+            continue;
+        }
+
         let left = triangles[left_index];
         let right = triangles[right_index];
         if !triangles_form_tile(left, right, left_edge, right_edge, tile_mode) {
+            continue;
+        }
+        if !triangle_edge_has_matching_parity(left, left_edge)
+            || !triangle_edge_has_matching_parity(right, right_edge)
+        {
             continue;
         }
 
@@ -96,6 +106,8 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
             points: merged_polygon_points(left, right),
             fill_index: tile_fill_index(left.kind),
         });
+        used[left_index] = true;
+        used[right_index] = true;
     }
 
     tiles
@@ -271,6 +283,16 @@ fn triangle_edge_class(triangle: Triangle, edge_index: usize) -> EdgeClass {
     } else {
         EdgeClass::Long
     }
+}
+
+fn triangle_edge_has_matching_parity(triangle: Triangle, edge_index: usize) -> bool {
+    let (left, right) = match edge_index {
+        0 => (triangle.vertices[0], triangle.vertices[1]),
+        1 => (triangle.vertices[1], triangle.vertices[2]),
+        2 => (triangle.vertices[2], triangle.vertices[0]),
+        _ => unreachable!("invalid triangle edge index"),
+    };
+    left.parity == right.parity
 }
 
 fn merged_polygon_points(left: Triangle, right: Triangle) -> Vec<Vec2> {
