@@ -1,5 +1,0 @@
-use spectre_rs::tiles::{Anchor, Spectre};
-use spectre_rs::utils::{Angle, HexVec};
-
-fn anchors() -> [Anchor; 4] { [Anchor::Anchor1, Anchor::Anchor2, Anchor::Anchor3, Anchor::Anchor4] }
-fn name(anchor: Anchor) -> &static
