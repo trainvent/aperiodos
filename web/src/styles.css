@@ -266,22 +266,8 @@ h1 {
   text-transform: uppercase;
 }
 
-.swatch-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
 .feature-spacer {
   min-height: 28px;
-}
-
-.swatch {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.76);
-  box-shadow: 0 8px 20px rgba(23, 49, 59, 0.12);
 }
 
 .generator-layout {

@@ -161,8 +161,7 @@ function HomePage() {
       cta: "Open Einstein",
       to: "/einstein",
       className: "feature-einstein",
-      buttonClassName: "button",
-      showSwatches: true
+      buttonClassName: "button"
     },
     {
       title: "Spectre",
@@ -201,15 +200,7 @@ function HomePage() {
             <span className="feature-kicker">Generator</span>
             <h2>{card.title}</h2>
             <p>{card.description}</p>
-            {card.showSwatches ? (
-              <div className="swatch-row" aria-hidden="true">
-                {["black", "seagreen", "white", "sandybrown", "gold"].map((color) => (
-                  <span className="swatch" key={color} style={{ background: color }} />
-                ))}
-              </div>
-            ) : (
-              <div className="feature-spacer" aria-hidden="true" />
-            )}
+            <div className="feature-spacer" aria-hidden="true" />
             <NavLink className={card.buttonClassName} to={card.to}>
               {card.cta}
             </NavLink>
