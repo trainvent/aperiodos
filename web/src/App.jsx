@@ -92,6 +92,7 @@ const PENROSE_DEFAULTS = {
 };
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const BRAND_ICON_URL = `${import.meta.env.BASE_URL}custom-pattern_1024.png`;
 
 function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
@@ -104,7 +105,7 @@ export default function App() {
       <div className="ambient ambient-right" />
       <header className="topbar">
         <NavLink className="brand" to="/">
-          <img className="brand-mark" src="/custom-pattern_1024.png" alt="" />
+          <img className="brand-mark" src={BRAND_ICON_URL} alt="" />
           <span className="brand-copy">Aperiodos</span>
         </NavLink>
         <nav className="topnav">
@@ -153,58 +154,67 @@ function TopNavLink({ to, children }) {
 }
 
 function HomePage() {
+  const homeCards = [
+    {
+      title: "Einstein",
+      description: "Create still monotile images with size, palette, and seed controls.",
+      cta: "Open Einstein",
+      to: "/einstein",
+      className: "feature-einstein",
+      buttonClassName: "button",
+      showSwatches: true
+    },
+    {
+      title: "Spectre",
+      description: "Render Spectre tilings with framing, stroke, and export options.",
+      cta: "Open Spectre",
+      to: "/spectre",
+      className: "feature-spectre",
+      buttonClassName: "button button-green"
+    },
+    {
+      title: "Penrose",
+      description: "Build kite-dart or rhomb tilings from classic Penrose seeds.",
+      cta: "Open Penrose",
+      to: "/penrose",
+      className: "feature-penrose",
+      buttonClassName: "button button-ink"
+    }
+  ];
+
   return (
     <>
       <section className="hero hero-grid">
         <div>
-          <p className="eyebrow">Trainvent subservice</p>
-          <h1>Choose a generator.</h1>
-          <p className="lede">
-            Start with the classic Einstein image renderer or switch
-            to Spectre, or explore a Penrose renderer that can draw kite-dart and rhomb tilings.
-          </p>
+          <h1>Aperiodic generators.</h1>
+          <p className="lede">Pick a tiling system, adjust settings to your liking and export the result.</p>
         </div>
         <aside className="hero-note panel">
-          <strong>Current build</strong>
-          <p>Einstein, Spectre, and Penrose can all export SVG, PNG, and JPG.</p>
+          <strong>Three tools</strong>
+          <p>Einstein, Spectre, and Penrose all support quick exports in SVG, PNG, and JPG.</p>
         </aside>
       </section>
 
       <section className="card-grid">
-        <article className="feature-card feature-einstein panel">
-          <h2>Einstein</h2>
-          <p>Fine-tune iterations, palette, image size, and seed crops, then export a finished still image.</p>
-          <div className="swatch-row" aria-hidden="true">
-            {["black", "seagreen", "white", "sandybrown", "gold"].map((color) => (
-              <span className="swatch" key={color} style={{ background: color }} />
-            ))}
-          </div>
-          <NavLink className="button" to="/einstein">
-            Open Einstein Generator
-          </NavLink>
-        </article>
-
-        <article className="feature-card feature-spectre panel">
-          <h2>Spectre</h2>
-          <p>
-            Render bounded Spectre snapshots with a pattern variant, palette, framing, and stroke
-            controls, then download the result as SVG, PNG, or JPG.
-          </p>
-          <NavLink className="button button-green" to="/spectre">
-            Open Spectre Generator
-          </NavLink>
-        </article>
-
-        <article className="feature-card feature-penrose panel">
-          <h2>Penrose</h2>
-          <p>
-            Build Penrose kite-dart or rhomb tilings from a classic sun or star seed, tune the viewport, and
-            export the result as SVG, PNG, or JPG.
-          </p>
-          <NavLink className="button button-ink" to="/penrose">
-            Open Penrose Generator
-          </NavLink>
-        </article>
+        {homeCards.map((card) => (
+          <article key={card.title} className={`feature-card ${card.className} panel`}>
+            <span className="feature-kicker">Generator</span>
+            <h2>{card.title}</h2>
+            <p>{card.description}</p>
+            {card.showSwatches ? (
+              <div className="swatch-row" aria-hidden="true">
+                {["black", "seagreen", "white", "sandybrown", "gold"].map((color) => (
+                  <span className="swatch" key={color} style={{ background: color }} />
+                ))}
+              </div>
+            ) : (
+              <div className="feature-spacer" aria-hidden="true" />
+            )}
+            <NavLink className={card.buttonClassName} to={card.to}>
+              {card.cta}
+            </NavLink>
+          </article>
+        ))}
       </section>
     </>
   );
