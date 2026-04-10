@@ -1,5 +1,6 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import brandIconUrl from "./assets/custom-pattern_1024.png";
 
 const CSS_COLOR_OPTIONS = [
   "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque", "black",
@@ -92,7 +93,6 @@ const PENROSE_DEFAULTS = {
 };
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
-const BRAND_ICON_URL = `${import.meta.env.BASE_URL}custom-pattern_1024.png`;
 
 function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
@@ -105,7 +105,7 @@ export default function App() {
       <div className="ambient ambient-right" />
       <header className="topbar">
         <NavLink className="brand" to="/">
-          <img className="brand-mark" src={BRAND_ICON_URL} alt="" />
+          <img className="brand-mark" src={brandIconUrl} alt="" />
           <span className="brand-copy">Aperiodos</span>
         </NavLink>
         <nav className="topnav">

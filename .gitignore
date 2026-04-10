@@ -13,3 +13,4 @@ PenroseGenerator/
 *.svg
 *.png
 *.jpg
+!web/src/assets/custom-pattern_1024.png
