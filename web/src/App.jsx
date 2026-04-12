@@ -89,7 +89,9 @@ const PENROSE_DEFAULTS = {
   outline: "black",
   stroke_width: 1,
   palette_1: "wheat",
-  palette_2: "crimson"
+  palette_2: "midnightblue",
+  palette_3: "sandybrown",
+  palette_4: "seagreen"
 };
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -173,7 +175,7 @@ function HomePage() {
     },
     {
       title: "Penrose",
-      description: "Build kite-dart or rhomb tilings from classic Penrose seeds.",
+      description: "Build classic Penrose tilings as kite-darts, rhombs, or a star-rich derived variant.",
       cta: "Open Penrose",
       to: "/penrose",
       className: "feature-penrose",
@@ -390,10 +392,37 @@ function SpectrePage() {
 
 function PenrosePage() {
   const [values, setValues] = useState(PENROSE_DEFAULTS);
+
+  useEffect(() => {
+    if (values.tile_mode !== "p1") {
+      return;
+    }
+
+    setValues((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      if (next.seed !== "sun") {
+        next.seed = "sun";
+        changed = true;
+      }
+      if (next.palette_1 === "wheat") {
+        next.palette_1 = "seagreen";
+        changed = true;
+      }
+      if (Number(next.scale) === 320) {
+        next.scale = 285;
+        changed = true;
+      }
+
+      return changed ? next : current;
+    });
+  }, [values.tile_mode, values.seed, setValues]);
+
   return (
     <GeneratorLayout
       title="Penrose Generator"
-      description="Generate Penrose tilings as kite-dart tiles or rhombs from a sun or star seed, then adjust the framing, coloring, and export format."
+      description="Generate Penrose tilings as kite-darts, rhombs, or a derived option that includes the star-heavy pentagonal motif from Penrose's first tiling."
       controls={
         <>
           <NumberField values={values} setValues={setValues} name="width" label="Width" min={64} max={6000} />
@@ -419,7 +448,8 @@ function PenrosePage() {
             label="Tiles"
             options={[
               { value: "kite-dart", label: "Kite & Dart" },
-              { value: "rhombs", label: "Rhombs" }
+              { value: "rhombs", label: "Rhombs" },
+              { value: "p1", label: "P1: Stars" }
             ]}
           />
           <SelectField
@@ -440,6 +470,8 @@ function PenrosePage() {
           <div className="swatches full">
             <ColorField values={values} setValues={setValues} name="palette_1" label="Color 1" />
             <ColorField values={values} setValues={setValues} name="palette_2" label="Color 2" />
+            <ColorField values={values} setValues={setValues} name="palette_3" label="Color 3" />
+            <ColorField values={values} setValues={setValues} name="palette_4" label="Color 4" />
           </div>
         </>
       }
@@ -456,7 +488,7 @@ function PenrosePage() {
         background: values.background,
         outline: values.outline,
         stroke_width: Number(values.stroke_width),
-        palette: [values.palette_1, values.palette_2]
+        palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4]
           .map((value) => String(value).trim())
           .filter(Boolean)
       })}

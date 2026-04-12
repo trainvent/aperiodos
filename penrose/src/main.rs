@@ -52,6 +52,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> (PathBuf, PenroseSvgConfig)
                 config.tile_mode = match next_arg(&mut args, "--tile-mode").as_str() {
                     "kite-dart" => PenroseTileMode::KiteDart,
                     "rhombs" => PenroseTileMode::Rhombs,
+                    "p1" => PenroseTileMode::P1,
                     other => {
                         eprintln!("invalid value for --tile-mode: {other}");
                         std::process::exit(2);
@@ -113,7 +114,7 @@ fn print_help() {
           --outline COLOR\n\
           --stroke-width PX\n\
           --seed sun|star\n\
-          --tile-mode kite-dart|rhombs\n\
+          --tile-mode kite-dart|rhombs|p1\n\
           --palette c1,c2,c3,..."
     );
 }

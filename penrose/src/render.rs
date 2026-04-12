@@ -1,4 +1,5 @@
 mod classic_logic;
+mod p1_logic;
 mod rhombs_logic;
 
 use std::fmt::Write as _;
@@ -19,6 +20,7 @@ pub enum PenroseSeed {
 pub enum PenroseTileMode {
     KiteDart,
     Rhombs,
+    P1,
 }
 
 #[derive(Clone, Debug)]
@@ -46,7 +48,12 @@ impl Default for PenroseSvgConfig {
             scale: 320.0,
             center_x: 0.0,
             center_y: 0.0,
-            palette: vec!["wheat".to_string(), "crimson".to_string()],
+            palette: vec![
+                "wheat".to_string(),
+                "crimson".to_string(),
+                "steelblue".to_string(),
+                "darkgoldenrod".to_string(),
+            ],
             background: "white".to_string(),
             outline: "black".to_string(),
             stroke_width: 1.0,
@@ -67,6 +74,7 @@ pub fn render_svg(config: &PenroseSvgConfig) -> String {
     let tiles = match config.tile_mode {
         PenroseTileMode::KiteDart => classic_logic::render_tiles(config.seed, config.iterations),
         PenroseTileMode::Rhombs => rhombs_logic::render_tiles(config.seed, config.iterations),
+        PenroseTileMode::P1 => p1_logic::render_tiles(config.seed, config.iterations),
     };
 
     let mut document = String::new();
@@ -109,7 +117,11 @@ fn normalized_palette(config: &PenroseSvgConfig) -> Vec<String> {
 
     let mut palette = config.palette.clone();
     let defaults = PenroseSvgConfig::default().palette;
-    while palette.len() < 2 {
+    let minimum_colors = match config.tile_mode {
+        PenroseTileMode::P1 => 4,
+        _ => 2,
+    };
+    while palette.len() < minimum_colors {
         palette.push(defaults[palette.len()].clone());
     }
     palette

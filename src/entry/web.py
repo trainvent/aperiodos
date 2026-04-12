@@ -205,8 +205,8 @@ def _coerce_penrose_seed(payload):
 
 def _coerce_penrose_tile_mode(payload):
     tile_mode = str(payload.get("tile_mode", "kite-dart"))
-    if tile_mode not in {"kite-dart", "rhombs"}:
-        raise ValueError("'tile_mode' must be 'kite-dart' or 'rhombs'.")
+    if tile_mode not in {"kite-dart", "rhombs", "p1"}:
+        raise ValueError("'tile_mode' must be 'kite-dart', 'rhombs', or 'p1'.")
     return tile_mode
 
 
@@ -449,6 +449,8 @@ def _run_penrose_renderer(payload):
     palette = _coerce_palette(payload)
     seed = _coerce_penrose_seed(payload)
     tile_mode = _coerce_penrose_tile_mode(payload)
+    if tile_mode == "p1":
+        seed = "sun"
     image_format = _coerce_penrose_format(payload)
 
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
@@ -545,7 +547,7 @@ def api_index():
                 "GET /api/about": "References and acknowledgements",
                 "POST /api/einstein/render": "Generate an Einstein image and return it directly",
                 "POST /api/spectre/render": "Generate a Spectre SVG, PNG, or JPG and return it directly",
-                "POST /api/penrose/render": "Generate a Penrose kite-dart or rhomb SVG, PNG, or JPG and return it directly",
+                "POST /api/penrose/render": "Generate a Penrose kite-dart, rhomb, or P1 SVG, PNG, or JPG and return it directly",
             },
             "einstein_example_payload": {
                 "iterations": DEFAULT_ITERATIONS,
