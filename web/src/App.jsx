@@ -132,7 +132,7 @@ export default function App() {
       <footer className="footer">
         <div>
           Aperiodos is a Trainvent subservice for experiments in aperiodic tilings.{" "}
-          <a href="https://www.trainvent.com/" target="_blank" rel="noreferrer">
+          <a href="https://next.trainvent.com/" target="_blank" rel="noreferrer">
             Trainvent
           </a>
         </div>

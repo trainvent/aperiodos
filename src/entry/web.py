@@ -58,7 +58,7 @@ ABOUT_CONTENT = {
     "references": [
         {
             "label": "Trainvent",
-            "url": "https://www.trainvent.com/",
+            "url": "https://next.trainvent.com/",
         },
         {
             "label": "Hat monotile reference page",
