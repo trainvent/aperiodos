@@ -333,3 +333,4 @@ These limits are there to reduce the chance of Cloud Run instances timing out or
 - OpenAIs models where used for most of the technical work: https://openai.com/
 - https://mathoverflow.net/questions/443377/how-can-one-construct-a-four-coloring-of-a-tiling-of-the-plane-with-smith-myers
 - https://www.chiark.greenend.org.uk/%7Esgtatham/quasiblog/aperiodic-spectre/#hexintro
+- https://www.math.utah.edu/~treiberg/PenroseSlides.pdf

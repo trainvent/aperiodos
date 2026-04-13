@@ -392,9 +392,18 @@ function SpectrePage() {
 
 function PenrosePage() {
   const [values, setValues] = useState(PENROSE_DEFAULTS);
+  const previousTileModeRef = useRef(PENROSE_DEFAULTS.tile_mode);
+  const modeScaleDefaults = { "kite-dart": 320, rhombs: 320, p1: 320 };
+  const modeLegacyScales = { "kite-dart": [320], rhombs: [320], p1: [7, 10, 14, 285, 320] };
+  const p1PaletteDefaults = ["seagreen", "midnightblue", "sandybrown", "goldenrod"];
+  const legacyPaletteDefaults = ["wheat", "midnightblue", "sandybrown", "seagreen"];
 
   useEffect(() => {
-    if (values.tile_mode !== "p1") {
+    const previousMode = previousTileModeRef.current;
+    const nextMode = values.tile_mode;
+    previousTileModeRef.current = nextMode;
+
+    if (previousMode === nextMode) {
       return;
     }
 
@@ -402,22 +411,33 @@ function PenrosePage() {
       const next = { ...current };
       let changed = false;
 
-      if (next.seed !== "sun") {
-        next.seed = "sun";
+      const knownPreviousScales = [
+        modeScaleDefaults[previousMode],
+        ...(modeLegacyScales[previousMode] || [])
+      ];
+      if (knownPreviousScales.includes(Number(next.scale))) {
+        next.scale = modeScaleDefaults[nextMode];
         changed = true;
       }
-      if (next.palette_1 === "wheat") {
-        next.palette_1 = "seagreen";
-        changed = true;
-      }
-      if (Number(next.scale) === 320) {
-        next.scale = 285;
-        changed = true;
+
+      if (nextMode === "p1") {
+        if (next.seed !== "sun") {
+          next.seed = "sun";
+          changed = true;
+        }
+        const currentPalette = [next.palette_1, next.palette_2, next.palette_3, next.palette_4];
+        const paletteLooksDefault =
+          currentPalette.every((color, index) => color === legacyPaletteDefaults[index]) ||
+          currentPalette.every((color, index) => color === PENROSE_DEFAULTS[`palette_${index + 1}`]);
+        if (paletteLooksDefault) {
+          [next.palette_1, next.palette_2, next.palette_3, next.palette_4] = p1PaletteDefaults;
+          changed = true;
+        }
       }
 
       return changed ? next : current;
     });
-  }, [values.tile_mode, values.seed, setValues]);
+  }, [values.tile_mode, setValues]);
 
   return (
     <GeneratorLayout
@@ -428,7 +448,7 @@ function PenrosePage() {
           <NumberField values={values} setValues={setValues} name="width" label="Width" min={64} max={6000} />
           <NumberField values={values} setValues={setValues} name="height" label="Height" min={64} max={6000} />
           <NumberField values={values} setValues={setValues} name="iterations" label="Iterations" min={0} max={10} />
-          <NumberField values={values} setValues={setValues} name="scale" label="Scale" min={10} max={1200} />
+          <NumberField values={values} setValues={setValues} name="scale" label="Scale" min={1} max={1200} />
           <NumberField values={values} setValues={setValues} name="center_x" label="Center X" step="0.01" />
           <NumberField values={values} setValues={setValues} name="center_y" label="Center Y" step="0.01" />
           <SelectField
@@ -447,8 +467,8 @@ function PenrosePage() {
             name="tile_mode"
             label="Tiles"
             options={[
-              { value: "kite-dart", label: "Kite & Dart" },
-              { value: "rhombs", label: "Rhombs" },
+              { value: "kite-dart", label: "P2: Kite & Dart" },
+              { value: "rhombs", label: "P3: Rhombs" },
               { value: "p1", label: "P1: Stars" }
             ]}
           />

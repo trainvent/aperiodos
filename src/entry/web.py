@@ -43,6 +43,7 @@ MAX_SPECTRE_LEVEL = 8
 MAX_SPECTRE_SCALE = 120
 MAX_PENROSE_ITERATIONS = 10
 MAX_PENROSE_SCALE = 1200
+P1_SCALE_NORMALIZATION = 10.0 / 320.0
 ALLOWED_EINSTEIN_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
 ALLOWED_SPECTRE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
 ALLOWED_PENROSE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
@@ -449,8 +450,10 @@ def _run_penrose_renderer(payload):
     palette = _coerce_palette(payload)
     seed = _coerce_penrose_seed(payload)
     tile_mode = _coerce_penrose_tile_mode(payload)
+    renderer_scale = scale
     if tile_mode == "p1":
         seed = "sun"
+        renderer_scale = scale * P1_SCALE_NORMALIZATION
     image_format = _coerce_penrose_format(payload)
 
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
@@ -470,7 +473,7 @@ def _run_penrose_renderer(payload):
             "--iterations",
             str(iterations),
             "--scale",
-            str(scale),
+            str(renderer_scale),
             "--center-x",
             str(center_x),
             "--center-y",
