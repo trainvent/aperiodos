@@ -126,6 +126,7 @@ Useful Spectre flags:
 
 - `--center-x` and `--center-y` move the viewport in world coordinates.
 - `--background`, `--outline`, and `--stroke-width` control the SVG styling.
+- `--shape straight|curved` chooses straight polygon edges or a curved matching-rule variant.
 - `--palette` accepts a comma-separated list of CSS-style colors.
 
 ## Cloud Run
@@ -294,6 +295,7 @@ Service limits:
   "scale": 40,
   "center_x": 0,
   "center_y": 0,
+  "shape": "straight",
   "palette": ["#17313b", "#1f6a5d", "#b4552d", "#d8b24c", "#f6f1e8"],
   "background": "#f5f1e7",
   "outline": "#17313b",

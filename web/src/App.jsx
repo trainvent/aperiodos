@@ -66,6 +66,7 @@ const SPECTRE_DEFAULTS = {
   center_y: 0,
   format: "svg",
   draw_mode: "translation",
+  shape: "straight",
   background: "white",
   outline: "black",
   stroke_width: 1,
@@ -345,6 +346,17 @@ function SpectrePage() {
             ]}
             full
           />
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="shape"
+            label="Shape"
+            options={[
+              { value: "straight", label: "Straight" },
+              { value: "curved", label: "Curved" }
+            ]}
+            full
+          />
           <ColorField values={values} setValues={setValues} name="background" label="Background" full />
           <ColorField values={values} setValues={setValues} name="outline" label="Outline" full />
           <NumberField values={values} setValues={setValues} name="stroke_width" label="Stroke Width" min={0} max={20} step="0.1" />
@@ -365,6 +377,7 @@ function SpectrePage() {
         center_y: Number(values.center_y),
         format: values.format,
         draw_mode: values.draw_mode,
+        shape: values.shape,
         background: values.background,
         outline: values.outline,
         stroke_width: Number(values.stroke_width),

@@ -13,6 +13,12 @@ pub enum DrawMode {
     Translation,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ShapeMode {
+    Straight,
+    Curved,
+}
+
 #[derive(Clone, Debug)]
 pub struct SpectreSvgConfig {
     pub width: u32,
@@ -26,6 +32,7 @@ pub struct SpectreSvgConfig {
     pub outline: String,
     pub stroke_width: f32,
     pub draw_mode: DrawMode,
+    pub shape_mode: ShapeMode,
 }
 
 impl Default for SpectreSvgConfig {
@@ -47,6 +54,7 @@ impl Default for SpectreSvgConfig {
             outline: "black".to_string(),
             stroke_width: 1.2,
             draw_mode: DrawMode::Translation,
+            shape_mode: ShapeMode::Straight,
         }
     }
 }
@@ -94,7 +102,9 @@ fn render_svg_generated(config: &SpectreSvgConfig, palette: &[String]) -> String
     );
 
     for (index, spectre) in spectres.iter().enumerate() {
-        let points = svg_points(spectre.spectre, content_center, render_scale, config);
+        let shape_points =
+            spectre_outline_points(spectre.spectre, content_center, render_scale, config);
+        let points = svg_points(&shape_points);
         let fill = &palette[color_indices[index]];
         let _ = writeln!(
             document,
@@ -133,7 +143,8 @@ fn render_svg_translation(config: &SpectreSvgConfig, palette: &[String]) -> Stri
     );
 
     for (index, spectre) in spectres.iter().enumerate() {
-        let points = svg_points(spectre, content_center, render_scale, config);
+        let shape_points = spectre_outline_points(spectre, content_center, render_scale, config);
+        let points = svg_points(&shape_points);
         let fill = &palette[color_indices[index]];
         let _ = writeln!(
             document,
@@ -434,18 +445,92 @@ fn fitted_scale(config: &SpectreSvgConfig, content_bbox: &Aabb) -> f32 {
     config.scale.min(width_scale.min(height_scale))
 }
 
-fn svg_points(
+fn spectre_outline_points(
     spectre: &Spectre,
     content_center: Vec2,
     render_scale: f32,
     config: &SpectreSvgConfig,
-) -> String {
+) -> Vec<Vec2> {
+    let base_points: Vec<Vec2> = spectre
+        .vertices()
+        .into_iter()
+        .map(|vertex| {
+            let point = vertex.to_vec2();
+            Vec2::new(
+                (point.x - content_center.x) * render_scale + config.width as f32 * 0.5,
+                config.height as f32 * 0.5 - (point.y - content_center.y) * render_scale,
+            )
+        })
+        .collect();
+
+    match config.shape_mode {
+        ShapeMode::Straight => base_points,
+        ShapeMode::Curved => curved_outline_points(&base_points),
+    }
+}
+
+fn curved_outline_points(base_points: &[Vec2]) -> Vec<Vec2> {
+    const SEGMENTS_PER_EDGE: usize = 6;
+    const BULGE_FACTOR: f32 = 0.22;
+
+    if base_points.len() < 2 {
+        return base_points.to_vec();
+    }
+
+    let mut points = Vec::with_capacity(base_points.len() * SEGMENTS_PER_EDGE);
+    points.push(base_points[0]);
+
+    for edge_index in 0..base_points.len() {
+        let start = base_points[edge_index];
+        let end = base_points[(edge_index + 1) % base_points.len()];
+        let bulge_sign = if edge_index % 2 == 0 { 1.0 } else { -1.0 };
+        append_curved_edge_points(
+            &mut points,
+            start,
+            end,
+            bulge_sign,
+            BULGE_FACTOR,
+            SEGMENTS_PER_EDGE,
+        );
+    }
+
+    points
+}
+
+fn append_curved_edge_points(
+    output: &mut Vec<Vec2>,
+    start: Vec2,
+    end: Vec2,
+    bulge_sign: f32,
+    bulge_factor: f32,
+    segments: usize,
+) {
+    let edge = end - start;
+    let edge_length = (edge.x * edge.x + edge.y * edge.y).sqrt();
+    if edge_length <= f32::EPSILON {
+        output.push(end);
+        return;
+    }
+
+    let outward_normal = Vec2::new(edge.y / edge_length, -edge.x / edge_length);
+    let midpoint = (start + end) * 0.5;
+    let control = midpoint + outward_normal * (edge_length * bulge_factor * bulge_sign);
+
+    for step in 1..=segments.max(1) {
+        let t = step as f32 / segments.max(1) as f32;
+        let one_minus_t = 1.0 - t;
+        let point =
+            start * (one_minus_t * one_minus_t) + control * (2.0 * one_minus_t * t) + end * (t * t);
+        output.push(point);
+    }
+}
+
+fn svg_points(points_list: &[Vec2]) -> String {
     let mut points = String::new();
 
-    for (index, vertex) in spectre.vertices().into_iter().enumerate() {
-        let point = vertex.to_vec2();
-        let x = (point.x - content_center.x) * render_scale + config.width as f32 * 0.5;
-        let y = config.height as f32 * 0.5 - (point.y - content_center.y) * render_scale;
+    for (index, point) in points_list.iter().enumerate() {
+        let x = point.x;
+        let y = point.y;
         if index > 0 {
             points.push(' ');
         }

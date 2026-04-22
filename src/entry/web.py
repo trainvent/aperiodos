@@ -190,6 +190,13 @@ def _coerce_spectre_draw_mode(payload):
     return draw_mode
 
 
+def _coerce_spectre_shape(payload):
+    shape = str(payload.get("shape", "straight"))
+    if shape not in {"straight", "curved"}:
+        raise ValueError("'shape' must be 'straight' or 'curved'.")
+    return shape
+
+
 def _coerce_spectre_format(payload):
     image_format = str(payload.get("format", "svg")).lower()
     if image_format not in ALLOWED_SPECTRE_FORMATS:
@@ -351,6 +358,7 @@ def _run_spectre_renderer(payload):
     stroke_width = _coerce_float(payload, "stroke_width", 1.2, minimum=0.0, maximum=20.0)
     palette = _coerce_palette(payload)
     draw_mode = _coerce_spectre_draw_mode(payload)
+    shape = _coerce_spectre_shape(payload)
     image_format = _coerce_spectre_format(payload)
 
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp_file:
@@ -388,6 +396,8 @@ def _run_spectre_renderer(payload):
             str(stroke_width),
             "--draw-mode",
             draw_mode,
+            "--shape",
+            shape,
         ]
     )
 
@@ -573,6 +583,7 @@ def api_index():
                 "center_y": 0,
                 "format": "svg",
                 "draw_mode": "translation",
+                "shape": "straight",
                 "palette": ["#1f6a5d", "#b4552d", "#d8b24c", "#17313b"],
                 "background": "#ffffff",
                 "outline": "black",
