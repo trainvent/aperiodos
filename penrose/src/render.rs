@@ -118,6 +118,7 @@ fn normalized_palette(config: &PenroseSvgConfig) -> Vec<String> {
     let mut palette = config.palette.clone();
     let defaults = PenroseSvgConfig::default().palette;
     let minimum_colors = match config.tile_mode {
+        PenroseTileMode::KiteDart if config.seed == PenroseSeed::Star => 4,
         PenroseTileMode::P1 => 4,
         _ => 2,
     };

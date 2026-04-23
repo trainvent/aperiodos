@@ -204,18 +204,18 @@ def _coerce_spectre_format(payload):
     return image_format
 
 
-def _coerce_penrose_seed(payload):
-    seed = str(payload.get("seed", "sun"))
-    if seed not in {"sun", "star"}:
-        raise ValueError("'seed' must be 'sun' or 'star'.")
-    return seed
-
-
 def _coerce_penrose_tile_mode(payload):
     tile_mode = str(payload.get("tile_mode", "kite-dart"))
     if tile_mode not in {"kite-dart", "rhombs", "p1"}:
         raise ValueError("'tile_mode' must be 'kite-dart', 'rhombs', or 'p1'.")
     return tile_mode
+
+
+def _coerce_penrose_build_logic(payload):
+    build_logic = str(payload.get("build_logic", "default"))
+    if build_logic not in {"default", "cartwheel"}:
+        raise ValueError("'build_logic' must be 'default' or 'cartwheel'.")
+    return build_logic
 
 
 def _coerce_penrose_format(payload):
@@ -302,15 +302,11 @@ def _penrose_binary_path():
 
     candidates = [path for path in (DEFAULT_PENROSE_BINARY, DEBUG_PENROSE_BINARY) if path.exists()]
     if candidates:
-        newest_source = max(
-            (
-                PROJECT_ROOT / "penrose" / "src" / "main.rs",
-                PROJECT_ROOT / "penrose" / "src" / "lib.rs",
-                PROJECT_ROOT / "penrose" / "src" / "render.rs",
-                PROJECT_ROOT / "penrose" / "src" / "math.rs",
-            ),
-            key=lambda path: path.stat().st_mtime,
-        ).stat().st_mtime
+        source_files = list((PROJECT_ROOT / "penrose" / "src").rglob("*.rs"))
+        if not source_files:
+            return max(candidates, key=lambda path: path.stat().st_mtime)
+
+        newest_source = max(path.stat().st_mtime for path in source_files)
         fresh_candidates = [
             path for path in candidates if path.stat().st_mtime >= newest_source
         ]
@@ -450,7 +446,7 @@ def _run_spectre_renderer(payload):
 def _run_penrose_renderer(payload):
     width = _coerce_int(payload, "width", DEFAULT_HTTP_WIDTH, minimum=64, maximum=MAX_IMAGE_DIMENSION)
     height = _coerce_int(payload, "height", DEFAULT_HTTP_HEIGHT, minimum=64, maximum=MAX_IMAGE_DIMENSION)
-    iterations = _coerce_int(payload, "iterations", 7, minimum=0, maximum=MAX_PENROSE_ITERATIONS)
+    iterations = _coerce_int(payload, "iterations", 4, minimum=0, maximum=MAX_PENROSE_ITERATIONS)
     scale = _coerce_float(payload, "scale", 320.0, minimum=10.0, maximum=MAX_PENROSE_SCALE)
     center_x = _coerce_float(payload, "center_x", 0.0)
     center_y = _coerce_float(payload, "center_y", 0.0)
@@ -458,11 +454,15 @@ def _run_penrose_renderer(payload):
     outline = str(payload.get("outline", "black"))
     stroke_width = _coerce_float(payload, "stroke_width", 1.0, minimum=0.0, maximum=20.0)
     palette = _coerce_palette(payload)
-    seed = _coerce_penrose_seed(payload)
+    build_logic = _coerce_penrose_build_logic(payload)
     tile_mode = _coerce_penrose_tile_mode(payload)
+    if tile_mode != "kite-dart" and build_logic == "cartwheel":
+        raise ValueError("'build_logic' value 'cartwheel' is only supported when 'tile_mode' is 'kite-dart'.")
+    if tile_mode != "kite-dart":
+        build_logic = "default"
+    seed = "sun" if build_logic == "default" else "star"
     renderer_scale = scale
     if tile_mode == "p1":
-        seed = "sun"
         renderer_scale = scale * P1_SCALE_NORMALIZATION
     image_format = _coerce_penrose_format(payload)
 
@@ -592,12 +592,12 @@ def api_index():
             "penrose_example_payload": {
                 "width": DEFAULT_HTTP_WIDTH,
                 "height": DEFAULT_HTTP_HEIGHT,
-                "iterations": 7,
+                "iterations": 4,
                 "scale": 320,
                 "center_x": 0,
                 "center_y": 0,
                 "format": "svg",
-                "seed": "sun",
+                "build_logic": "default",
                 "tile_mode": "kite-dart",
                 "palette": ["wheat", "crimson"],
                 "background": "white",

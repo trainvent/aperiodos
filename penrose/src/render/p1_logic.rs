@@ -37,15 +37,15 @@ fn pentagon_rules() -> HashMap<char, &'static str> {
     HashMap::from([
         ('P', "[s>P][1sF+Q][1+sF+Q][1*sF+Q][1-sF+Q][1_sF+Q]"),
         ('Q', "[s>P][1+sFR][1*sF*R][1-sF+Q][1_sF+Q][1sF+Q][->fsD]"),
-        ('R', "[s>P][1-sF+Q][1+sF*R][1*sFR][1_sF*R][1sFR][_>fsD][>fsD]"),
+        (
+            'R',
+            "[s>P][1-sF+Q][1+sF*R][1*sFR][1_sF*R][1sFR][_>fsD][>fsD]",
+        ),
         (
             'G',
             "[s>G][se[>d+R][e1B]][+se[>d+R][e1B]][-se[>d+R][e1B]][*se[>d+R][e1B]][_se[>d+R][e1B]]",
         ),
-        (
-            'B',
-            "[s>G][se[>d+R][e1B]][+se[>d+R][e1B]][-se[>d+R][e1B]]",
-        ),
+        ('B', "[s>G][se[>d+R][e1B]][+se[>d+R][e1B]][-se[>d+R][e1B]]"),
         ('D', "[s>d+R][s>eG][se1B]"),
     ])
 }
@@ -126,7 +126,10 @@ fn execute_word(word: &str, initial_step: f64) -> Vec<RenderTile> {
 fn draw_pentagon(tiles: &mut Vec<RenderTile>, frame: Frame) {
     let transform = frame
         .transform
-        .then(Transform::translate(-frame.step / 2.0, -frame.step * tan_deg(54.0) / 2.0))
+        .then(Transform::translate(
+            -frame.step / 2.0,
+            -frame.step * tan_deg(54.0) / 2.0,
+        ))
         .then(Transform::scale(frame.step));
     tiles.push(RenderTile {
         points: pentagon_points()
@@ -212,10 +215,7 @@ fn star_points() -> Vec<Vec2> {
             -1.0 + 3.0 * cos_deg(108.0) + cos_deg(36.0),
             -sin_deg(36.0) - sin_deg(108.0),
         ),
-        Vec2::new(
-            -1.0 + 2.0 * cos_deg(108.0) + cos_deg(36.0),
-            -sin_deg(36.0),
-        ),
+        Vec2::new(-1.0 + 2.0 * cos_deg(108.0) + cos_deg(36.0), -sin_deg(36.0)),
         Vec2::new(-1.0 + 2.0 * cos_deg(108.0), 0.0),
         Vec2::new(2.0 * cos_deg(108.0), 0.0),
         Vec2::new(cos_deg(108.0), sin_deg(108.0)),

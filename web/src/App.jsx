@@ -33,7 +33,7 @@ const ABOUT_FALLBACK = {
     "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, and browser experiments.",
   references: [],
   credits: "",
-  technical_realizations: "",
+  technical_realizations: "Codex from OpenAI",
   notes: ""
 };
 
@@ -79,12 +79,12 @@ const SPECTRE_DEFAULTS = {
 const PENROSE_DEFAULTS = {
   width: 1200,
   height: 1200,
-  iterations: 7,
+  iterations: 4,
   scale: 320,
   center_x: 0,
   center_y: 0,
   format: "svg",
-  seed: "sun",
+  build_logic: "default",
   tile_mode: "kite-dart",
   background: "white",
   outline: "black",
@@ -132,7 +132,7 @@ export default function App() {
 
       <footer className="footer">
         <div>
-          Aperiodos is a Trainvent subservice for experiments in aperiodic tilings.{" "}
+          Aperiodos is a service for experiments in aperiodic tilings delivered by {" "}
           <a href="https://next.trainvent.com/" target="_blank" rel="noreferrer">
             Trainvent
           </a>
@@ -410,6 +410,8 @@ function PenrosePage() {
   const modeLegacyScales = { "kite-dart": [320], rhombs: [320], p1: [7, 10, 14, 285, 320] };
   const p1PaletteDefaults = ["seagreen", "midnightblue", "sandybrown", "goldenrod"];
   const legacyPaletteDefaults = ["wheat", "midnightblue", "sandybrown", "seagreen"];
+  const cartwheelPaletteDefaults = ["lightyellow", "lightcoral", "gainsboro", "dodgerblue"];
+  const cartwheelLegacyHexDefaults = ["#ffffb3", "#ff6666", "#e6e6e6", "#0080ff"];
 
   useEffect(() => {
     const previousMode = previousTileModeRef.current;
@@ -434,10 +436,6 @@ function PenrosePage() {
       }
 
       if (nextMode === "p1") {
-        if (next.seed !== "sun") {
-          next.seed = "sun";
-          changed = true;
-        }
         const currentPalette = [next.palette_1, next.palette_2, next.palette_3, next.palette_4];
         const paletteLooksDefault =
           currentPalette.every((color, index) => color === legacyPaletteDefaults[index]) ||
@@ -447,10 +445,50 @@ function PenrosePage() {
           changed = true;
         }
       }
+      if (nextMode !== "kite-dart" && next.build_logic !== "default") {
+        next.build_logic = "default";
+        changed = true;
+      }
 
       return changed ? next : current;
     });
   }, [values.tile_mode, setValues]);
+
+  useEffect(() => {
+    if (values.tile_mode !== "kite-dart") {
+      return;
+    }
+
+    setValues((current) => {
+      const currentPalette = [current.palette_1, current.palette_2, current.palette_3, current.palette_4];
+      const matchesLegacyDefaults = currentPalette.every((color, index) => color === legacyPaletteDefaults[index]);
+      const matchesCartwheelDefaults =
+        currentPalette.every((color, index) => color === cartwheelPaletteDefaults[index]) ||
+        currentPalette.every((color, index) => color === cartwheelLegacyHexDefaults[index]);
+
+      if (current.build_logic === "cartwheel" && matchesLegacyDefaults) {
+        return {
+          ...current,
+          palette_1: cartwheelPaletteDefaults[0],
+          palette_2: cartwheelPaletteDefaults[1],
+          palette_3: cartwheelPaletteDefaults[2],
+          palette_4: cartwheelPaletteDefaults[3]
+        };
+      }
+
+      if (current.build_logic === "default" && matchesCartwheelDefaults) {
+        return {
+          ...current,
+          palette_1: legacyPaletteDefaults[0],
+          palette_2: legacyPaletteDefaults[1],
+          palette_3: legacyPaletteDefaults[2],
+          palette_4: legacyPaletteDefaults[3]
+        };
+      }
+
+      return current;
+    });
+  }, [values.build_logic, values.tile_mode, setValues]);
 
   return (
     <GeneratorLayout
@@ -467,16 +505,6 @@ function PenrosePage() {
           <SelectField
             values={values}
             setValues={setValues}
-            name="seed"
-            label="Seed"
-            options={[
-              { value: "sun", label: "Sun" },
-              { value: "star", label: "Star" }
-            ]}
-          />
-          <SelectField
-            values={values}
-            setValues={setValues}
             name="tile_mode"
             label="Tiles"
             options={[
@@ -485,6 +513,18 @@ function PenrosePage() {
               { value: "p1", label: "P1: Stars" }
             ]}
           />
+          {values.tile_mode === "kite-dart" ? (
+            <SelectField
+              values={values}
+              setValues={setValues}
+              name="build_logic"
+              label="Build Logic"
+              options={[
+                { value: "default", label: "Default" },
+                { value: "cartwheel", label: "Cartwheel" }
+              ]}
+            />
+          ) : null}
           <SelectField
             values={values}
             setValues={setValues}
@@ -516,7 +556,7 @@ function PenrosePage() {
         center_x: Number(values.center_x),
         center_y: Number(values.center_y),
         format: values.format,
-        seed: values.seed,
+        build_logic: values.build_logic,
         tile_mode: values.tile_mode,
         background: values.background,
         outline: values.outline,
@@ -743,6 +783,29 @@ function TextField({ values, setValues, name, label, placeholder, full = false }
 
 function ColorField({ values, setValues, name, label, placeholder = "Type or search a CSS color", full = false }) {
   const listId = `color-options-${name}`;
+  const cachedValueRef = useRef("");
+  const autoClearedRef = useRef(false);
+
+  function handleFocus() {
+    const currentValue = String(values[name] ?? "");
+    cachedValueRef.current = currentValue;
+    if (!currentValue) {
+      autoClearedRef.current = false;
+      return;
+    }
+    autoClearedRef.current = true;
+    setValues((current) => ({ ...current, [name]: "" }));
+  }
+
+  function handleBlur() {
+    const currentValue = String(values[name] ?? "").trim();
+    if (autoClearedRef.current && !currentValue) {
+      const restored = cachedValueRef.current;
+      setValues((current) => ({ ...current, [name]: restored }));
+    }
+    autoClearedRef.current = false;
+  }
+
   return (
     <label className={full ? "full color-field" : "color-field"}>
       <span>{label}</span>
@@ -754,6 +817,8 @@ function ColorField({ values, setValues, name, label, placeholder = "Type or sea
           list={listId}
           placeholder={placeholder}
           value={values[name]}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           onChange={(event) => setValues((current) => ({ ...current, [name]: event.target.value }))}
         />
         <datalist id={listId}>

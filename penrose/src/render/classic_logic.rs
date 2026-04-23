@@ -42,11 +42,77 @@ impl Vertex {
 }
 
 pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTile> {
-    let mut triangles = initial_seed(seed);
-    for _ in 0..iterations {
-        triangles = subdivide(&triangles);
+    match seed {
+        PenroseSeed::Sun => {
+            let mut triangles = initial_seed(seed);
+            for _ in 0..iterations {
+                triangles = subdivide(&triangles);
+            }
+            assembled_tiles(&triangles, PenroseTileMode::KiteDart)
+        }
+        // Cartwheel uses pre-expanded canonical states from the reference construction.
+        PenroseSeed::Star => {
+            let triangles = initial_cartwheel(iterations.min(4), 1.0);
+            let mut tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
+            apply_cartwheel_coloring(&mut tiles);
+            tiles
+        }
     }
-    assembled_tiles(&triangles, PenroseTileMode::KiteDart)
+}
+
+fn apply_cartwheel_coloring(tiles: &mut [RenderTile]) {
+    for tile in tiles {
+        tile.fill_index = cartwheel_fill_index(&tile.points);
+    }
+}
+
+fn cartwheel_fill_index(points: &[Vec2]) -> usize {
+    // Empirically centered on the canonical Batman expansion used by this seed data.
+    const CENTER_X: f64 = 0.0;
+    const CENTER_Y: f64 = 0.190_983_005_625_052_55;
+    const BATMAN_RADIUS: f64 = 0.34;
+    const CARTWHEEL_RING_RADIUS: f64 = 0.76;
+    const SPOKE_START_RADIUS: f64 = 0.60;
+    const SPOKE_HALF_WIDTH: f64 = 0.12;
+    const SPOKE_OFFSET: f64 = PI / 2.0;
+
+    let centroid = polygon_centroid(points);
+    let dx = centroid.x - CENTER_X;
+    let dy = centroid.y - CENTER_Y;
+    let radius = (dx * dx + dy * dy).sqrt();
+
+    if radius <= BATMAN_RADIUS {
+        return 3;
+    }
+    if radius <= CARTWHEEL_RING_RADIUS {
+        return 2;
+    }
+    if radius < SPOKE_START_RADIUS {
+        return 0;
+    }
+
+    let angle = dy.atan2(dx);
+    let spoke_step = PI / 5.0;
+    let nearest_spoke =
+        ((angle - SPOKE_OFFSET) / spoke_step).round() * spoke_step + SPOKE_OFFSET;
+    let delta = wrapped_angle(angle - nearest_spoke).abs();
+
+    if delta <= SPOKE_HALF_WIDTH { 1 } else { 0 }
+}
+
+fn polygon_centroid(points: &[Vec2]) -> Vec2 {
+    let count = points.len() as f64;
+    if count == 0.0 {
+        return Vec2::new(0.0, 0.0);
+    }
+    points
+        .iter()
+        .fold(Vec2::new(0.0, 0.0), |acc, point| acc + *point)
+        / count
+}
+
+fn wrapped_angle(value: f64) -> f64 {
+    (value + PI).rem_euclid(2.0 * PI) - PI
 }
 
 fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<RenderTile> {
@@ -104,26 +170,8 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
 fn initial_seed(seed: PenroseSeed) -> Vec<Triangle> {
     match seed {
         PenroseSeed::Sun => initial_sun(10, 1.0),
-        PenroseSeed::Star => initial_star(10, 1.0),
+        PenroseSeed::Star => initial_cartwheel(0, 1.0),
     }
-}
-
-fn initial_star(count: usize, size: f64) -> Vec<Triangle> {
-    let mut triangles = Vec::with_capacity(count);
-    for index in 0..count {
-        let first = if index % 2 == 0 { size } else { size / PHI };
-        let second = if index % 2 == 0 { size / PHI } else { size };
-        let (a, b) = init_vertex_pair(index as f64, first, second);
-        triangles.push(Triangle {
-            kind: TriangleKind::Obtuse,
-            vertices: [
-                Vertex::new(Vec2::new(0.0, 0.0), true),
-                Vertex::new(a, index % 2 != 0),
-                Vertex::new(b, index % 2 == 0),
-            ],
-        });
-    }
-    triangles
 }
 
 fn initial_sun(count: usize, size: f64) -> Vec<Triangle> {
@@ -143,6 +191,62 @@ fn initial_sun(count: usize, size: f64) -> Vec<Triangle> {
         });
     }
     triangles
+}
+
+fn initial_cartwheel(expansion_step: usize, size: f64) -> Vec<Triangle> {
+    cartwheel_seed_data(expansion_step)
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| parse_cartwheel_triangle(line, size))
+        .collect()
+}
+
+fn parse_cartwheel_triangle(line: &str, size: f64) -> Triangle {
+    let mut parts = line.split_ascii_whitespace();
+    let tile_type = parts
+        .next()
+        .and_then(|value| value.chars().next())
+        .expect("cartwheel seed row should start with a tile type");
+
+    let parse_f64 = |raw: Option<&str>| {
+        raw.expect("cartwheel seed row missing coordinate")
+            .parse::<f64>()
+            .expect("cartwheel seed row contains an invalid coordinate")
+            * size
+    };
+
+    let points = [
+        Vec2::new(parse_f64(parts.next()), parse_f64(parts.next())),
+        Vec2::new(parse_f64(parts.next()), parse_f64(parts.next())),
+        Vec2::new(parse_f64(parts.next()), parse_f64(parts.next())),
+    ];
+
+    let (kind, perm, parities) = match tile_type {
+        'A' => (TriangleKind::Acute, [2usize, 0, 1], [false, false, false]),
+        'B' => (TriangleKind::Acute, [2usize, 0, 1], [false, true, false]),
+        'U' => (TriangleKind::Obtuse, [0usize, 1, 2], [false, true, false]),
+        'V' => (TriangleKind::Obtuse, [1usize, 0, 2], [false, true, false]),
+        other => panic!("unsupported cartwheel seed tile type: {other}"),
+    };
+
+    Triangle {
+        kind,
+        vertices: [
+            Vertex::new(points[perm[0]], parities[0]),
+            Vertex::new(points[perm[1]], parities[1]),
+            Vertex::new(points[perm[2]], parities[2]),
+        ],
+    }
+}
+
+fn cartwheel_seed_data(expansion_step: usize) -> &'static str {
+    match expansion_step {
+        0 => include_str!("cartwheel_seed_data_0.txt"),
+        1 => include_str!("cartwheel_seed_data_1.txt"),
+        2 => include_str!("cartwheel_seed_data_2.txt"),
+        3 => include_str!("cartwheel_seed_data_3.txt"),
+        _ => include_str!("cartwheel_seed_data_4.txt"),
+    }
 }
 
 fn init_vertex_pair(index: f64, first: f64, second: f64) -> (Vec2, Vec2) {
@@ -382,9 +486,10 @@ mod tests {
             .iter()
             .enumerate()
             .flat_map(|(left_index, left)| {
-                points.iter().skip(left_index + 1).map(move |right| {
-                    (distance(*left, *right) * 1_000_000.0).round() as i64
-                })
+                points
+                    .iter()
+                    .skip(left_index + 1)
+                    .map(move |right| (distance(*left, *right) * 1_000_000.0).round() as i64)
             })
             .collect::<Vec<_>>();
         lengths.sort_unstable();
@@ -407,18 +512,20 @@ mod tests {
     }
 
     #[test]
-    fn star_seed_assembles_into_five_darts() {
+    fn cartwheel_seed_generates_kites_and_darts() {
         let triangles = initial_seed(PenroseSeed::Star);
         let tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
 
-        assert_eq!(tiles.len(), 5);
+        assert!(!tiles.is_empty());
         assert!(tiles.iter().all(|tile| tile.points.len() == 4));
 
-        let signatures = tiles
+        let mut signatures = tiles
             .iter()
             .map(|tile| shape_signature(&tile.points))
             .collect::<Vec<_>>();
-        assert!(signatures.windows(2).all(|window| window[0] == window[1]));
+        signatures.sort_unstable();
+        signatures.dedup();
+        assert_eq!(signatures.len(), 2);
     }
 
     #[test]
