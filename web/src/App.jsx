@@ -95,6 +95,13 @@ const PENROSE_DEFAULTS = {
   palette_4: "seagreen"
 };
 
+const DONATION_DEFAULTS = {
+  amount_major: 10,
+  name: "",
+  message: "",
+  is_public: true
+};
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 function apiUrl(path) {
@@ -113,6 +120,8 @@ export default function App() {
         </NavLink>
         <nav className="topnav">
           <TopNavLink to="/">Home</TopNavLink>
+          <TopNavLink to="/donate">Donate</TopNavLink>
+          <TopNavLink to="/sponsors">Sponsors</TopNavLink>
           <TopNavLink to="/einstein">Einstein</TopNavLink>
           <TopNavLink to="/spectre">Spectre</TopNavLink>
           <TopNavLink to="/penrose">Penrose</TopNavLink>
@@ -123,6 +132,8 @@ export default function App() {
       <main className="page">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/donate" element={<DonatePage />} />
+          <Route path="/sponsors" element={<SponsorsPage />} />
           <Route path="/einstein" element={<EinsteinPage />} />
           <Route path="/spectre" element={<SpectrePage />} />
           <Route path="/penrose" element={<PenrosePage />} />
@@ -138,6 +149,8 @@ export default function App() {
           </a>
         </div>
         <nav className="footer-nav">
+          <TopNavLink to="/donate">Donate</TopNavLink>
+          <TopNavLink to="/sponsors">Sponsors</TopNavLink>
           <TopNavLink to="/about">About</TopNavLink>
           <TopNavLink to="/einstein">Einstein</TopNavLink>
           <TopNavLink to="/spectre">Spectre</TopNavLink>
@@ -175,6 +188,14 @@ function HomePage() {
       buttonClassName: "button button-green"
     },
     {
+      title: "Donate",
+      description: "Support development and get your name into the public sponsors list.",
+      cta: "Open Donate",
+      to: "/donate",
+      className: "feature-sponsors",
+      buttonClassName: "button button-gold"
+    },
+    {
       title: "Penrose",
       description: "Build classic Penrose tilings as kite-darts, rhombs, or a star-rich derived variant.",
       cta: "Open Penrose",
@@ -209,6 +230,163 @@ function HomePage() {
             </NavLink>
           </article>
         ))}
+      </section>
+    </>
+  );
+}
+
+function DonatePage() {
+  const [values, setValues] = useState(DONATION_DEFAULTS);
+  const [status, setStatus] = useState("Donate securely via Stripe.");
+  const [donationSettings, setDonationSettings] = useState({
+    enabled: true,
+    currency: "EUR",
+    minimumMajor: 1
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get("status");
+    if (checkoutStatus === "success") {
+      setStatus("Thank you. Your donation was received.");
+    } else if (checkoutStatus === "cancelled") {
+      setStatus("Donation was cancelled. You can try again anytime.");
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(apiUrl("/api"))
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled) {
+          return;
+        }
+        const donations = data.donations || {};
+        const minimumCents = Number(donations.minimum_cents || 100);
+        const minimumMajor = Math.max(0.5, minimumCents / 100);
+        const currency = String(donations.currency || "eur").toUpperCase();
+        setDonationSettings({
+          enabled: Boolean(donations.enabled),
+          currency,
+          minimumMajor
+        });
+        setValues((current) => ({
+          ...current,
+          amount_major: Math.max(Number(current.amount_major) || 0, minimumMajor)
+        }));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleDonate(event) {
+    event.preventDefault();
+    if (!donationSettings.enabled) {
+      setStatus("Donations are not configured yet.");
+      return;
+    }
+    setStatus("Creating Stripe checkout session...");
+    const amountCents = Math.round(Number(values.amount_major) * 100);
+
+    try {
+      const response = await fetch(apiUrl("/api/donations/checkout-session"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount_cents: amountCents,
+          currency: donationSettings.currency.toLowerCase(),
+          name: values.name,
+          message: values.message,
+          is_public: Boolean(values.is_public)
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Could not start donation checkout.");
+      }
+      if (!data.checkout_url) {
+        throw new Error("Stripe checkout URL missing.");
+      }
+      window.location.assign(data.checkout_url);
+    } catch (error) {
+      setStatus(error.message || "Could not start donation checkout.");
+    }
+  }
+
+  return (
+    <>
+      <section className="hero">
+        <h1>Donate</h1>
+        <p className="lede">Support Aperiodos and optionally appear on the sponsors list after payment.</p>
+      </section>
+
+      <section className="generator-layout">
+        <form className="panel controls-panel" onSubmit={handleDonate}>
+          <h2>Donation</h2>
+          <div className="grid">
+            <NumberField
+              values={values}
+              setValues={setValues}
+              name="amount_major"
+              label={`Amount (${donationSettings.currency})`}
+              min={donationSettings.minimumMajor}
+              step="0.5"
+              full
+            />
+            <TextField values={values} setValues={setValues} name="name" label="Public Name (optional)" full />
+            <TextField
+              values={values}
+              setValues={setValues}
+              name="message"
+              label="Message (optional)"
+              placeholder="Thanks for the project!"
+              full
+            />
+            <CheckboxField
+              values={values}
+              setValues={setValues}
+              name="is_public"
+              label="Show me on the public sponsors list"
+            />
+          </div>
+          <div className="actions-row">
+            <button className="button button-gold" type="submit" disabled={!donationSettings.enabled}>
+              Continue To Stripe
+            </button>
+          </div>
+          <p className="status status-spaced">{status}</p>
+        </form>
+
+        <section className="panel preview-panel preview-panel-short">
+          <h2>Public Sponsors</h2>
+          <SponsorsPanel compact />
+        </section>
+      </section>
+    </>
+  );
+}
+
+function SponsorsPage() {
+  return (
+    <>
+      <section className="hero">
+        <h1>Sponsors</h1>
+        <p className="lede">People who support Aperiodos through donations.</p>
+      </section>
+
+      <section className="stack">
+        <article className="panel prose-panel">
+          <h2>Wall Of Support</h2>
+          <SponsorsPanel />
+          <div className="actions-row">
+            <NavLink className="button button-gold" to="/donate">
+              Become A Sponsor
+            </NavLink>
+          </div>
+        </article>
       </section>
     </>
   );
@@ -747,6 +925,74 @@ function AboutPage() {
       </section>
     </>
   );
+}
+
+function SponsorsPanel({ compact = false }) {
+  const [sponsors, setSponsors] = useState([]);
+  const [status, setStatus] = useState("Loading sponsors...");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(apiUrl("/api/sponsors"))
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled) {
+          return;
+        }
+        const entries = Array.isArray(data.sponsors) ? data.sponsors : [];
+        setSponsors(entries);
+        setStatus(entries.length > 0 ? "" : "No sponsors yet. You can be the first.");
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStatus("Sponsors are unavailable right now.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (status) {
+    return <p className="status">{status}</p>;
+  }
+
+  const items = compact ? sponsors.slice(0, 8) : sponsors;
+  return (
+    <ul className="sponsor-list">
+      {items.map((entry, index) => (
+        <li key={`${entry.name}-${entry.created_at}-${index}`} className="sponsor-item">
+          <span className="sponsor-name">{entry.name}</span>
+          <span className="sponsor-meta">
+            {formatDonationAmount(entry.amount_cents, entry.currency)} · {formatSponsorDate(entry.created_at)}
+          </span>
+          {entry.message ? <p className="sponsor-message">{entry.message}</p> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function formatDonationAmount(amountCents, currencyCode) {
+  const amount = Number(amountCents || 0) / 100;
+  const currency = String(currencyCode || "eur").toUpperCase();
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`;
+  }
+}
+
+function formatSponsorDate(isoDateString) {
+  if (!isoDateString) {
+    return "";
+  }
+  const date = new Date(isoDateString);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return date.toLocaleDateString();
 }
 
 function NumberField({ values, setValues, name, label, min, max, step, full = false }) {

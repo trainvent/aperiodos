@@ -232,6 +232,10 @@ h1 {
   background: radial-gradient(circle, rgba(32, 79, 122, 0.9) 0%, rgba(32, 79, 122, 0) 70%);
 }
 
+.feature-sponsors::before {
+  background: radial-gradient(circle, rgba(216, 178, 76, 0.95) 0%, rgba(216, 178, 76, 0) 70%);
+}
+
 .feature-card h2 {
   margin: 0;
   font-size: clamp(1.8rem, 4vw, 2.8rem);
@@ -379,12 +383,22 @@ select {
   transform: translateY(-1px);
 }
 
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .button-green {
   background: linear-gradient(135deg, var(--accent-green) 0%, #4e8f7f 100%);
 }
 
 .button-ink {
   background: linear-gradient(135deg, var(--accent-ink) 0%, #4e6d8d 100%);
+}
+
+.button-gold {
+  background: linear-gradient(135deg, #d8b24c 0%, #c98b2e 100%);
 }
 
 .button-muted {
@@ -413,6 +427,10 @@ select {
 
 .status {
   color: var(--ink-soft);
+}
+
+.status-spaced {
+  margin-top: 16px;
 }
 
 .preview-box {
@@ -449,6 +467,42 @@ select {
 .stack {
   display: grid;
   gap: 18px;
+}
+
+.preview-panel-short {
+  min-height: unset;
+}
+
+.sponsor-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.sponsor-item {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.sponsor-name {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.sponsor-meta {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.sponsor-message {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
 }
 
 .reference-list {

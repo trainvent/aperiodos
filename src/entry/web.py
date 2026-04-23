@@ -29,6 +29,14 @@ from einstein_backend.cli import (  # noqa: E402
     DEFAULT_SCALAR,
     render_pattern,
 )
+from donations import (  # noqa: E402
+    DonationError,
+    SponsorsStore,
+    build_checkout_urls,
+    create_donation_checkout_session,
+    parse_stripe_event,
+    record_sponsor_from_event,
+)
 from einstein_backend.seed_to_pattern import seed_to_pattern  # noqa: E402
 
 
@@ -47,6 +55,10 @@ P1_SCALE_NORMALIZATION = 10.0 / 320.0
 ALLOWED_EINSTEIN_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
 ALLOWED_SPECTRE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
 ALLOWED_PENROSE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
+DEFAULT_SPONSORS_DB_PATH = PROJECT_ROOT / "output" / "sponsors.sqlite3"
+DEFAULT_DONATION_CURRENCY = "eur"
+DEFAULT_MIN_DONATION_CENTS = 100
+MAX_DONATION_CENTS = 500_000
 
 ABOUT_CONTENT = {
     "title": "About Aperiodos",
@@ -95,6 +107,8 @@ ABOUT_CONTENT = {
         "inside the broader Trainvent web presence."
     ),
 }
+
+SPONSORS_STORE = SponsorsStore(os.environ.get("SPONSORS_DB_PATH", str(DEFAULT_SPONSORS_DB_PATH)))
 
 
 def _allowed_cors_origins():
@@ -329,6 +343,50 @@ def _serve_spa():
     return send_from_directory(FRONTEND_DIST_DIR, "index.html")
 
 
+def _stripe_secret_key():
+    return os.environ.get("STRIPE_SECRET_KEY", "").strip()
+
+
+def _stripe_webhook_secret():
+    return os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
+
+
+def _resolve_public_app_url():
+    configured = os.environ.get("PUBLIC_APP_URL", "").strip()
+    if configured:
+        return configured.rstrip("/")
+    origin = request.headers.get("Origin", "").strip()
+    if origin.startswith("http://") or origin.startswith("https://"):
+        return origin.rstrip("/")
+    return request.host_url.rstrip("/")
+
+
+def _coerce_bool(raw_value, default=True):
+    if raw_value is None:
+        return default
+    if isinstance(raw_value, bool):
+        return raw_value
+    return str(raw_value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _donation_service_available():
+    return bool(_stripe_secret_key())
+
+
+def _donation_currency():
+    configured = os.environ.get("DONATION_CURRENCY", DEFAULT_DONATION_CURRENCY).strip().lower()
+    return configured or DEFAULT_DONATION_CURRENCY
+
+
+def _minimum_donation_cents():
+    raw = os.environ.get("MIN_DONATION_CENTS", str(DEFAULT_MIN_DONATION_CENTS))
+    try:
+        value = int(raw)
+    except ValueError:
+        return DEFAULT_MIN_DONATION_CENTS
+    return max(50, min(value, MAX_DONATION_CENTS))
+
+
 @app.before_request
 def _handle_api_preflight():
     if request.method == "OPTIONS" and request.path.startswith("/api/"):
@@ -558,9 +616,17 @@ def api_index():
                 "GET /api": "API overview",
                 "GET /api/healthz": "Basic health check",
                 "GET /api/about": "References and acknowledgements",
+                "GET /api/sponsors": "List public sponsors",
+                "POST /api/donations/checkout-session": "Create a Stripe checkout session for a donation",
+                "POST /api/stripe/webhook": "Stripe webhook endpoint for recording paid sponsors",
                 "POST /api/einstein/render": "Generate an Einstein image and return it directly",
                 "POST /api/spectre/render": "Generate a Spectre SVG, PNG, or JPG and return it directly",
                 "POST /api/penrose/render": "Generate a Penrose kite-dart, rhomb, or P1 SVG, PNG, or JPG and return it directly",
+            },
+            "donations": {
+                "enabled": _donation_service_available(),
+                "currency": _donation_currency(),
+                "minimum_cents": _minimum_donation_cents(),
             },
             "einstein_example_payload": {
                 "iterations": DEFAULT_ITERATIONS,
@@ -617,6 +683,93 @@ def healthcheck():
 @app.get("/api/about")
 def about():
     return jsonify(ABOUT_CONTENT)
+
+
+@app.get("/api/sponsors")
+def sponsors():
+    limit = request.args.get("limit", "100")
+    try:
+        safe_limit = min(max(int(limit), 1), 500)
+    except ValueError:
+        return jsonify({"error": "'limit' must be an integer."}), 400
+
+    sponsor_rows = SPONSORS_STORE.list_public_sponsors(limit=safe_limit)
+    return jsonify(
+        {
+            "sponsors": sponsor_rows,
+            "count": len(sponsor_rows),
+            "currency": _donation_currency(),
+        }
+    )
+
+
+@app.post("/api/donations/checkout-session")
+def create_donation_checkout():
+    if not _donation_service_available():
+        return jsonify({"error": "Donations are not configured on this server."}), 503
+
+    payload = request.get_json(silent=True) or {}
+    minimum_amount = _minimum_donation_cents()
+    try:
+        amount_cents = _coerce_int(
+            payload,
+            "amount_cents",
+            minimum_amount,
+            minimum=minimum_amount,
+            maximum=MAX_DONATION_CENTS,
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    donor_name = str(payload.get("name", "")).strip()
+    donor_message = str(payload.get("message", "")).strip()
+    is_public = _coerce_bool(payload.get("is_public", True), default=True)
+    currency = str(payload.get("currency", _donation_currency())).strip().lower() or _donation_currency()
+    app_url = _resolve_public_app_url()
+    checkout_urls = build_checkout_urls(app_url, donate_path="/donate")
+
+    try:
+        session = create_donation_checkout_session(
+            stripe_secret_key=_stripe_secret_key(),
+            amount_cents=amount_cents,
+            currency=currency,
+            donor_name=donor_name,
+            donor_message=donor_message,
+            is_public=is_public,
+            success_url=checkout_urls.success_url,
+            cancel_url=checkout_urls.cancel_url,
+        )
+    except DonationError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify(
+        {
+            "checkout_url": session["url"],
+            "checkout_session_id": session["id"],
+        }
+    )
+
+
+@app.post("/api/stripe/webhook")
+def stripe_webhook():
+    if not _donation_service_available():
+        return jsonify({"error": "Stripe is not configured on this server."}), 503
+
+    raw_payload = request.get_data(cache=False, as_text=False)
+    signature_header = request.headers.get("Stripe-Signature", "")
+
+    try:
+        event = parse_stripe_event(
+            payload=raw_payload,
+            signature_header=signature_header,
+            stripe_secret_key=_stripe_secret_key(),
+            webhook_secret=_stripe_webhook_secret(),
+        )
+        recorded = record_sponsor_from_event(SPONSORS_STORE, event)
+    except DonationError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify({"received": True, "recorded": bool(recorded)})
 
 
 @app.post("/api/einstein/render")
@@ -728,6 +881,8 @@ def frontend_public_file(filename):
 @app.get("/spectre")
 @app.get("/penrose")
 @app.get("/about")
+@app.get("/donate")
+@app.get("/sponsors")
 def spa_routes():
     return _serve_spa()
 

@@ -195,6 +195,38 @@ curl -X POST http://127.0.0.1:8080/api/spectre/render \
   --output spectre.svg
 ```
 
+### Donations + Sponsors (Stripe)
+
+The donation workflow is split into a reusable module (`src/donations/stripe_sponsors.py`) plus thin Flask routes in `src/entry/web.py`, so the same logic can be reused from other pages/apps.
+
+Required environment variables:
+
+```bash
+export STRIPE_SECRET_KEY=sk_live_or_test_key
+```
+
+Optional environment variables:
+
+```bash
+export STRIPE_WEBHOOK_SECRET=whsec_...
+export PUBLIC_APP_URL=https://www.aperiodos.com
+export DONATION_CURRENCY=eur
+export MIN_DONATION_CENTS=100
+export SPONSORS_DB_PATH=output/sponsors.sqlite3
+```
+
+Main donation endpoints:
+
+- `POST /api/donations/checkout-session`
+- `POST /api/stripe/webhook`
+- `GET /api/sponsors`
+
+Example local webhook forwarding:
+
+```bash
+stripe listen --forward-to http://127.0.0.1:8080/api/stripe/webhook
+```
+
 ### Deploy To Cloud Run
 
 Pick your Google Cloud project and region:
