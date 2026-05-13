@@ -148,10 +148,10 @@ export default function App() {
         </NavLink>
         <nav className="topnav">
           <TopNavLink to="/">Home</TopNavLink>
-          <TopNavLink to="/sponsors">Sponsors</TopNavLink>
           <TopNavLink to="/einstein">Einstein</TopNavLink>
           <TopNavLink to="/spectre">Spectre</TopNavLink>
           <TopNavLink to="/penrose">Penrose</TopNavLink>
+          <TopNavLink to="/sponsors">Sponsors</TopNavLink>
           <TopNavLink to="/about">About</TopNavLink>
         </nav>
       </header>
@@ -160,10 +160,10 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/donate" element={<DonatePage />} />
-          <Route path="/sponsors" element={<SponsorsPage />} />
           <Route path="/einstein" element={<EinsteinPage />} />
           <Route path="/spectre" element={<SpectrePage />} />
           <Route path="/penrose" element={<PenrosePage />} />
+          <Route path="/sponsors" element={<SponsorsPage />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>
