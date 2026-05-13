@@ -389,6 +389,11 @@ select {
   transform: none;
 }
 
+.sponsor-cta:disabled {
+  filter: blur(1.1px);
+  opacity: 0.72;
+}
+
 .button-green {
   background: linear-gradient(135deg, var(--accent-green) 0%, #4e8f7f 100%);
 }

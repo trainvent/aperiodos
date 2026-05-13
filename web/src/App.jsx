@@ -30,11 +30,39 @@ const CSS_COLOR_OPTIONS = [
 const ABOUT_FALLBACK = {
   title: "About Aperiodos",
   summary:
-    "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, and browser experiments.",
-  references: [],
-  credits: "",
-  technical_realizations: "Codex from OpenAI",
-  notes: ""
+    "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, and browser experiments. The site currently centers on monotiles, with plans to expand into other aperiodic patterns and Penrose tilings.",
+  references: [
+    {
+      label: "Trainvent",
+      url: "https://next.trainvent.com/"
+    },
+    {
+      label: "Hat monotile reference page",
+      url: "https://cs.uwaterloo.ca/~csk/hat/h7h8.html"
+    },
+    {
+      label: "Spectre project page",
+      url: "https://cs.uwaterloo.ca/~csk/spectre/"
+    },
+    {
+      label: "Earlier Einstein inspiration repo",
+      url: "https://github.com/asmoly/Einstein_Tile_Generator"
+    },
+    {
+      label: "necocen/spectre",
+      url: "https://github.com/necocen/spectre"
+    },
+    {
+      label: "OpenAI",
+      url: "https://openai.com/"
+    }
+  ],
+  credits:
+    "This Trainvent subservice draws on papers, mathematical references, and public open-source experiments to explore how these tilings can be rendered and presented on the web.",
+  technical_realizations:
+    "OpenAI helped with technical realization work across the project, including architecture planning, refactors, API shaping, and frontend/backend integration support.",
+  notes:
+    "The Rust-based Spectre work is being adapted into src/spectre_rs, with the older spectre clone kept as a reference source. Einstein and Spectre share one visual language inside the broader Trainvent web presence."
 };
 
 const EINSTEIN_DEFAULTS = {
@@ -120,7 +148,6 @@ export default function App() {
         </NavLink>
         <nav className="topnav">
           <TopNavLink to="/">Home</TopNavLink>
-          <TopNavLink to="/donate">Donate</TopNavLink>
           <TopNavLink to="/sponsors">Sponsors</TopNavLink>
           <TopNavLink to="/einstein">Einstein</TopNavLink>
           <TopNavLink to="/spectre">Spectre</TopNavLink>
@@ -149,7 +176,6 @@ export default function App() {
           </a>
         </div>
         <nav className="footer-nav">
-          <TopNavLink to="/donate">Donate</TopNavLink>
           <TopNavLink to="/sponsors">Sponsors</TopNavLink>
           <TopNavLink to="/about">About</TopNavLink>
           <TopNavLink to="/einstein">Einstein</TopNavLink>
@@ -186,14 +212,6 @@ function HomePage() {
       to: "/spectre",
       className: "feature-spectre",
       buttonClassName: "button button-green"
-    },
-    {
-      title: "Donate",
-      description: "Support development and get your name into the public sponsors list.",
-      cta: "Open Donate",
-      to: "/donate",
-      className: "feature-sponsors",
-      buttonClassName: "button button-gold"
     },
     {
       title: "Penrose",
@@ -370,6 +388,8 @@ function DonatePage() {
 }
 
 function SponsorsPage() {
+  const sponsorCtaEnabled = false;
+
   return (
     <>
       <section className="hero">
@@ -382,10 +402,17 @@ function SponsorsPage() {
           <h2>Wall Of Support</h2>
           <SponsorsPanel />
           <div className="actions-row">
-            <NavLink className="button button-gold" to="/donate">
+            <button
+              className="button button-gold sponsor-cta"
+              type="button"
+              disabled={!sponsorCtaEnabled}
+              aria-disabled={!sponsorCtaEnabled}
+              title="Stripe is not set up yet"
+            >
               Become A Sponsor
-            </NavLink>
+            </button>
           </div>
+          <p className="status status-spaced">Stripe is not set up yet. Sponsoring will be enabled soon.</p>
         </article>
       </section>
     </>
@@ -941,11 +968,11 @@ function SponsorsPanel({ compact = false }) {
         }
         const entries = Array.isArray(data.sponsors) ? data.sponsors : [];
         setSponsors(entries);
-        setStatus(entries.length > 0 ? "" : "No sponsors yet. You can be the first.");
+        setStatus(entries.length > 0 ? "" : "No sponsors yet.");
       })
       .catch(() => {
         if (!cancelled) {
-          setStatus("Sponsors are unavailable right now.");
+          setStatus("no sponsors yet.");
         }
       });
 
