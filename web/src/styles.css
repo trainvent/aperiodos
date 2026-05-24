@@ -398,6 +398,73 @@ select {
   background: linear-gradient(135deg, var(--accent-green) 0%, #4e8f7f 100%);
 }
 
+/* Monotile group layout */
+.monotile-group .group-title {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.monotile-row {
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.monotile-sep {
+  width: 1px;
+  border-left: 2px dotted rgba(23, 49, 59, 0.12);
+  margin: 8px 8px;
+}
+
+.card-cta svg {
+  display: block;
+}
+
+/* Merged monotile styling */
+.monotile-merged {
+  padding: 28px;
+  min-height: 260px;
+}
+
+.monotile-inner {
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.monotile-card {
+  flex: 1 1 0;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.monotile-card h2 {
+  margin-bottom: 6px;
+}
+
+.monotile-card .card-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: var(--cta-color, var(--accent));
+  color: white;
+}
+
+.monotile-merged .monotile-inner::after {
+  content: "";
+  width: 2px;
+  background-image: linear-gradient(to bottom, rgba(23,49,59,0.12) 33%, rgba(23,49,59,0) 0%);
+  background-size: 100% 6px;
+  margin-left: 6px;
+}
+
 .button-ink {
   background: linear-gradient(135deg, var(--accent-ink) 0%, #4e6d8d 100%);
 }

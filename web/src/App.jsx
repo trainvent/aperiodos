@@ -1,5 +1,5 @@
 import { NavLink, Route, Routes } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import brandIconUrl from "./assets/custom-pattern_1024.png";
 
 const CSS_COLOR_OPTIONS = [
@@ -74,9 +74,6 @@ const EINSTEIN_DEFAULTS = {
   color_mode: "families",
   seed: "",
   color_h1: "black",
-  color_h: "seagreen",
-  color_t: "white",
-  color_p: "sandybrown",
   color_f: "gold",
   four_color_1: "seagreen",
   four_color_2: "sienna",
@@ -176,11 +173,6 @@ export default function App() {
           </a>
         </div>
         <nav className="footer-nav">
-          <TopNavLink to="/sponsors">Sponsors</TopNavLink>
-          <TopNavLink to="/about">About</TopNavLink>
-          <TopNavLink to="/einstein">Einstein</TopNavLink>
-          <TopNavLink to="/spectre">Spectre</TopNavLink>
-          <TopNavLink to="/penrose">Penrose</TopNavLink>
         </nav>
       </footer>
     </div>
@@ -196,23 +188,32 @@ function TopNavLink({ to, children }) {
 }
 
 function HomePage() {
-  const homeCards = [
+  const monotileCards = [
     {
       title: "Einstein",
-      description: "Create still monotile images with size, palette, and seed controls.",
+      description: "a single tile enforcing aperiodicity, rendered with various coloring modes and export options.",
       cta: "Open Einstein",
       to: "/einstein",
       className: "feature-einstein",
-      buttonClassName: "button"
+      buttonClassName: "button",
+      arrow: true,
+      arrowColor: "seagreen",
+      group: "Monotile"
     },
     {
       title: "Spectre",
-      description: "Render Spectre tilings with framing, stroke, and export options.",
+      description: "a single tile that allows enforcing aperiodicity without tile-flip, thus requiring more complex shapes",
       cta: "Open Spectre",
       to: "/spectre",
       className: "feature-spectre",
-      buttonClassName: "button button-green"
-    },
+      buttonClassName: "button button-green",
+      arrow: true,
+      arrowColor: "sienna",
+      group: "Monotile"
+    }
+  ];
+
+  const otherCards = [
     {
       title: "Penrose",
       description: "Build classic Penrose tilings as kite-darts, rhombs, or a star-rich derived variant.",
@@ -228,7 +229,7 @@ function HomePage() {
       <section className="hero hero-grid">
         <div>
           <h1>Aperiodic generators.</h1>
-          <p className="lede">Pick a tiling system, adjust settings to your liking and export the result.</p>
+          <p className="lede">Adjust settings to your liking and export the result.</p>
         </div>
         <aside className="hero-note panel">
           <strong>Three tools</strong>
@@ -237,17 +238,53 @@ function HomePage() {
       </section>
 
       <section className="card-grid">
-        {homeCards.map((card) => (
-          <article key={card.title} className={`feature-card ${card.className} panel`}>
-            <span className="feature-kicker">Generator</span>
-            <h2>{card.title}</h2>
-            <p>{card.description}</p>
-            <div className="feature-spacer" aria-hidden="true" />
-            <NavLink className={card.buttonClassName} to={card.to}>
-              {card.cta}
-            </NavLink>
+        <div className="card-group panel-group monotile-group">
+          <h3 className="group-title">Monotile</h3>
+          <article className="feature-card monotile-merged panel">
+            <div className="monotile-inner">
+              {monotileCards.map((card, index) => (
+                <div className="monotile-card" key={card.title}>
+                  <h2>{card.title}</h2>
+                  <p>{card.description}</p>
+                  <div className="feature-spacer" aria-hidden="true" />
+                  <NavLink
+                    className={card.buttonClassName}
+                    to={card.to}
+                    aria-label={`Open ${card.title}`}
+                    style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
+                  >
+                    {card.arrow ? (
+                      <span className="card-cta" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M5 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    ) : (
+                      card.cta
+                    )}
+                  </NavLink>
+                </div>
+              ))}
+            </div>
           </article>
-        ))}
+        </div>
+
+        <div className="card-group panel-group">
+          <h3 className="group-title">Tile-combinations</h3>
+          <div className="group-cards">
+            {otherCards.map((card) => (
+              <article key={card.title} className={`feature-card ${card.className} panel`}>
+                <h2>{card.title}</h2>
+                <p>{card.description}</p>
+                <div className="feature-spacer" aria-hidden="true" />
+                <NavLink className={card.buttonClassName} to={card.to} aria-label={`Open ${card.title}`}>
+                  {card.cta}
+                </NavLink>
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
     </>
   );
