@@ -1,0 +1,72 @@
+{
+  "nav": {
+    "home": "Home",
+    "sponsors": "Sponsors",
+    "about": "About"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "home": {
+    "hero": {
+      "title": "Aperiodic generators.",
+      "lede": "Adjust settings to your liking and export the result.",
+      "tools": "Three tools",
+      "toolsText": "Einstein, Spectre, and Penrose all support quick exports in SVG, PNG, and JPG."
+    },
+    "groups": {
+      "monotile": "Monotile",
+      "tileCombinations": "Tile-combinations"
+    },
+    "cards": {
+      "einsteinDescription": "a single tile enforcing aperiodicity, rendered with various coloring modes and export options.",
+      "spectreDescription": "a single tile that allows enforcing aperiodicity without tile-flip, thus requiring more complex shapes",
+      "penroseDescription": "build classic Penrose tilings as kite-darts, rhombs, or a star-rich derived variant."
+    },
+    "openLabel": "Open"
+  },
+  "footer": {
+    "lead": "Aperiodos is a service for experiments in aperiodic tilings delivered by"
+  }
+  ,
+  "donate": {
+    "hero": { "title": "Donate", "lede": "Support Aperiodos and optionally appear on the sponsors list after payment." },
+    "form": {
+      "title": "Donation",
+      "amount": "Amount ({{currency}})",
+      "publicName": "Public Name (optional)",
+      "message": "Message (optional)",
+      "messagePlaceholder": "Thanks for the project!",
+      "isPublic": "Show me on the public sponsors list",
+      "submit": "Continue To Stripe"
+    },
+    "preview": { "title": "Public Sponsors" },
+    "status": {
+      "default": "Donate securely via Stripe.",
+      "success": "Thank you. Your donation was received.",
+      "cancelled": "Donation was cancelled. You can try again anytime.",
+      "notConfigured": "Donations are not configured yet.",
+      "creatingSession": "Creating Stripe checkout session...",
+      "checkoutStartFailed": "Could not start donation checkout.",
+      "checkoutUrlMissing": "Stripe checkout URL missing."
+    }
+  },
+  "sponsors": {
+    "hero": { "title": "Sponsors", "lede": "People who support Aperiodos through donations." },
+    "wall": { "title": "Wall Of Support", "cta": "Become A Sponsor", "ctaDisabledTitle": "Stripe is not set up yet", "status": "Stripe is not set up yet. Sponsoring will be enabled soon." },
+    "panel": { "loading": "Loading sponsors...", "none": "No sponsors yet." }
+  },
+  "generator": {
+    "status": { "ready": "Ready to render.", "rendering": "Rendering...", "failed": "Render failed.", "complete": "Render complete.", "reset": "Settings reset." },
+    "layout": { "settings": "Settings", "generate": "Generate", "reset": "Reset", "preview": "Preview", "download": "Download", "placeholder": "Your generated artwork will appear here. Start with the default settings or explore a new palette." },
+    "common": { "iterations": "Iterations", "scalar": "Scalar", "scale": "Scale", "width": "Width", "height": "Height", "format": "Format", "seed": "Seed", "optional": "Optional", "color1": "Color 1", "color2": "Color 2", "color3": "Color 3", "color4": "Color 4", "background": "Background", "outline": "Outline", "strokeWidth": "Stroke Width", "centerX": "Center X", "centerY": "Center Y", "colorPlaceholder": "Type or search a CSS color" },
+    "einstein": { "title": "Einstein Generator", "description": "Adjust scale, size, and palette, then render a new image in the format you like.", "coloring": "Coloring", "coloringFamilies": "Tile Families", "coloringFourColor": "Four-Color", "noOutline": "Render without black outlines" },
+    "spectre": { "title": "Spectre Generator", "description": "Render bounded Spectre snapshots, choose a pattern variant, tune the palette and framing, and export SVG.", "drawMode": "Drawing Logic", "drawModeBuild": "Build", "drawModeTranslation": "Translation", "shape": "Shape", "shapeStraight": "Straight", "shapeCurved": "Curved" },
+    "penrose": { "title": "Penrose Generator", "description": "Generate Penrose tilings as kite-darts, rhombs, or a derived option that includes the star-heavy pentagonal motif from Penrose's first tiling.", "tiles": "Tiles", "tilesP2": "P2: Kite & Dart", "tilesP3": "P3: Rhombs", "tilesP1": "P1: Stars", "buildLogic": "Build Logic", "buildLogicDefault": "Default", "buildLogicCartwheel": "Cartwheel" }
+  },
+  "about": {
+    "hero": { "title": "About Aperiodos", "summary": "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, and browser experiments. The site currently centers on monotiles, with plans to expand into other aperiodic patterns and Penrose tilings." },
+    "references": { "hat": "Hat monotile reference page", "spectre": "Spectre project page", "einsteinRepo": "Earlier Einstein inspiration repo" },
+    "sections": { "references": "References", "credits": "Credits And Guidance", "technical": "Technical Realizations", "notes": "Project Notes", "creditsBody": "This Trainvent subservice draws on papers, mathematical references, and public open-source experiments to explore how these tilings can be rendered and presented on the web.", "technicalBody": "OpenAI helped with technical realization work across the project, including architecture planning, refactors, API shaping, and frontend/backend integration support.", "notesBody": "The Rust-based Spectre work is being adapted into src/spectre_rs, with the older spectre clone kept as a reference source. Einstein and Spectre share one visual language inside the broader Trainvent web presence." }
+  }
+}

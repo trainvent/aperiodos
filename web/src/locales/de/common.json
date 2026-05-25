@@ -1,0 +1,72 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "sponsors": "Sponsoren",
+    "about": "Ueber"
+  },
+  "language": {
+    "label": "Sprache"
+  },
+  "home": {
+    "hero": {
+      "title": "Aperiodische Generatoren.",
+      "lede": "Passe die Einstellungen an und exportiere das Ergebnis.",
+      "tools": "Drei Werkzeuge",
+      "toolsText": "Einstein, Spectre und Penrose unterstuetzen schnellen Export in SVG, PNG und JPG."
+    },
+    "groups": {
+      "monotile": "Monokacheln",
+      "tileCombinations": "Kachel-Kombinationen"
+    },
+    "cards": {
+      "einsteinDescription": "eine einzelne Kachel, die Aperiodizitaet erzwingt, mit verschiedenen Farbschemata und Exportoptionen.",
+      "spectreDescription": "eine einzelne Kachel, die Aperiodizitaet ohne Spiegelung erzwingt und dadurch komplexere Formen braucht",
+      "penroseDescription": "erstelle klassische Penrose-Parkettierungen als Drachen/Pfeile, Rhomben oder eine sternreiche Variante."
+    },
+    "openLabel": "Oeffnen"
+  },
+  "footer": {
+    "lead": "Aperiodos ist ein Dienst von"
+  }
+  ,
+  "donate": {
+    "hero": { "title": "Spenden", "lede": "Unterstuetze Aperiodos und erscheine ggf. in der Sponsorenliste nach der Zahlung." },
+    "form": {
+      "title": "Spende",
+      "amount": "Betrag ({{currency}})",
+      "publicName": "oeffentlicher Name (optional)",
+      "message": "Nachricht (optional)",
+      "messagePlaceholder": "Danke fuer das Projekt!",
+      "isPublic": "In der oeffentlichen Sponsorenliste anzeigen",
+      "submit": "Weiter zu Stripe"
+    },
+    "preview": { "title": "Oeffentliche Sponsoren" },
+    "status": {
+      "default": "Sichere Spende via Stripe.",
+      "success": "Danke. Ihre Spende wurde empfangen.",
+      "cancelled": "Die Spende wurde abgebrochen. Sie koennen es jederzeit erneut versuchen.",
+      "notConfigured": "Spenden sind noch nicht konfiguriert.",
+      "creatingSession": "Erstelle Stripe Checkout-Session...",
+      "checkoutStartFailed": "Die Spende konnte nicht gestartet werden.",
+      "checkoutUrlMissing": "Stripe Checkout-URL fehlt."
+    }
+  },
+  "sponsors": {
+    "hero": { "title": "Sponsoren", "lede": "Personen, die Aperiodos durch Spenden unterstuetzen." },
+    "wall": { "title": "Wall Of Support", "cta": "Sponsor werden", "ctaDisabledTitle": "Stripe ist noch nicht eingerichtet", "status": "Stripe ist noch nicht eingerichtet. Sponsoring wird bald verfuegbar sein." },
+    "panel": { "loading": "Sponsoren werden geladen...", "none": "Noch keine Sponsoren." }
+  },
+  "generator": {
+    "status": { "ready": "Bereit zum Rendern.", "rendering": "Rendering...", "failed": "Render fehlgeschlagen.", "complete": "Render abgeschlossen.", "reset": "Einstellungen zurückgesetzt." },
+    "layout": { "settings": "Einstellungen", "generate": "Rendern", "reset": "Zuruecksetzen", "preview": "Vorschau", "download": "Herunterladen", "placeholder": "Das generierte Bild erscheint hier. Beginnen Sie mit den Standard-Einstellungen oder experimentieren Sie mit einer neuen Palette." },
+    "common": { "iterations": "Iterationen", "scalar": "Skalierung", "scale": "Skalierung", "width": "Breite", "height": "Hoehe", "format": "Format", "seed": "Seed", "optional": "Optional", "color1": "Farbe 1", "color2": "Farbe 2", "color3": "Farbe 3", "color4": "Farbe 4", "background": "Hintergrund", "outline": "Kontur", "strokeWidth": "Strichbreite", "centerX": "Zentrum X", "centerY": "Zentrum Y", "colorPlaceholder": "Geben Sie einen CSS-Farbwert ein oder suchen Sie danach" },
+    "einstein": { "title": "Einstein-Generator", "description": "Skalierung, Groesse und Palette anpassen, dann ein neues Bild in gewuensstem Format rendern.", "coloring": "Farbmodus", "coloringFamilies": "Kachel-Familien", "coloringFourColor": "Vier-Farben", "noOutline": "Ohne Konturen rendern" },
+    "spectre": { "title": "Spectre-Generator", "description": "Gebaenderte Spectre-Snapshots rendern, Varianten waehlen, Palette und Rahmen anpassen und SVG exportieren.", "drawMode": "Zeichenlogik", "drawModeBuild": "Build", "drawModeTranslation": "Translation", "shape": "Form", "shapeStraight": "Gerade", "shapeCurved": "Gekrummt" },
+    "penrose": { "title": "Penrose-Generator", "description": "Penrose-Parkettierungen als Drachen/Pfeile, Rhombs oder eine abgeleitete Option mit sternreichem pentagonalem Motiv erzeugen.", "tiles": "Kacheln", "tilesP2": "P2: Kite & Dart", "tilesP3": "P3: Rhombs", "tilesP1": "P1: Stars", "buildLogic": "Bau-Logik", "buildLogicDefault": "Standard", "buildLogicCartwheel": "Cartwheel" }
+  },
+  "about": {
+    "hero": { "title": "Ueber Aperiodos", "summary": "Aperiodos ist ein Trainvent-Subservice fuer aperiodische Monokacheln, Bildgenerierung und Browser-Experimente. Die Seite fokussiert derzeit Monokacheln mit Plaenen fuer weitere aperiodische Muster und Penrose-Parkettierungen." },
+    "references": { "hat": "Hat Monokachel Referenzseite", "spectre": "Spectre Projektseite", "einsteinRepo": "Earlier Einstein inspiration repo" },
+    "sections": { "references": "Referenzen", "credits": "Credits und Hinweise", "technical": "Technische Umsetzung", "notes": "Projekt-Notizen", "creditsBody": "Dieser Trainvent-Subservice baut auf Papers, mathematischen Referenzen und oeffentlichen Open-Source-Experimenten auf, um zu zeigen, wie diese Parkettierungen gerendert und praesentiert werden koennen.", "technicalBody": "OpenAI hat bei technischer Realisierung, Architekturplanung, Refactors, API-Formgebung und Frontend/Backend-Integration geholfen.", "notesBody": "Die Rust-basierte Spectre-Arbeit wird nach src/spectre_rs portiert; das aeltere spectre-Clone-Repo bleibt als Referenz. Einstein und Spectre teilen eine visuelle Sprache im Trainvent-Kontext." }
+  }
+}

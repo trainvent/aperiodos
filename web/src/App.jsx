@@ -1,5 +1,6 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import brandIconUrl from "./assets/custom-pattern_1024.png";
 
 const CSS_COLOR_OPTIONS = [
@@ -27,43 +28,41 @@ const CSS_COLOR_OPTIONS = [
   "violet", "wheat", "white", "whitesmoke", "yellow", "yellowgreen"
 ];
 
-const ABOUT_FALLBACK = {
-  title: "About Aperiodos",
-  summary:
-    "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, and browser experiments. The site currently centers on monotiles, with plans to expand into other aperiodic patterns and Penrose tilings.",
-  references: [
-    {
-      label: "Trainvent",
-      url: "https://next.trainvent.com/"
-    },
-    {
-      label: "Hat monotile reference page",
-      url: "https://cs.uwaterloo.ca/~csk/hat/h7h8.html"
-    },
-    {
-      label: "Spectre project page",
-      url: "https://cs.uwaterloo.ca/~csk/spectre/"
-    },
-    {
-      label: "Earlier Einstein inspiration repo",
-      url: "https://github.com/asmoly/Einstein_Tile_Generator"
-    },
-    {
-      label: "necocen/spectre",
-      url: "https://github.com/necocen/spectre"
-    },
-    {
-      label: "OpenAI",
-      url: "https://openai.com/"
-    }
-  ],
-  credits:
-    "This Trainvent subservice draws on papers, mathematical references, and public open-source experiments to explore how these tilings can be rendered and presented on the web.",
-  technical_realizations:
-    "OpenAI helped with technical realization work across the project, including architecture planning, refactors, API shaping, and frontend/backend integration support.",
-  notes:
-    "The Rust-based Spectre work is being adapted into src/spectre_rs, with the older spectre clone kept as a reference source. Einstein and Spectre share one visual language inside the broader Trainvent web presence."
-};
+function createAboutFallback(t) {
+  return {
+    title: t("about.hero.title"),
+    summary: t("about.hero.summary"),
+    references: [
+      {
+        label: "Trainvent",
+        url: "https://next.trainvent.com/"
+      },
+      {
+        label: t("about.references.hat"),
+        url: "https://cs.uwaterloo.ca/~csk/hat/h7h8.html"
+      },
+      {
+        label: t("about.references.spectre"),
+        url: "https://cs.uwaterloo.ca/~csk/spectre/"
+      },
+      {
+        label: t("about.references.einsteinRepo"),
+        url: "https://github.com/asmoly/Einstein_Tile_Generator"
+      },
+      {
+        label: "necocen/spectre",
+        url: "https://github.com/necocen/spectre"
+      },
+      {
+        label: "OpenAI",
+        url: "https://openai.com/"
+      }
+    ],
+    credits: t("about.sections.creditsBody"),
+    technical_realizations: t("about.sections.technicalBody"),
+    notes: t("about.sections.notesBody")
+  };
+}
 
 const EINSTEIN_DEFAULTS = {
   iterations: 5,
@@ -128,12 +127,14 @@ const DONATION_DEFAULTS = {
 };
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
-
 function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
 }
 
 export default function App() {
+  const { t, i18n } = useTranslation("common");
+  const language = i18n.resolvedLanguage === "en" ? "en" : "de";
+
   return (
     <div className="shell">
       <div className="ambient ambient-left" />
@@ -143,14 +144,27 @@ export default function App() {
           <img className="brand-mark" src={brandIconUrl} alt="" />
           <span className="brand-copy">Aperiodos</span>
         </NavLink>
-        <nav className="topnav">
-          <TopNavLink to="/">Home</TopNavLink>
-          <TopNavLink to="/einstein">Einstein</TopNavLink>
-          <TopNavLink to="/spectre">Spectre</TopNavLink>
-          <TopNavLink to="/penrose">Penrose</TopNavLink>
-          <TopNavLink to="/sponsors">Sponsors</TopNavLink>
-          <TopNavLink to="/about">About</TopNavLink>
-        </nav>
+        <div className="topbar-right">
+          <nav className="topnav">
+            <TopNavLink to="/">{t("nav.home")}</TopNavLink>
+            <TopNavLink to="/einstein">Einstein</TopNavLink>
+            <TopNavLink to="/spectre">Spectre</TopNavLink>
+            <TopNavLink to="/penrose">Penrose</TopNavLink>
+            <TopNavLink to="/sponsors">{t("nav.sponsors")}</TopNavLink>
+            <TopNavLink to="/about">{t("nav.about")}</TopNavLink>
+          </nav>
+          <label className="lang-switch" htmlFor="language-select">
+            <span>{t("language.label")}</span>
+            <select
+              id="language-select"
+              value={language}
+              onChange={(event) => i18n.changeLanguage(event.target.value === "en" ? "en" : "de")}
+            >
+              <option value="de">DE</option>
+              <option value="en">EN</option>
+            </select>
+          </label>
+        </div>
       </header>
 
       <main className="page">
@@ -167,7 +181,7 @@ export default function App() {
 
       <footer className="footer">
         <div>
-          Aperiodos is a service for experiments in aperiodic tilings delivered by {" "}
+          {t("footer.lead")}{" "}
           <a href="https://next.trainvent.com/" target="_blank" rel="noreferrer">
             Trainvent
           </a>
@@ -188,36 +202,33 @@ function TopNavLink({ to, children }) {
 }
 
 function HomePage() {
+  const { t } = useTranslation("common");
+
   const monotileCards = [
     {
       title: "Einstein",
-      description: "a single tile enforcing aperiodicity, rendered with various coloring modes and export options.",
-      cta: "Open Einstein",
+      description: t("home.cards.einsteinDescription"),
       to: "/einstein",
       className: "feature-einstein",
       buttonClassName: "button",
       arrow: true,
-      arrowColor: "seagreen",
-      group: "Monotile"
+      arrowColor: "seagreen"
     },
     {
       title: "Spectre",
-      description: "a single tile that allows enforcing aperiodicity without tile-flip, thus requiring more complex shapes",
-      cta: "Open Spectre",
+      description: t("home.cards.spectreDescription"),
       to: "/spectre",
       className: "feature-spectre",
       buttonClassName: "button button-green",
       arrow: true,
-      arrowColor: "sienna",
-      group: "Monotile"
+      arrowColor: "sienna"
     }
   ];
 
   const otherCards = [
     {
       title: "Penrose",
-      description: "build classic Penrose tilings as kite-darts, rhombs, or a star-rich derived variant.",
-      cta: "Open Penrose",
+      description: t("home.cards.penroseDescription"),
       to: "/penrose",
       className: "feature-penrose",
       buttonClassName: "button button-ink",
@@ -230,21 +241,21 @@ function HomePage() {
     <>
       <section className="hero hero-grid">
         <div>
-          <h1>Aperiodic generators.</h1>
-          <p className="lede">Adjust settings to your liking and export the result.</p>
+          <h1>{t("home.hero.title")}</h1>
+          <p className="lede">{t("home.hero.lede")}</p>
         </div>
         <aside className="hero-note panel">
-          <strong>Three tools</strong>
-          <p>Einstein, Spectre, and Penrose all support quick exports in SVG, PNG, and JPG formats.</p>
+          <strong>{t("home.hero.tools")}</strong>
+          <p>{t("home.hero.toolsText")}</p>
         </aside>
       </section>
 
       <section className="card-grid">
         <div className="card-group panel-group monotile-group">
           <article className="feature-card monotile-merged panel">
-            <div className="panel-kicker"><span className="group-title">Monotile</span></div>
+            <div className="panel-kicker"><span className="group-title">{t("home.groups.monotile")}</span></div>
             <div className="monotile-inner">
-              {monotileCards.map((card, index) => (
+              {monotileCards.map((card) => (
                 <div className="monotile-card" key={card.title}>
                   <h2>{card.title}</h2>
                   <p>{card.description}</p>
@@ -252,7 +263,7 @@ function HomePage() {
                   <NavLink
                     className={card.buttonClassName}
                     to={card.to}
-                    aria-label={`Open ${card.title}`}
+                    aria-label={`${t("home.openLabel")} ${card.title}`}
                     style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
                   >
                     {card.arrow ? (
@@ -262,9 +273,7 @@ function HomePage() {
                           <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </span>
-                    ) : (
-                      card.cta
-                    )}
+                    ) : null}
                   </NavLink>
                 </div>
               ))}
@@ -276,14 +285,14 @@ function HomePage() {
           <div className="group-cards">
             {otherCards.map((card, index) => (
                 <article key={card.title} className={`feature-card ${card.className} panel`}>
-                {index === 0 ? <div className="panel-kicker"><span className="group-title">Tile-combinations</span></div> : null}
+                {index === 0 ? <div className="panel-kicker"><span className="group-title">{t("home.groups.tileCombinations")}</span></div> : null}
                 <h2>{card.title}</h2>
                 <p>{card.description}</p>
                 <div className="feature-spacer" aria-hidden="true" />
                 <NavLink
                   className={card.buttonClassName}
                   to={card.to}
-                  aria-label={`Open ${card.title}`}
+                  aria-label={`${t("home.openLabel")} ${card.title}`}
                   style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
                 >
                   {card.arrow ? (
@@ -293,9 +302,7 @@ function HomePage() {
                         <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
-                  ) : (
-                    card.cta
-                  )}
+                  ) : null}
                 </NavLink>
               </article>
             ))}
@@ -307,8 +314,9 @@ function HomePage() {
 }
 
 function DonatePage() {
+  const { t } = useTranslation("common");
   const [values, setValues] = useState(DONATION_DEFAULTS);
-  const [status, setStatus] = useState("Donate securely via Stripe.");
+  const [status, setStatus] = useState(() => t("donate.status.default"));
   const [donationSettings, setDonationSettings] = useState({
     enabled: true,
     currency: "EUR",
@@ -319,11 +327,11 @@ function DonatePage() {
     const params = new URLSearchParams(window.location.search);
     const checkoutStatus = params.get("status");
     if (checkoutStatus === "success") {
-      setStatus("Thank you. Your donation was received.");
+      setStatus(t("donate.status.success"));
     } else if (checkoutStatus === "cancelled") {
-      setStatus("Donation was cancelled. You can try again anytime.");
+      setStatus(t("donate.status.cancelled"));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -356,10 +364,10 @@ function DonatePage() {
   async function handleDonate(event) {
     event.preventDefault();
     if (!donationSettings.enabled) {
-      setStatus("Donations are not configured yet.");
+      setStatus(t("donate.status.notConfigured"));
       return;
     }
-    setStatus("Creating Stripe checkout session...");
+    setStatus(t("donate.status.creatingSession"));
     const amountCents = Math.round(Number(values.amount_major) * 100);
 
     try {
@@ -376,63 +384,63 @@ function DonatePage() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "Could not start donation checkout.");
+        throw new Error(data.error || t("donate.status.checkoutStartFailed"));
       }
       if (!data.checkout_url) {
-        throw new Error("Stripe checkout URL missing.");
+        throw new Error(t("donate.status.checkoutUrlMissing"));
       }
       window.location.assign(data.checkout_url);
     } catch (error) {
-      setStatus(error.message || "Could not start donation checkout.");
+      setStatus(error.message || t("donate.status.checkoutStartFailed"));
     }
   }
 
   return (
     <>
       <section className="hero">
-        <h1>Donate</h1>
-        <p className="lede">Support Aperiodos and optionally appear on the sponsors list after payment.</p>
+        <h1>{t("donate.hero.title")}</h1>
+        <p className="lede">{t("donate.hero.lede")}</p>
       </section>
 
       <section className="generator-layout">
         <form className="panel controls-panel" onSubmit={handleDonate}>
-          <h2>Donation</h2>
+          <h2>{t("donate.form.title")}</h2>
           <div className="grid">
             <NumberField
               values={values}
               setValues={setValues}
               name="amount_major"
-              label={`Amount (${donationSettings.currency})`}
+              label={t("donate.form.amount", { currency: donationSettings.currency })}
               min={donationSettings.minimumMajor}
               step="0.5"
               full
             />
-            <TextField values={values} setValues={setValues} name="name" label="Public Name (optional)" full />
+            <TextField values={values} setValues={setValues} name="name" label={t("donate.form.publicName")} full />
             <TextField
               values={values}
               setValues={setValues}
               name="message"
-              label="Message (optional)"
-              placeholder="Thanks for the project!"
+              label={t("donate.form.message")}
+              placeholder={t("donate.form.messagePlaceholder")}
               full
             />
             <CheckboxField
               values={values}
               setValues={setValues}
               name="is_public"
-              label="Show me on the public sponsors list"
+              label={t("donate.form.isPublic")}
             />
           </div>
           <div className="actions-row">
             <button className="button button-gold" type="submit" disabled={!donationSettings.enabled}>
-              Continue To Stripe
+              {t("donate.form.submit")}
             </button>
           </div>
           <p className="status status-spaced">{status}</p>
         </form>
 
         <section className="panel preview-panel preview-panel-short">
-          <h2>Public Sponsors</h2>
+          <h2>{t("donate.preview.title")}</h2>
           <SponsorsPanel compact />
         </section>
       </section>
@@ -441,18 +449,19 @@ function DonatePage() {
 }
 
 function SponsorsPage() {
+  const { t } = useTranslation("common");
   const sponsorCtaEnabled = false;
 
   return (
     <>
       <section className="hero">
-        <h1>Sponsors</h1>
-        <p className="lede">People who support Aperiodos through donations.</p>
+        <h1>{t("sponsors.hero.title")}</h1>
+        <p className="lede">{t("sponsors.hero.lede")}</p>
       </section>
 
       <section className="stack">
         <article className="panel prose-panel">
-          <h2>Wall Of Support</h2>
+          <h2>{t("sponsors.wall.title")}</h2>
           <SponsorsPanel />
           <div className="actions-row">
             <button
@@ -460,12 +469,12 @@ function SponsorsPage() {
               type="button"
               disabled={!sponsorCtaEnabled}
               aria-disabled={!sponsorCtaEnabled}
-              title="Stripe is not set up yet"
+              title={t("sponsors.wall.ctaDisabledTitle")}
             >
-              Become A Sponsor
+              {t("sponsors.wall.cta")}
             </button>
           </div>
-          <p className="status status-spaced">Stripe is not set up yet. Sponsoring will be enabled soon.</p>
+          <p className="status status-spaced">{t("sponsors.wall.status")}</p>
         </article>
       </section>
     </>
@@ -473,25 +482,26 @@ function SponsorsPage() {
 }
 
 function EinsteinPage() {
+  const { t } = useTranslation("common");
   const [values, setValues] = useState(EINSTEIN_DEFAULTS);
   return (
     <GeneratorLayout
-      title="Einstein Generator"
-      description="Adjust scale, size, and palette, then render a new image in the format you like."
+      title={t("generator.einstein.title")}
+      description={t("generator.einstein.description")}
       controls={
         <>
-          <NumberField values={values} setValues={setValues} name="iterations" label="Iterations" min={1} max={6} />
-          <NumberField values={values} setValues={setValues} name="scalar" label="Scalar" min={1} max={80} />
-          <NumberField values={values} setValues={setValues} name="width" label="Width" min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="height" label="Height" min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={1} max={6} />
+          <NumberField values={values} setValues={setValues} name="scalar" label={t("generator.common.scalar")} min={1} max={80} />
+          <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="height" label={t("generator.common.height")} min={64} max={6000} />
           <SelectField
             values={values}
             setValues={setValues}
             name="color_mode"
-            label="Coloring"
+            label={t("generator.einstein.coloring")}
             options={[
-              { value: "families", label: "Tile Families" },
-              { value: "four_color", label: "Four-Color" }
+              { value: "families", label: t("generator.einstein.coloringFamilies") },
+              { value: "four_color", label: t("generator.einstein.coloringFourColor") }
             ]}
             full
           />
@@ -499,7 +509,7 @@ function EinsteinPage() {
             values={values}
             setValues={setValues}
             name="format"
-            label="Format"
+            label={t("generator.common.format")}
             options={[
               { value: "png", label: "PNG" },
               { value: "jpg", label: "JPG" },
@@ -507,7 +517,7 @@ function EinsteinPage() {
             ]}
             full
           />
-          <TextField values={values} setValues={setValues} name="seed" label="Seed" placeholder="Optional" full />
+          <TextField values={values} setValues={setValues} name="seed" label={t("generator.common.seed")} placeholder={t("generator.common.optional")} full />
           {values.color_mode === "families" ? (
             <div className="swatches full">
               <ColorField values={values} setValues={setValues} name="color_h1" label="H1" />
@@ -518,17 +528,17 @@ function EinsteinPage() {
             </div>
           ) : (
             <div className="swatches full">
-              <ColorField values={values} setValues={setValues} name="four_color_1" label="Color 1" />
-              <ColorField values={values} setValues={setValues} name="four_color_2" label="Color 2" />
-              <ColorField values={values} setValues={setValues} name="four_color_3" label="Color 3" />
-              <ColorField values={values} setValues={setValues} name="four_color_4" label="Color 4" />
+              <ColorField values={values} setValues={setValues} name="four_color_1" label={t("generator.common.color1")} />
+              <ColorField values={values} setValues={setValues} name="four_color_2" label={t("generator.common.color2")} />
+              <ColorField values={values} setValues={setValues} name="four_color_3" label={t("generator.common.color3")} />
+              <ColorField values={values} setValues={setValues} name="four_color_4" label={t("generator.common.color4")} />
             </div>
           )}
           <CheckboxField
             values={values}
             setValues={setValues}
             name="no_outline"
-            label="Render without black outlines"
+            label={t("generator.einstein.noOutline")}
           />
         </>
       }
@@ -568,24 +578,25 @@ function EinsteinPage() {
 }
 
 function SpectrePage() {
+  const { t } = useTranslation("common");
   const [values, setValues] = useState(SPECTRE_DEFAULTS);
   return (
     <GeneratorLayout
-      title="Spectre Generator"
-      description="Render bounded Spectre snapshots, choose a pattern variant, tune the palette and framing, and export SVG."
+      title={t("generator.spectre.title")}
+      description={t("generator.spectre.description")}
       controls={
         <>
-          <NumberField values={values} setValues={setValues} name="width" label="Width" min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="height" label="Height" min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="level" label="Seed" min={1} max={8} />
-          <NumberField values={values} setValues={setValues} name="scale" label="Scale" min={1} max={120} />
-          <NumberField values={values} setValues={setValues} name="center_x" label="Center X" step="0.1" />
-          <NumberField values={values} setValues={setValues} name="center_y" label="Center Y" step="0.1" />
+          <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="height" label={t("generator.common.height")} min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="level" label={t("generator.common.seed")} min={1} max={8} />
+          <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={120} />
+          <NumberField values={values} setValues={setValues} name="center_x" label={t("generator.common.centerX")} step="0.1" />
+          <NumberField values={values} setValues={setValues} name="center_y" label={t("generator.common.centerY")} step="0.1" />
           <SelectField
             values={values}
             setValues={setValues}
             name="format"
-            label="Format"
+            label={t("generator.common.format")}
             options={[
               { value: "svg", label: "SVG" },
               { value: "png", label: "PNG" },
@@ -597,10 +608,10 @@ function SpectrePage() {
             values={values}
             setValues={setValues}
             name="draw_mode"
-            label="Drawing Logic"
+            label={t("generator.spectre.drawMode")}
             options={[
-              { value: "generated", label: "Build" },
-              { value: "translation", label: "Translation" }
+              { value: "generated", label: t("generator.spectre.drawModeBuild") },
+              { value: "translation", label: t("generator.spectre.drawModeTranslation") }
             ]}
             full
           />
@@ -608,21 +619,21 @@ function SpectrePage() {
             values={values}
             setValues={setValues}
             name="shape"
-            label="Shape"
+            label={t("generator.spectre.shape")}
             options={[
-              { value: "straight", label: "Straight" },
-              { value: "curved", label: "Curved" }
+              { value: "straight", label: t("generator.spectre.shapeStraight") },
+              { value: "curved", label: t("generator.spectre.shapeCurved") }
             ]}
             full
           />
-          <ColorField values={values} setValues={setValues} name="background" label="Background" full />
-          <ColorField values={values} setValues={setValues} name="outline" label="Outline" full />
-          <NumberField values={values} setValues={setValues} name="stroke_width" label="Stroke Width" min={0} max={20} step="0.1" />
+          <ColorField values={values} setValues={setValues} name="background" label={t("generator.common.background")} full />
+          <ColorField values={values} setValues={setValues} name="outline" label={t("generator.common.outline")} full />
+          <NumberField values={values} setValues={setValues} name="stroke_width" label={t("generator.common.strokeWidth")} min={0} max={20} step="0.1" />
           <div className="swatches full">
-            <ColorField values={values} setValues={setValues} name="palette_1" label="Color 1" />
-            <ColorField values={values} setValues={setValues} name="palette_2" label="Color 2" />
-            <ColorField values={values} setValues={setValues} name="palette_3" label="Color 3" />
-            <ColorField values={values} setValues={setValues} name="palette_4" label="Color 4" />
+            <ColorField values={values} setValues={setValues} name="palette_1" label={t("generator.common.color1")} />
+            <ColorField values={values} setValues={setValues} name="palette_2" label={t("generator.common.color2")} />
+            <ColorField values={values} setValues={setValues} name="palette_3" label={t("generator.common.color3")} />
+            <ColorField values={values} setValues={setValues} name="palette_4" label={t("generator.common.color4")} />
           </div>
         </>
       }
@@ -662,6 +673,7 @@ function SpectrePage() {
 }
 
 function PenrosePage() {
+  const { t } = useTranslation("common");
   const [values, setValues] = useState(PENROSE_DEFAULTS);
   const previousTileModeRef = useRef(PENROSE_DEFAULTS.tile_mode);
   const modeScaleDefaults = { "kite-dart": 320, rhombs: 320, p1: 320 };
@@ -750,25 +762,25 @@ function PenrosePage() {
 
   return (
     <GeneratorLayout
-      title="Penrose Generator"
-      description="Generate Penrose tilings as kite-darts, rhombs, or a derived option that includes the star-heavy pentagonal motif from Penrose's first tiling."
+      title={t("generator.penrose.title")}
+      description={t("generator.penrose.description")}
       controls={
         <>
-          <NumberField values={values} setValues={setValues} name="width" label="Width" min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="height" label="Height" min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="iterations" label="Iterations" min={0} max={10} />
-          <NumberField values={values} setValues={setValues} name="scale" label="Scale" min={1} max={1200} />
-          <NumberField values={values} setValues={setValues} name="center_x" label="Center X" step="0.01" />
-          <NumberField values={values} setValues={setValues} name="center_y" label="Center Y" step="0.01" />
+          <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="height" label={t("generator.common.height")} min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={0} max={10} />
+          <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1200} />
+          <NumberField values={values} setValues={setValues} name="center_x" label={t("generator.common.centerX")} step="0.01" />
+          <NumberField values={values} setValues={setValues} name="center_y" label={t("generator.common.centerY")} step="0.01" />
           <SelectField
             values={values}
             setValues={setValues}
             name="tile_mode"
-            label="Tiles"
+            label={t("generator.penrose.tiles")}
             options={[
-              { value: "kite-dart", label: "P2: Kite & Dart" },
-              { value: "rhombs", label: "P3: Rhombs" },
-              { value: "p1", label: "P1: Stars" }
+              { value: "kite-dart", label: t("generator.penrose.tilesP2") },
+              { value: "rhombs", label: t("generator.penrose.tilesP3") },
+              { value: "p1", label: t("generator.penrose.tilesP1") }
             ]}
           />
           {values.tile_mode === "kite-dart" ? (
@@ -776,10 +788,10 @@ function PenrosePage() {
               values={values}
               setValues={setValues}
               name="build_logic"
-              label="Build Logic"
+              label={t("generator.penrose.buildLogic")}
               options={[
-                { value: "default", label: "Default" },
-                { value: "cartwheel", label: "Cartwheel" }
+                { value: "default", label: t("generator.penrose.buildLogicDefault") },
+                { value: "cartwheel", label: t("generator.penrose.buildLogicCartwheel") }
               ]}
             />
           ) : null}
@@ -787,7 +799,7 @@ function PenrosePage() {
             values={values}
             setValues={setValues}
             name="format"
-            label="Format"
+            label={t("generator.common.format")}
             options={[
               { value: "svg", label: "SVG" },
               { value: "png", label: "PNG" },
@@ -795,14 +807,14 @@ function PenrosePage() {
             ]}
             full
           />
-          <ColorField values={values} setValues={setValues} name="background" label="Background" full />
-          <ColorField values={values} setValues={setValues} name="outline" label="Outline" full />
-          <NumberField values={values} setValues={setValues} name="stroke_width" label="Stroke Width" min={0} max={20} step="0.1" />
+          <ColorField values={values} setValues={setValues} name="background" label={t("generator.common.background")} full />
+          <ColorField values={values} setValues={setValues} name="outline" label={t("generator.common.outline")} full />
+          <NumberField values={values} setValues={setValues} name="stroke_width" label={t("generator.common.strokeWidth")} min={0} max={20} step="0.1" />
           <div className="swatches full">
-            <ColorField values={values} setValues={setValues} name="palette_1" label="Color 1" />
-            <ColorField values={values} setValues={setValues} name="palette_2" label="Color 2" />
-            <ColorField values={values} setValues={setValues} name="palette_3" label="Color 3" />
-            <ColorField values={values} setValues={setValues} name="palette_4" label="Color 4" />
+            <ColorField values={values} setValues={setValues} name="palette_1" label={t("generator.common.color1")} />
+            <ColorField values={values} setValues={setValues} name="palette_2" label={t("generator.common.color2")} />
+            <ColorField values={values} setValues={setValues} name="palette_3" label={t("generator.common.color3")} />
+            <ColorField values={values} setValues={setValues} name="palette_4" label={t("generator.common.color4")} />
           </div>
         </>
       }
@@ -853,7 +865,8 @@ function GeneratorLayout({
   setValues,
   defaults
 }) {
-  const [status, setStatus] = useState("Ready to render.");
+  const { t } = useTranslation("common");
+  const [status, setStatus] = useState(() => t("generator.status.ready"));
   const [previewUrl, setPreviewUrl] = useState("");
   const lastUrlRef = useRef("");
 
@@ -868,7 +881,7 @@ function GeneratorLayout({
   async function handleSubmit(event) {
     event.preventDefault();
     const requestPayload = payload();
-    setStatus("Rendering...");
+    setStatus(t("generator.status.rendering"));
 
     try {
       const response = await fetch(endpoint, {
@@ -879,7 +892,7 @@ function GeneratorLayout({
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Render failed.");
+        throw new Error(data.error || t("generator.status.failed"));
       }
 
       const blob = await response.blob();
@@ -890,15 +903,15 @@ function GeneratorLayout({
       }
       lastUrlRef.current = nextUrl;
       setPreviewUrl(nextUrl);
-      setStatus("Render complete.");
+      setStatus(t("generator.status.complete"));
     } catch (error) {
-      setStatus(error.message || "Render failed.");
+      setStatus(error.message || t("generator.status.failed"));
     }
   }
 
   function reset() {
     setValues(defaults);
-    setStatus("Settings reset.");
+    setStatus(t("generator.status.reset"));
   }
 
   return (
@@ -910,25 +923,25 @@ function GeneratorLayout({
 
       <section className="generator-layout">
         <form className="panel controls-panel" onSubmit={handleSubmit}>
-          <h2>Settings</h2>
+          <h2>{t("generator.layout.settings")}</h2>
           <div className="grid">{controls}</div>
           <div className="actions-row">
             <button className="button" type="submit">
-              Generate
+              {t("generator.layout.generate")}
             </button>
             <button className="button button-muted" type="button" onClick={reset}>
-              Reset
+              {t("generator.layout.reset")}
             </button>
           </div>
         </form>
 
         <section className="panel preview-panel">
-          <h2>Preview</h2>
+          <h2>{t("generator.layout.preview")}</h2>
           <div className="meta">
             <div className="status">{status}</div>
             {previewUrl ? (
               <a className="button button-green small" href={previewUrl} download={downloadName(payload())}>
-                Download
+                {t("generator.layout.download")}
               </a>
             ) : null}
           </div>
@@ -941,7 +954,7 @@ function GeneratorLayout({
               )
             ) : (
               <div className="placeholder">
-                Your generated artwork will appear here. Start with the default settings or explore a new palette.
+                {t("generator.layout.placeholder")}
               </div>
             )}
           </div>
@@ -952,7 +965,12 @@ function GeneratorLayout({
 }
 
 function AboutPage() {
-  const [content, setContent] = useState(ABOUT_FALLBACK);
+  const { t } = useTranslation("common");
+  const [content, setContent] = useState(() => createAboutFallback(t));
+
+  useEffect(() => {
+    setContent((current) => (current === null ? createAboutFallback(t) : current));
+  }, [t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -978,7 +996,7 @@ function AboutPage() {
 
       <section className="stack">
         <article className="panel prose-panel">
-          <h2>References</h2>
+          <h2>{t("about.sections.references")}</h2>
           <ul className="reference-list">
             {content.references.map((reference) => (
               <li key={reference.url}>
@@ -989,17 +1007,17 @@ function AboutPage() {
         </article>
 
         <article className="panel prose-panel">
-          <h2>Credits And Guidance</h2>
+          <h2>{t("about.sections.credits")}</h2>
           <p>{content.credits}</p>
         </article>
 
         <article className="panel prose-panel">
-          <h2>Technical Realizations</h2>
+          <h2>{t("about.sections.technical")}</h2>
           <p>{content.technical_realizations}</p>
         </article>
 
         <article className="panel prose-panel">
-          <h2>Project Notes</h2>
+          <h2>{t("about.sections.notes")}</h2>
           <p>{content.notes}</p>
         </article>
       </section>
@@ -1008,8 +1026,9 @@ function AboutPage() {
 }
 
 function SponsorsPanel({ compact = false }) {
+  const { t } = useTranslation("common");
   const [sponsors, setSponsors] = useState([]);
-  const [status, setStatus] = useState("Loading sponsors...");
+  const [status, setStatus] = useState(() => t("sponsors.panel.loading"));
 
   useEffect(() => {
     let cancelled = false;
@@ -1021,18 +1040,18 @@ function SponsorsPanel({ compact = false }) {
         }
         const entries = Array.isArray(data.sponsors) ? data.sponsors : [];
         setSponsors(entries);
-        setStatus(entries.length > 0 ? "" : "No sponsors yet.");
+        setStatus(entries.length > 0 ? "" : t("sponsors.panel.none"));
       })
       .catch(() => {
         if (!cancelled) {
-          setStatus("no sponsors yet.");
+          setStatus(t("sponsors.panel.none"));
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   if (status) {
     return <p className="status">{status}</p>;
@@ -1107,10 +1126,12 @@ function TextField({ values, setValues, name, label, placeholder, full = false }
   );
 }
 
-function ColorField({ values, setValues, name, label, placeholder = "Type or search a CSS color", full = false }) {
+function ColorField({ values, setValues, name, label, placeholder, full = false }) {
+  const { t } = useTranslation("common");
   const listId = `color-options-${name}`;
   const cachedValueRef = useRef("");
   const autoClearedRef = useRef(false);
+  const resolvedPlaceholder = placeholder || t("generator.common.colorPlaceholder");
 
   function handleFocus() {
     const currentValue = String(values[name] ?? "");
@@ -1141,7 +1162,7 @@ function ColorField({ values, setValues, name, label, placeholder = "Type or sea
           name={name}
           type="text"
           list={listId}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           value={values[name]}
           onFocus={handleFocus}
           onBlur={handleBlur}
