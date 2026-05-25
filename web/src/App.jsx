@@ -220,7 +220,9 @@ function HomePage() {
       cta: "Open Penrose",
       to: "/penrose",
       className: "feature-penrose",
-      buttonClassName: "button button-ink"
+      buttonClassName: "button button-ink",
+      arrow: true,
+      arrowColor: "#204f7a"
     }
   ];
 
@@ -239,8 +241,8 @@ function HomePage() {
 
       <section className="card-grid">
         <div className="card-group panel-group monotile-group">
-          <h3 className="group-title">Monotile</h3>
           <article className="feature-card monotile-merged panel">
+            <div className="panel-kicker"><span className="group-title">Monotile</span></div>
             <div className="monotile-inner">
               {monotileCards.map((card, index) => (
                 <div className="monotile-card" key={card.title}>
@@ -271,15 +273,29 @@ function HomePage() {
         </div>
 
         <div className="card-group panel-group">
-          <h3 className="group-title">Tile-combinations</h3>
           <div className="group-cards">
-            {otherCards.map((card) => (
-              <article key={card.title} className={`feature-card ${card.className} panel`}>
+            {otherCards.map((card, index) => (
+                <article key={card.title} className={`feature-card ${card.className} panel`}>
+                {index === 0 ? <div className="panel-kicker"><span className="group-title">Tile-combinations</span></div> : null}
                 <h2>{card.title}</h2>
                 <p>{card.description}</p>
                 <div className="feature-spacer" aria-hidden="true" />
-                <NavLink className={card.buttonClassName} to={card.to} aria-label={`Open ${card.title}`}>
-                  {card.cta}
+                <NavLink
+                  className={card.buttonClassName}
+                  to={card.to}
+                  aria-label={`Open ${card.title}`}
+                  style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
+                >
+                  {card.arrow ? (
+                    <span className="card-cta" aria-hidden="true">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  ) : (
+                    card.cta
+                  )}
                 </NavLink>
               </article>
             ))}

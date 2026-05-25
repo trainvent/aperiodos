@@ -238,7 +238,7 @@ h1 {
 
 .feature-card h2 {
   margin: 0;
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-size: clamp(1.8rem, 3.2vw, 2.4rem);
   letter-spacing: -0.03em;
 }
 
@@ -425,44 +425,85 @@ select {
 
 /* Merged monotile styling */
 .monotile-merged {
-  padding: 28px;
-  min-height: 260px;
+  padding: 20px;
+  min-height: 220px;
 }
 
 .monotile-inner {
   display: flex;
-  gap: 18px;
+  gap: 20px;
   align-items: stretch;
 }
 
 .monotile-card {
   flex: 1 1 0;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   align-content: start;
+  padding: 8px 18px;
+  position: relative;
 }
 
 .monotile-card h2 {
-  margin-bottom: 6px;
+  margin: 0 0 6px 0;
+  font-size: clamp(1.8rem, 3.2vw, 2.4rem);
+}
+
+/* header inside panels */
+.panel-kicker {
+  margin-bottom: 10px;
+}
+
+.feature-card .group-title {
+  display: inline-block;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(23,49,59,0.56);
+}
+
+/* vertical dotted divider between the two monotile cards */
+.monotile-card + .monotile-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  border-left: 2px dotted rgba(23, 49, 59, 0.12);
 }
 
 .monotile-card .card-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   border-radius: 999px;
   background: var(--cta-color, var(--accent));
   color: white;
+  box-shadow: 0 6px 18px rgba(23,49,59,0.08);
 }
 
-.monotile-merged .monotile-inner::after {
-  content: "";
-  width: 2px;
-  background-image: linear-gradient(to bottom, rgba(23,49,59,0.12) 33%, rgba(23,49,59,0) 0%);
-  background-size: 100% 6px;
-  margin-left: 6px;
+/* Make the NavLink container transparent inside feature cards so only the inner circle shows */
+.feature-card a.button {
+  background: transparent;
+  padding: 0;
+  display: inline-block;
+}
+
+/* Ensure the svg stroke uses white for visibility */
+.card-cta svg path {
+  stroke: white;
+}
+
+.monotile-card p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* Make the Monotile panel twice as wide as a single card */
+.monotile-group {
+  grid-column: span 2;
 }
 
 .button-ink {
