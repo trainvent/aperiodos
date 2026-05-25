@@ -216,13 +216,13 @@ function HomePage() {
   const otherCards = [
     {
       title: "Penrose",
-      description: "Build classic Penrose tilings as kite-darts, rhombs, or a star-rich derived variant.",
+      description: "build classic Penrose tilings as kite-darts, rhombs, or a star-rich derived variant.",
       cta: "Open Penrose",
       to: "/penrose",
       className: "feature-penrose",
       buttonClassName: "button button-ink",
       arrow: true,
-      arrowColor: "#204f7a"
+      arrowColor: "red"
     }
   ];
 
@@ -235,7 +235,7 @@ function HomePage() {
         </div>
         <aside className="hero-note panel">
           <strong>Three tools</strong>
-          <p>Einstein, Spectre, and Penrose all support quick exports in SVG, PNG, and JPG.</p>
+          <p>Einstein, Spectre, and Penrose all support quick exports in SVG, PNG, and JPG formats.</p>
         </aside>
       </section>
 

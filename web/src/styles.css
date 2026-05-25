@@ -195,7 +195,7 @@ h1 {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 24px;
 }
 
@@ -429,6 +429,12 @@ select {
   min-height: 220px;
 }
 
+/* Keep Monotile and Tile-combinations cards visually aligned in height */
+.monotile-merged,
+.feature-penrose {
+  min-height: 336px;
+}
+
 .monotile-inner {
   display: flex;
   gap: 20px;
@@ -445,7 +451,7 @@ select {
 }
 
 .monotile-card h2 {
-  margin: 0 0 6px 0;
+  margin: -11px 0 6px 0;
   font-size: clamp(1.8rem, 3.2vw, 2.4rem);
 }
 
@@ -472,7 +478,7 @@ select {
   border-left: 2px dotted rgba(23, 49, 59, 0.12);
 }
 
-.monotile-card .card-cta {
+.feature-card .card-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -499,11 +505,6 @@ select {
 .monotile-card p {
   margin: 0;
   color: var(--ink-soft);
-}
-
-/* Make the Monotile panel twice as wide as a single card */
-.monotile-group {
-  grid-column: span 2;
 }
 
 .button-ink {
@@ -635,6 +636,11 @@ select {
   .card-grid,
   .generator-layout {
     grid-template-columns: 1fr;
+  }
+
+  .monotile-merged,
+  .feature-penrose {
+    min-height: 280px;
   }
 
   .preview-panel {
