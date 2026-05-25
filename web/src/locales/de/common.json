@@ -21,7 +21,7 @@
     "cards": {
       "einsteinDescription": "eine einzelne Kachel, die Aperiodizitaet erzwingt, mit verschiedenen Farbschemata und Exportoptionen.",
       "spectreDescription": "eine einzelne Kachel, die Aperiodizitaet ohne Spiegelung erzwingt und dadurch komplexere Formen braucht",
-      "penroseDescription": "erstelle klassische Penrose-Parkettierungen als Drachen/Pfeile, Rhomben oder eine sternreiche Variante."
+      "penroseDescription": "erstelle klassische Penrose-Muster als Drachen/Pfeile, Rhomben oder eine sternreiche Variante."
     },
     "openLabel": "Oeffnen"
   },
@@ -62,11 +62,11 @@
     "common": { "iterations": "Iterationen", "scalar": "Skalierung", "scale": "Skalierung", "width": "Breite", "height": "Hoehe", "format": "Format", "seed": "Seed", "optional": "Optional", "color1": "Farbe 1", "color2": "Farbe 2", "color3": "Farbe 3", "color4": "Farbe 4", "background": "Hintergrund", "outline": "Kontur", "strokeWidth": "Strichbreite", "centerX": "Zentrum X", "centerY": "Zentrum Y", "colorPlaceholder": "Geben Sie einen CSS-Farbwert ein oder suchen Sie danach" },
     "einstein": { "title": "Einstein-Generator", "description": "Skalierung, Groesse und Palette anpassen, dann ein neues Bild in gewuensstem Format rendern.", "coloring": "Farbmodus", "coloringFamilies": "Kachel-Familien", "coloringFourColor": "Vier-Farben", "noOutline": "Ohne Konturen rendern" },
     "spectre": { "title": "Spectre-Generator", "description": "Gebaenderte Spectre-Snapshots rendern, Varianten waehlen, Palette und Rahmen anpassen und SVG exportieren.", "drawMode": "Zeichenlogik", "drawModeBuild": "Build", "drawModeTranslation": "Translation", "shape": "Form", "shapeStraight": "Gerade", "shapeCurved": "Gekrummt" },
-    "penrose": { "title": "Penrose-Generator", "description": "Penrose-Parkettierungen als Drachen/Pfeile, Rhombs oder eine abgeleitete Option mit sternreichem pentagonalem Motiv erzeugen.", "tiles": "Kacheln", "tilesP2": "P2: Kite & Dart", "tilesP3": "P3: Rhombs", "tilesP1": "P1: Stars", "buildLogic": "Bau-Logik", "buildLogicDefault": "Standard", "buildLogicCartwheel": "Cartwheel" }
+    "penrose": { "title": "Penrose-Generator", "description": "Penrose-Muster als Drachen/Pfeile, Rhombs oder eine abgeleitete Option mit sternreichem pentagonalem Motiv erzeugen.", "tiles": "Kacheln", "tilesP2": "P2: Kite & Dart", "tilesP3": "P3: Rhombs", "tilesP1": "P1: Stars", "buildLogic": "Bau-Logik", "buildLogicDefault": "Standard", "buildLogicCartwheel": "Cartwheel" }
   },
   "about": {
-    "hero": { "title": "Ueber Aperiodos", "summary": "Aperiodos ist ein Trainvent-Subservice fuer aperiodische Monokacheln, Bildgenerierung und Browser-Experimente. Die Seite fokussiert derzeit Monokacheln mit Plaenen fuer weitere aperiodische Muster und Penrose-Parkettierungen." },
+    "hero": { "title": "Ueber Aperiodos", "summary": "Aperiodos ist ein Trainvent-Subservice fuer aperiodische Monokacheln, Bildgenerierung und Browser-Experimente. Die Seite fokussiert derzeit Monokacheln mit Plaenen fuer weitere aperiodische Muster und Penrose-Muster." },
     "references": { "hat": "Hat Monokachel Referenzseite", "spectre": "Spectre Projektseite", "einsteinRepo": "Earlier Einstein inspiration repo" },
-    "sections": { "references": "Referenzen", "credits": "Credits und Hinweise", "technical": "Technische Umsetzung", "notes": "Projekt-Notizen", "creditsBody": "Dieser Trainvent-Subservice baut auf Papers, mathematischen Referenzen und oeffentlichen Open-Source-Experimenten auf, um zu zeigen, wie diese Parkettierungen gerendert und praesentiert werden koennen.", "technicalBody": "OpenAI hat bei technischer Realisierung, Architekturplanung, Refactors, API-Formgebung und Frontend/Backend-Integration geholfen.", "notesBody": "Die Rust-basierte Spectre-Arbeit wird nach src/spectre_rs portiert; das aeltere spectre-Clone-Repo bleibt als Referenz. Einstein und Spectre teilen eine visuelle Sprache im Trainvent-Kontext." }
+    "sections": { "references": "Referenzen", "credits": "Credits und Hinweise", "technical": "Technische Umsetzung", "notes": "Projekt-Notizen", "creditsBody": "Dieser Trainvent-Subservice baut auf Papers, mathematischen Referenzen und oeffentlichen Open-Source-Experimenten auf, um zu zeigen, wie diese Muster gerendert und praesentiert werden koennen.", "technicalBody": "OpenAI hat bei technischer Realisierung, Architekturplanung, Refactors, API-Formgebung und Frontend/Backend-Integration geholfen.", "notesBody": "Die Rust-basierte Spectre-Arbeit wird nach src/spectre_rs portiert; das aeltere spectre-Clone-Repo bleibt als Referenz. Einstein und Spectre teilen eine visuelle Sprache im Trainvent-Kontext." }
   }
 }
