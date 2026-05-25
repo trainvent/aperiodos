@@ -153,17 +153,19 @@ export default function App() {
             <TopNavLink to="/sponsors">{t("nav.sponsors")}</TopNavLink>
             <TopNavLink to="/about">{t("nav.about")}</TopNavLink>
           </nav>
-          <label className="lang-switch" htmlFor="language-select">
-            <span>{t("language.label")}</span>
-            <select
-              id="language-select"
-              value={language}
-              onChange={(event) => i18n.changeLanguage(event.target.value === "en" ? "en" : "de")}
-            >
-              <option value="de">DE</option>
-              <option value="en">EN</option>
-            </select>
-          </label>
+          <div className="lang-switch" role="group" aria-label={t("language.label")}>
+            <span className="lang-switch-control">
+              <button
+                className="lang-toggle"
+                type="button"
+                onClick={() => i18n.changeLanguage(language === "de" ? "en" : "de")}
+                aria-label="Toggle language"
+              >
+                <span className="lang-flag" aria-hidden="true">{language === "de" ? "🇩🇪" : "🇬🇧"}</span>
+                <span className="lang-code">{language.toUpperCase()}</span>
+              </button>
+            </span>
+          </div>
         </div>
       </header>
 
