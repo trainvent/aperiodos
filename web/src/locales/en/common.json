@@ -44,6 +44,7 @@
     "status": {
       "default": "Donate securely via Stripe.",
       "success": "Thank you. Your donation was received.",
+      "confirmed": "Thank you. Your donation was confirmed and added to the sponsors list.",
       "cancelled": "Donation was cancelled. You can try again anytime.",
       "notConfigured": "Donations are not configured yet.",
       "creatingSession": "Creating Stripe checkout session...",
@@ -53,7 +54,7 @@
   },
   "sponsors": {
     "hero": { "title": "Sponsors", "lede": "People who support Aperiodos through donations." },
-    "wall": { "title": "Wall Of Support", "cta": "Become A Sponsor", "ctaDisabledTitle": "Stripe is not set up yet", "status": "Stripe is not set up yet. Sponsoring will be enabled soon." },
+    "wall": { "title": "Wall Of Support", "cta": "Donate Now", "status": "Public sponsors appear here after a successful donation." },
     "panel": { "loading": "Loading sponsors...", "none": "No sponsors yet." }
   },
   "generator": {

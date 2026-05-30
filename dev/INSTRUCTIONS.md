@@ -80,6 +80,21 @@ Required environment variables:
 export STRIPE_SECRET_KEY=sk_live_or_test_key
 ```
 
+The HTTP service also reads a repository-local `.env` file at startup when one is present, so local runs can pick up the same Stripe settings without exporting them manually.
+
+Sandbox mode uses separate env vars:
+
+```bash
+export STRIPE_SANDBOX_SECRET_KEY=sk_test_or_sandbox_key
+export STRIPE_SANDBOX_WEBHOOK_SECRET=whsec_...
+```
+
+Run the backend in sandbox mode with:
+
+```bash
+python3 -m src.entry.web --sandbox
+```
+
 Optional environment variables:
 
 ```bash
@@ -87,8 +102,13 @@ export STRIPE_WEBHOOK_SECRET=whsec_...
 export PUBLIC_APP_URL=https://www.aperiodos.com
 export DONATION_CURRENCY=eur
 export MIN_DONATION_CENTS=100
-export SPONSORS_DB_PATH=output/sponsors.sqlite3
+export FIRESTORE_PROJECT_ID=your-gcp-project-id
+export FIRESTORE_DATABASE_ID='(default)'
 ```
+
+Sponsors storage uses Firestore (native mode). Set `FIRESTORE_PROJECT_ID` and, when needed, `FIRESTORE_DATABASE_ID` for non-default database names.
+
+Production Stripe credentials are now loaded from Secret Manager on Cloud Run. If you run `--sandbox` locally, export the Stripe secrets in your shell first or fetch them from Secret Manager before starting the server.
 
 Main donation endpoints:
 

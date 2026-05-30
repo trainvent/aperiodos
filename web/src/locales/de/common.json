@@ -44,6 +44,7 @@
     "status": {
       "default": "Sichere Spende via Stripe.",
       "success": "Danke. Ihre Spende wurde empfangen.",
+      "confirmed": "Danke. Ihre Spende wurde bestaetigt und der Sponsorenliste hinzugefuegt.",
       "cancelled": "Die Spende wurde abgebrochen. Sie koennen es jederzeit erneut versuchen.",
       "notConfigured": "Spenden sind noch nicht konfiguriert.",
       "creatingSession": "Erstelle Stripe Checkout-Session...",
@@ -53,7 +54,7 @@
   },
   "sponsors": {
     "hero": { "title": "Sponsoren", "lede": "Personen, die Aperiodos durch Spenden unterstuetzen." },
-    "wall": { "title": "Wall Of Support", "cta": "Sponsor werden", "ctaDisabledTitle": "Stripe ist noch nicht eingerichtet", "status": "Stripe ist noch nicht eingerichtet. Sponsoring wird bald verfuegbar sein." },
+    "wall": { "title": "Wall Of Support", "cta": "Jetzt spenden", "status": "Oeffentliche Sponsoren erscheinen hier nach einer erfolgreichen Spende." },
     "panel": { "loading": "Sponsoren werden geladen...", "none": "Noch keine Sponsoren." }
   },
   "generator": {

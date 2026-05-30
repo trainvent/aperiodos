@@ -6,7 +6,9 @@ from .stripe_sponsors import (
     build_checkout_urls,
     create_donation_checkout_session,
     parse_stripe_event,
+    record_sponsor_from_checkout_session,
     record_sponsor_from_event,
+    retrieve_checkout_session,
 )
 
 __all__ = [
@@ -15,5 +17,7 @@ __all__ = [
     "build_checkout_urls",
     "create_donation_checkout_session",
     "parse_stripe_event",
+    "record_sponsor_from_checkout_session",
     "record_sponsor_from_event",
+    "retrieve_checkout_session",
 ]

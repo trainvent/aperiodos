@@ -1,4 +1,5 @@
 import os
+import argparse
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,37 @@ from PIL import Image, ImageColor, ImageDraw
 LAUNCHER_DIR = Path(__file__).resolve().parent
 SRC_PATH = LAUNCHER_DIR.parent
 PROJECT_ROOT = LAUNCHER_DIR.parents[1]
+
+
+def _load_local_env_file():
+    env_path = PROJECT_ROOT / ".env"
+    if not env_path.exists():
+        return
+
+    try:
+        lines = env_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return
+
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            value = value[1:-1]
+
+        os.environ[key] = value
+
+
+_load_local_env_file()
+
 FRONTEND_DIST_DIR = PROJECT_ROOT / "web" / "dist"
 FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
 DEFAULT_SPECTRE_BINARY = PROJECT_ROOT / "src" / "spectre_rs" / "target" / "release" / "spectre_rs"
@@ -35,7 +67,9 @@ from donations import (  # noqa: E402
     build_checkout_urls,
     create_donation_checkout_session,
     parse_stripe_event,
+    record_sponsor_from_checkout_session,
     record_sponsor_from_event,
+    retrieve_checkout_session,
 )
 from einstein_backend.seed_to_pattern import seed_to_pattern  # noqa: E402
 
@@ -55,10 +89,12 @@ P1_SCALE_NORMALIZATION = 10.0 / 320.0
 ALLOWED_EINSTEIN_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
 ALLOWED_SPECTRE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
 ALLOWED_PENROSE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
-DEFAULT_SPONSORS_DB_PATH = PROJECT_ROOT / "output" / "sponsors.sqlite3"
 DEFAULT_DONATION_CURRENCY = "eur"
 DEFAULT_MIN_DONATION_CENTS = 100
 MAX_DONATION_CENTS = 500_000
+STRIPE_MODE = os.environ.get("STRIPE_MODE", "live").strip().lower()
+SANDBOX_STRIPE_SECRET_ENV = "STRIPE_SANDBOX_SECRET_KEY"
+SANDBOX_STRIPE_WEBHOOK_ENV = "STRIPE_SANDBOX_WEBHOOK_SECRET"
 
 ABOUT_CONTENT = {
     "title": "About Aperiodos",
@@ -108,7 +144,7 @@ ABOUT_CONTENT = {
     ),
 }
 
-SPONSORS_STORE = SponsorsStore(os.environ.get("SPONSORS_DB_PATH", str(DEFAULT_SPONSORS_DB_PATH)))
+SPONSORS_STORE = SponsorsStore("firestore")
 
 
 def _allowed_cors_origins():
@@ -344,10 +380,14 @@ def _serve_spa():
 
 
 def _stripe_secret_key():
+    if STRIPE_MODE == "sandbox":
+        return os.environ.get(SANDBOX_STRIPE_SECRET_ENV, "").strip()
     return os.environ.get("STRIPE_SECRET_KEY", "").strip()
 
 
 def _stripe_webhook_secret():
+    if STRIPE_MODE == "sandbox":
+        return os.environ.get(SANDBOX_STRIPE_WEBHOOK_ENV, "").strip()
     return os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
 
 
@@ -371,6 +411,19 @@ def _coerce_bool(raw_value, default=True):
 
 def _donation_service_available():
     return bool(_stripe_secret_key())
+
+
+def _configure_stripe_mode_from_args(argv: list[str]) -> None:
+    global STRIPE_MODE
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--sandbox", action="store_true")
+    args, _remaining = parser.parse_known_args(argv)
+    if args.sandbox:
+        STRIPE_MODE = "sandbox"
+        os.environ["STRIPE_MODE"] = "sandbox"
+    else:
+        STRIPE_MODE = os.environ.get("STRIPE_MODE", "live").strip().lower() or "live"
+        os.environ.setdefault("STRIPE_MODE", "live")
 
 
 def _donation_currency():
@@ -750,6 +803,30 @@ def create_donation_checkout():
     )
 
 
+@app.post("/api/donations/confirm-session")
+def confirm_donation_session():
+    if not _donation_service_available():
+        return jsonify({"error": "Donations are not configured on this server."}), 503
+
+    payload = request.get_json(silent=True) or {}
+    session_id = str(payload.get("session_id", "")).strip()
+    if not session_id:
+        return jsonify({"error": "Missing Stripe checkout session id."}), 400
+
+    try:
+        session = retrieve_checkout_session(
+            stripe_secret_key=_stripe_secret_key(),
+            checkout_session_id=session_id,
+        )
+        recorded = record_sponsor_from_checkout_session(SPONSORS_STORE, session=session)
+    except DonationError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify({"recorded": bool(recorded)})
+
+
 @app.post("/api/stripe/webhook")
 def stripe_webhook():
     if not _donation_service_available():
@@ -895,4 +972,5 @@ def handle_not_found(_error):
 
 
 if __name__ == "__main__":
+    _configure_stripe_mode_from_args(sys.argv[1:])
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))

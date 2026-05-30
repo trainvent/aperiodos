@@ -319,6 +319,7 @@ function DonatePage() {
   const { t } = useTranslation("common");
   const [values, setValues] = useState(DONATION_DEFAULTS);
   const [status, setStatus] = useState(() => t("donate.status.default"));
+  const [sponsorRefreshToken, setSponsorRefreshToken] = useState(0);
   const [donationSettings, setDonationSettings] = useState({
     enabled: true,
     currency: "EUR",
@@ -328,8 +329,24 @@ function DonatePage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const checkoutStatus = params.get("status");
+    const sessionId = params.get("session_id");
     if (checkoutStatus === "success") {
       setStatus(t("donate.status.success"));
+      if (sessionId) {
+        fetch(apiUrl("/api/donations/confirm-session"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId })
+        })
+          .then((response) => response.json().catch(() => ({})))
+          .then((data) => {
+            if (data.recorded) {
+              setStatus(t("donate.status.confirmed"));
+              setSponsorRefreshToken((current) => current + 1);
+            }
+          })
+          .catch(() => undefined);
+      }
     } else if (checkoutStatus === "cancelled") {
       setStatus(t("donate.status.cancelled"));
     }
@@ -443,7 +460,7 @@ function DonatePage() {
 
         <section className="panel preview-panel preview-panel-short">
           <h2>{t("donate.preview.title")}</h2>
-          <SponsorsPanel compact />
+          <SponsorsPanel compact refreshToken={sponsorRefreshToken} />
         </section>
       </section>
     </>
@@ -452,7 +469,6 @@ function DonatePage() {
 
 function SponsorsPage() {
   const { t } = useTranslation("common");
-  const sponsorCtaEnabled = false;
 
   return (
     <>
@@ -466,15 +482,9 @@ function SponsorsPage() {
           <h2>{t("sponsors.wall.title")}</h2>
           <SponsorsPanel />
           <div className="actions-row">
-            <button
-              className="button button-gold sponsor-cta"
-              type="button"
-              disabled={!sponsorCtaEnabled}
-              aria-disabled={!sponsorCtaEnabled}
-              title={t("sponsors.wall.ctaDisabledTitle")}
-            >
+            <NavLink className="button button-gold sponsor-cta" to="/donate">
               {t("sponsors.wall.cta")}
-            </button>
+            </NavLink>
           </div>
           <p className="status status-spaced">{t("sponsors.wall.status")}</p>
         </article>
@@ -1027,7 +1037,7 @@ function AboutPage() {
   );
 }
 
-function SponsorsPanel({ compact = false }) {
+function SponsorsPanel({ compact = false, refreshToken = 0 }) {
   const { t } = useTranslation("common");
   const [sponsors, setSponsors] = useState([]);
   const [status, setStatus] = useState(() => t("sponsors.panel.loading"));
@@ -1053,7 +1063,7 @@ function SponsorsPanel({ compact = false }) {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [t, refreshToken]);
 
   if (status) {
     return <p className="status">{status}</p>;
