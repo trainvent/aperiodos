@@ -1,4 +1,4 @@
-import { NavLink, Route, Routes } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import brandIconUrl from "./assets/custom-pattern_1024.png";
@@ -122,8 +122,7 @@ const PENROSE_DEFAULTS = {
 const DONATION_DEFAULTS = {
   amount_major: 10,
   name: "",
-  message: "",
-  is_public: true
+  message: ""
 };
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -150,7 +149,7 @@ export default function App() {
             <TopNavLink to="/einstein">Einstein</TopNavLink>
             <TopNavLink to="/spectre">Spectre</TopNavLink>
             <TopNavLink to="/penrose">Penrose</TopNavLink>
-            <TopNavLink to="/sponsors">{t("nav.sponsors")}</TopNavLink>
+            <TopNavLink to="/donate">{t("nav.sponsors")}</TopNavLink>
             <TopNavLink to="/about">{t("nav.about")}</TopNavLink>
           </nav>
           <div className="lang-switch" role="group" aria-label={t("language.label")}>
@@ -176,7 +175,7 @@ export default function App() {
           <Route path="/einstein" element={<EinsteinPage />} />
           <Route path="/spectre" element={<SpectrePage />} />
           <Route path="/penrose" element={<PenrosePage />} />
-          <Route path="/sponsors" element={<SponsorsPage />} />
+          <Route path="/sponsors" element={<Navigate to="/donate" replace />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>
@@ -398,7 +397,7 @@ function DonatePage() {
           currency: donationSettings.currency.toLowerCase(),
           name: values.name,
           message: values.message,
-          is_public: Boolean(values.is_public)
+          is_public: true
         })
       });
       const data = await response.json().catch(() => ({}));
@@ -442,12 +441,6 @@ function DonatePage() {
               label={t("donate.form.message")}
               placeholder={t("donate.form.messagePlaceholder")}
               full
-            />
-            <CheckboxField
-              values={values}
-              setValues={setValues}
-              name="is_public"
-              label={t("donate.form.isPublic")}
             />
           </div>
           <div className="actions-row">

@@ -6,7 +6,14 @@ import tempfile
 from pathlib import Path
 from xml.etree import ElementTree
 
-from flask import Flask, jsonify, request, send_file, send_from_directory
+from flask import (
+    Flask,
+    jsonify,
+    redirect,
+    request,
+    send_file,
+    send_from_directory,
+)
 from PIL import Image, ImageColor, ImageDraw
 
 
@@ -46,10 +53,14 @@ _load_local_env_file()
 
 FRONTEND_DIST_DIR = PROJECT_ROOT / "web" / "dist"
 FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
-DEFAULT_SPECTRE_BINARY = PROJECT_ROOT / "src" / "spectre_rs" / "target" / "release" / "spectre_rs"
-DEBUG_SPECTRE_BINARY = PROJECT_ROOT / "src" / "spectre_rs" / "target" / "debug" / "spectre_rs"
-DEFAULT_PENROSE_BINARY = PROJECT_ROOT / "penrose" / "target" / "release" / "penrose_rs"
-DEBUG_PENROSE_BINARY = PROJECT_ROOT / "penrose" / "target" / "debug" / "penrose_rs"
+DEFAULT_SPECTRE_BINARY = PROJECT_ROOT / "src" / \
+    "spectre_rs" / "target" / "release" / "spectre_rs"
+DEBUG_SPECTRE_BINARY = PROJECT_ROOT / "src" / \
+    "spectre_rs" / "target" / "debug" / "spectre_rs"
+DEFAULT_PENROSE_BINARY = PROJECT_ROOT / \
+    "penrose" / "target" / "release" / "penrose_rs"
+DEBUG_PENROSE_BINARY = PROJECT_ROOT / \
+    "penrose" / "target" / "debug" / "penrose_rs"
 
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
@@ -86,9 +97,12 @@ MAX_SPECTRE_SCALE = 120
 MAX_PENROSE_ITERATIONS = 10
 MAX_PENROSE_SCALE = 1200
 P1_SCALE_NORMALIZATION = 10.0 / 320.0
-ALLOWED_EINSTEIN_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
-ALLOWED_SPECTRE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
-ALLOWED_PENROSE_FORMATS = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
+ALLOWED_EINSTEIN_FORMATS = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
+ALLOWED_SPECTRE_FORMATS = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
+ALLOWED_PENROSE_FORMATS = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "svg": "image/svg+xml"}
 DEFAULT_DONATION_CURRENCY = "eur"
 DEFAULT_MIN_DONATION_CENTS = 100
 MAX_DONATION_CENTS = 500_000
@@ -199,14 +213,16 @@ def _coerce_float(payload, key, default, minimum=None, maximum=None):
 def _coerce_colors(payload):
     colors = payload.get("colors", list(DEFAULT_COLORS))
     if not isinstance(colors, list) or len(colors) != 5:
-        raise ValueError("'colors' must be a list of exactly five CSS-style color values.")
+        raise ValueError(
+            "'colors' must be a list of exactly five CSS-style color values.")
     return tuple(str(color) for color in colors)
 
 
 def _coerce_four_colors(payload):
     colors = payload.get("four_colors", list(DEFAULT_FOUR_COLORS))
     if not isinstance(colors, list) or len(colors) != 4:
-        raise ValueError("'four_colors' must be a list of exactly four CSS-style color values.")
+        raise ValueError(
+            "'four_colors' must be a list of exactly four CSS-style color values.")
     return tuple(str(color) for color in colors)
 
 
@@ -220,7 +236,8 @@ def _coerce_einstein_color_mode(payload):
 def _coerce_einstein_format(payload):
     image_format = str(payload.get("format", "png")).lower()
     if image_format not in ALLOWED_EINSTEIN_FORMATS:
-        raise ValueError(f"'format' must be one of: {', '.join(sorted(ALLOWED_EINSTEIN_FORMATS))}.")
+        raise ValueError(
+            f"'format' must be one of: {', '.join(sorted(ALLOWED_EINSTEIN_FORMATS))}.")
     return image_format
 
 
@@ -229,7 +246,8 @@ def _coerce_palette(payload):
     if palette is None:
         return None
     if not isinstance(palette, list) or not palette:
-        raise ValueError("'palette' must be a non-empty list of CSS-style color values.")
+        raise ValueError(
+            "'palette' must be a non-empty list of CSS-style color values.")
     return [str(color) for color in palette]
 
 
@@ -250,7 +268,8 @@ def _coerce_spectre_shape(payload):
 def _coerce_spectre_format(payload):
     image_format = str(payload.get("format", "svg")).lower()
     if image_format not in ALLOWED_SPECTRE_FORMATS:
-        raise ValueError(f"'format' must be one of: {', '.join(sorted(ALLOWED_SPECTRE_FORMATS))}.")
+        raise ValueError(
+            f"'format' must be one of: {', '.join(sorted(ALLOWED_SPECTRE_FORMATS))}.")
     return image_format
 
 
@@ -271,7 +290,8 @@ def _coerce_penrose_build_logic(payload):
 def _coerce_penrose_format(payload):
     image_format = str(payload.get("format", "svg")).lower()
     if image_format not in ALLOWED_PENROSE_FORMATS:
-        raise ValueError(f"'format' must be one of: {', '.join(sorted(ALLOWED_PENROSE_FORMATS))}.")
+        raise ValueError(
+            f"'format' must be one of: {', '.join(sorted(ALLOWED_PENROSE_FORMATS))}.")
     return image_format
 
 
@@ -323,7 +343,8 @@ def _rasterize_svg(svg_path, output_path, fallback_width, fallback_height, image
                 points,
                 fill=fill,
                 outline=outline if stroke_width > 0 else None,
-                width=max(1, int(round(stroke_width))) if stroke_width > 0 else 0,
+                width=max(1, int(round(stroke_width))
+                          ) if stroke_width > 0 else 0,
             )
 
     save_format = "JPEG" if image_format in {"jpg", "jpeg"} else "PNG"
@@ -339,7 +360,8 @@ def _spectre_binary_path():
     if configured:
         return Path(configured)
 
-    candidates = [path for path in (DEFAULT_SPECTRE_BINARY, DEBUG_SPECTRE_BINARY) if path.exists()]
+    candidates = [path for path in (
+        DEFAULT_SPECTRE_BINARY, DEBUG_SPECTRE_BINARY) if path.exists()]
     if candidates:
         return max(candidates, key=lambda path: path.stat().st_mtime)
     return None
@@ -350,7 +372,8 @@ def _penrose_binary_path():
     if configured:
         return Path(configured)
 
-    candidates = [path for path in (DEFAULT_PENROSE_BINARY, DEBUG_PENROSE_BINARY) if path.exists()]
+    candidates = [path for path in (
+        DEFAULT_PENROSE_BINARY, DEBUG_PENROSE_BINARY) if path.exists()]
     if candidates:
         source_files = list((PROJECT_ROOT / "penrose" / "src").rglob("*.rs"))
         if not source_files:
@@ -422,12 +445,14 @@ def _configure_stripe_mode_from_args(argv: list[str]) -> None:
         STRIPE_MODE = "sandbox"
         os.environ["STRIPE_MODE"] = "sandbox"
     else:
-        STRIPE_MODE = os.environ.get("STRIPE_MODE", "live").strip().lower() or "live"
+        STRIPE_MODE = os.environ.get(
+            "STRIPE_MODE", "live").strip().lower() or "live"
         os.environ.setdefault("STRIPE_MODE", "live")
 
 
 def _donation_currency():
-    configured = os.environ.get("DONATION_CURRENCY", DEFAULT_DONATION_CURRENCY).strip().lower()
+    configured = os.environ.get(
+        "DONATION_CURRENCY", DEFAULT_DONATION_CURRENCY).strip().lower()
     return configured or DEFAULT_DONATION_CURRENCY
 
 
@@ -454,15 +479,20 @@ def _set_cors_headers(response):
 
 
 def _run_spectre_renderer(payload):
-    width = _coerce_int(payload, "width", DEFAULT_HTTP_WIDTH, minimum=64, maximum=MAX_IMAGE_DIMENSION)
-    height = _coerce_int(payload, "height", DEFAULT_HTTP_HEIGHT, minimum=64, maximum=MAX_IMAGE_DIMENSION)
-    level = _coerce_int(payload, "level", 5, minimum=1, maximum=MAX_SPECTRE_LEVEL)
-    scale = _coerce_float(payload, "scale", 40.0, minimum=1.0, maximum=MAX_SPECTRE_SCALE)
+    width = _coerce_int(payload, "width", DEFAULT_HTTP_WIDTH,
+                        minimum=64, maximum=MAX_IMAGE_DIMENSION)
+    height = _coerce_int(payload, "height", DEFAULT_HTTP_HEIGHT,
+                         minimum=64, maximum=MAX_IMAGE_DIMENSION)
+    level = _coerce_int(payload, "level", 5, minimum=1,
+                        maximum=MAX_SPECTRE_LEVEL)
+    scale = _coerce_float(payload, "scale", 40.0,
+                          minimum=1.0, maximum=MAX_SPECTRE_SCALE)
     center_x = _coerce_float(payload, "center_x", 0.0)
     center_y = _coerce_float(payload, "center_y", 0.0)
     background = str(payload.get("background", "#ffffff"))
     outline = str(payload.get("outline", "black"))
-    stroke_width = _coerce_float(payload, "stroke_width", 1.2, minimum=0.0, maximum=20.0)
+    stroke_width = _coerce_float(
+        payload, "stroke_width", 1.2, minimum=0.0, maximum=20.0)
     palette = _coerce_palette(payload)
     draw_mode = _coerce_spectre_draw_mode(payload)
     shape = _coerce_spectre_shape(payload)
@@ -511,7 +541,8 @@ def _run_spectre_renderer(payload):
     if palette:
         command.extend(["--palette", ",".join(palette)])
 
-    cwd = PROJECT_ROOT / "src" / "spectre_rs" if command[0] == "cargo" else None
+    cwd = PROJECT_ROOT / "src" / \
+        "spectre_rs" if command[0] == "cargo" else None
 
     try:
         result = subprocess.run(
@@ -528,7 +559,8 @@ def _run_spectre_renderer(payload):
         if image_format in {"png", "jpg", "jpeg"}:
             with tempfile.NamedTemporaryFile(suffix=f".{image_format}", delete=False, dir="/tmp") as raster_file:
                 raster_output_path = Path(raster_file.name)
-            _rasterize_svg(output_path, raster_output_path, width, height, image_format)
+            _rasterize_svg(output_path, raster_output_path,
+                           width, height, image_format)
             return send_file(
                 raster_output_path,
                 mimetype=ALLOWED_SPECTRE_FORMATS[image_format],
@@ -555,20 +587,26 @@ def _run_spectre_renderer(payload):
 
 
 def _run_penrose_renderer(payload):
-    width = _coerce_int(payload, "width", DEFAULT_HTTP_WIDTH, minimum=64, maximum=MAX_IMAGE_DIMENSION)
-    height = _coerce_int(payload, "height", DEFAULT_HTTP_HEIGHT, minimum=64, maximum=MAX_IMAGE_DIMENSION)
-    iterations = _coerce_int(payload, "iterations", 4, minimum=0, maximum=MAX_PENROSE_ITERATIONS)
-    scale = _coerce_float(payload, "scale", 320.0, minimum=10.0, maximum=MAX_PENROSE_SCALE)
+    width = _coerce_int(payload, "width", DEFAULT_HTTP_WIDTH,
+                        minimum=64, maximum=MAX_IMAGE_DIMENSION)
+    height = _coerce_int(payload, "height", DEFAULT_HTTP_HEIGHT,
+                         minimum=64, maximum=MAX_IMAGE_DIMENSION)
+    iterations = _coerce_int(payload, "iterations", 4,
+                             minimum=0, maximum=MAX_PENROSE_ITERATIONS)
+    scale = _coerce_float(payload, "scale", 320.0,
+                          minimum=10.0, maximum=MAX_PENROSE_SCALE)
     center_x = _coerce_float(payload, "center_x", 0.0)
     center_y = _coerce_float(payload, "center_y", 0.0)
     background = str(payload.get("background", "#ffffff"))
     outline = str(payload.get("outline", "black"))
-    stroke_width = _coerce_float(payload, "stroke_width", 1.0, minimum=0.0, maximum=20.0)
+    stroke_width = _coerce_float(
+        payload, "stroke_width", 1.0, minimum=0.0, maximum=20.0)
     palette = _coerce_palette(payload)
     build_logic = _coerce_penrose_build_logic(payload)
     tile_mode = _coerce_penrose_tile_mode(payload)
     if tile_mode != "kite-dart" and build_logic == "cartwheel":
-        raise ValueError("'build_logic' value 'cartwheel' is only supported when 'tile_mode' is 'kite-dart'.")
+        raise ValueError(
+            "'build_logic' value 'cartwheel' is only supported when 'tile_mode' is 'kite-dart'.")
     if tile_mode != "kite-dart":
         build_logic = "default"
     seed = "sun" if build_logic == "default" else "star"
@@ -582,7 +620,8 @@ def _run_penrose_renderer(payload):
     raster_output_path = None
 
     binary_path = _penrose_binary_path()
-    command = [str(binary_path)] if binary_path and binary_path.exists() else ["cargo", "run", "--quiet", "--release", "--"]
+    command = [str(binary_path)] if binary_path and binary_path.exists() else [
+        "cargo", "run", "--quiet", "--release", "--"]
     command.extend(
         [
             "--output",
@@ -632,7 +671,8 @@ def _run_penrose_renderer(payload):
         if image_format in {"png", "jpg", "jpeg"}:
             with tempfile.NamedTemporaryFile(suffix=f".{image_format}", delete=False, dir="/tmp") as raster_file:
                 raster_output_path = Path(raster_file.name)
-            _rasterize_svg(output_path, raster_output_path, width, height, image_format)
+            _rasterize_svg(output_path, raster_output_path,
+                           width, height, image_format)
             return send_file(
                 raster_output_path,
                 mimetype=ALLOWED_PENROSE_FORMATS[image_format],
@@ -776,8 +816,9 @@ def create_donation_checkout():
 
     donor_name = str(payload.get("name", "")).strip()
     donor_message = str(payload.get("message", "")).strip()
-    is_public = _coerce_bool(payload.get("is_public", True), default=True)
-    currency = str(payload.get("currency", _donation_currency())).strip().lower() or _donation_currency()
+    is_public = True
+    currency = str(payload.get("currency", _donation_currency())
+                   ).strip().lower() or _donation_currency()
     app_url = _resolve_public_app_url()
     checkout_urls = build_checkout_urls(app_url, donate_path="/donate")
 
@@ -818,7 +859,8 @@ def confirm_donation_session():
             stripe_secret_key=_stripe_secret_key(),
             checkout_session_id=session_id,
         )
-        recorded = record_sponsor_from_checkout_session(SPONSORS_STORE, session=session)
+        recorded = record_sponsor_from_checkout_session(
+            SPONSORS_STORE, session=session)
     except DonationError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:  # noqa: BLE001
@@ -856,10 +898,14 @@ def render_einstein():
 
     try:
         image_format = _coerce_einstein_format(payload)
-        iterations = _coerce_int(payload, "iterations", DEFAULT_ITERATIONS, minimum=1, maximum=MAX_ITERATIONS)
-        scalar = _coerce_int(payload, "scalar", DEFAULT_SCALAR, minimum=1, maximum=MAX_SCALAR)
-        width = _coerce_int(payload, "width", DEFAULT_HTTP_WIDTH, minimum=64, maximum=MAX_IMAGE_DIMENSION)
-        height = _coerce_int(payload, "height", DEFAULT_HTTP_HEIGHT, minimum=64, maximum=MAX_IMAGE_DIMENSION)
+        iterations = _coerce_int(
+            payload, "iterations", DEFAULT_ITERATIONS, minimum=1, maximum=MAX_ITERATIONS)
+        scalar = _coerce_int(payload, "scalar", DEFAULT_SCALAR,
+                             minimum=1, maximum=MAX_SCALAR)
+        width = _coerce_int(payload, "width", DEFAULT_HTTP_WIDTH,
+                            minimum=64, maximum=MAX_IMAGE_DIMENSION)
+        height = _coerce_int(payload, "height", DEFAULT_HTTP_HEIGHT,
+                             minimum=64, maximum=MAX_IMAGE_DIMENSION)
         color_mode = _coerce_einstein_color_mode(payload)
         colors = _coerce_colors(payload)
         four_colors = _coerce_four_colors(payload)
@@ -961,6 +1007,8 @@ def frontend_public_file(filename):
 @app.get("/donate")
 @app.get("/sponsors")
 def spa_routes():
+    if request.path == "/sponsors":
+        return redirect("/donate", code=302)
     return _serve_spa()
 
 

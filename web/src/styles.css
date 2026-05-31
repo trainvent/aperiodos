@@ -491,6 +491,10 @@ select {
   min-height: 336px;
 }
 
+.feature-penrose {
+  padding-bottom: 22px;
+}
+
 .monotile-inner {
   display: flex;
   gap: 20px;

@@ -20,7 +20,7 @@
     },
     "cards": {
       "einsteinDescription": "eine einzelne Kachel, die Aperiodizitaet erzwingt, mit verschiedenen Farbschemata und Exportoptionen.",
-      "spectreDescription": "eine einzelne Kachel, die Aperiodizitaet ohne Spiegelung erzwingt und dadurch komplexere Formen braucht",
+      "spectreDescription": "eine einzelne Kachel, die Aperiodizitaet ohne Spiegelung erzwingt, aber komplex ist",
       "penroseDescription": "erstelle klassische Penrose-Muster als Drachen/Pfeile, Rhomben oder eine sternreiche Variante."
     },
     "openLabel": "Oeffnen"
@@ -30,7 +30,7 @@
   }
   ,
   "donate": {
-    "hero": { "title": "Spenden", "lede": "Unterstuetze Aperiodos und erscheine ggf. in der Sponsorenliste nach der Zahlung." },
+    "hero": { "title": "Sponsoren", "lede": "Unterstuetzer von Aperiodos erscheinen nach der Zahlung in der Sponsorenliste." },
     "form": {
       "title": "Spende",
       "amount": "Betrag ({{currency}})",
@@ -38,9 +38,9 @@
       "message": "Nachricht (optional)",
       "messagePlaceholder": "Danke fuer das Projekt!",
       "isPublic": "In der oeffentlichen Sponsorenliste anzeigen",
-      "submit": "Weiter zu Stripe"
+      "submit": "Weiter"
     },
-    "preview": { "title": "Oeffentliche Sponsoren" },
+    "preview": { "title": "Ehrenliste" },
     "status": {
       "default": "Sichere Spende via Stripe.",
       "success": "Danke. Ihre Spende wurde empfangen.",

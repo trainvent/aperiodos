@@ -30,7 +30,7 @@
   }
   ,
   "donate": {
-    "hero": { "title": "Donate", "lede": "Support Aperiodos and optionally appear on the sponsors list after payment." },
+    "hero": { "title": "Donate", "lede": "Support Aperiodos and appear on the sponsors list after payment." },
     "form": {
       "title": "Donation",
       "amount": "Amount ({{currency}})",
