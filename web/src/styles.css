@@ -550,7 +550,7 @@ select {
   box-shadow: 0 6px 18px rgba(23,49,59,0.08);
 }
 
-/* Make the NavLink container transparent inside feature cards so only the inner circle shows */
+/* Make the feature-card link container transparent so only the inner circle shows */
 .feature-card a.button {
   background: transparent;
   padding: 0;

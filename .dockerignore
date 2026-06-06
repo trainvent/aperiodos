@@ -6,5 +6,6 @@ __pycache__/
 output/
 web/node_modules/
 web/dist/
+web/.next/
 src/generators/*/target/
 src/generators/*/output/

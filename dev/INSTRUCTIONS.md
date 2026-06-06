@@ -1,21 +1,17 @@
 # Developer Instructions
 
-This file collects the setup and deployment guidance that used to live in the main README.
-
 ## Repository Layout
 
-- `web/` contains the React + Vite frontend.
-- `src/entry/web.py` serves the HTTP API and static frontend assets.
-- `src/generators/einstein_backend/` contains the Python Einstein renderer.
+- `web/` contains the Next.js web app, API routes, Stripe donation flow, and Firestore sponsor reads/writes.
+- `src/generators/einstein_backend/` contains the Python Einstein generator.
 - `src/generators/spectre_rs/` contains the Rust Spectre renderer crate.
-- `requirements.txt` lists Python service dependencies.
-- `Dockerfile` supports container builds and Cloud Run deployment.
+- `src/generators/penrose/` contains the Rust Penrose renderer crate.
+- `requirements.txt` lists Python packages needed by the Python generator only.
+- `Dockerfile` builds a Next.js server image with Python/Rust generators available at runtime.
 
 ## Local Setup
 
-### Python dependencies
-
-Create a virtual environment and install the Python service packages:
+Install Python generator dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -23,9 +19,7 @@ python3 -m venv .venv
 pip install -r requirements.txt
 ```
 
-### Frontend dependencies
-
-Install the frontend packages:
+Install web dependencies:
 
 ```bash
 cd web
@@ -33,66 +27,52 @@ npm install
 cd ..
 ```
 
-Build the frontend bundle:
+Build Rust generators when you want local API routes to use binaries instead of `cargo run` fallbacks:
 
 ```bash
-cd web
-npm run build
-cd ..
+cargo build --release --manifest-path src/generators/spectre_rs/Cargo.toml
+cargo build --release --manifest-path src/generators/penrose/Cargo.toml
 ```
 
-### Run the local service
+## Run Locally
 
-Start the HTTP service:
-
-```bash
-python3 -m src.entry.web
-```
-
-For frontend development, run the Vite server in another terminal:
+Start the Next.js web/API server:
 
 ```bash
 cd web
 npm run dev
 ```
 
-### Smoke-test the API
+Smoke-test the API:
 
 ```bash
-curl http://127.0.0.1:8080/api/healthz
-curl -X POST http://127.0.0.1:8080/api/einstein/render \
+curl http://127.0.0.1:3000/api/healthz
+curl -X POST http://127.0.0.1:3000/api/einstein/render \
   -H "Content-Type: application/json" \
   --data '{"iterations":5,"width":1400,"height":1400,"scalar":20,"format":"png"}' \
   --output pattern.png
-curl -X POST http://127.0.0.1:8080/api/spectre/render \
+curl -X POST http://127.0.0.1:3000/api/spectre/render \
   -H "Content-Type: application/json" \
   --data '{"width":1400,"height":1400,"level":5,"scale":40}' \
   --output spectre.svg
 ```
 
-## Donations and Sponsors
+## Donations And Sponsors
 
-The donation flow is implemented in `src/donations/stripe_sponsors.py` and exposed through `src/entry/web.py`.
+The donation flow is implemented in Next API routes under `web/pages/api/`.
 
-Required environment variables:
+Required environment variable:
 
 ```bash
 export STRIPE_SECRET_KEY=sk_live_or_test_key
 ```
 
-The HTTP service also reads a repository-local `.env` file at startup when one is present, so local runs can pick up the same Stripe settings without exporting them manually.
-
 Sandbox mode uses separate env vars:
 
 ```bash
+export STRIPE_MODE=sandbox
 export STRIPE_SANDBOX_SECRET_KEY=sk_test_or_sandbox_key
 export STRIPE_SANDBOX_WEBHOOK_SECRET=whsec_...
-```
-
-Run the backend in sandbox mode with:
-
-```bash
-python3 -m src.entry.web --sandbox
 ```
 
 Optional environment variables:
@@ -106,36 +86,20 @@ export FIRESTORE_PROJECT_ID=your-gcp-project-id
 export FIRESTORE_DATABASE_ID='(default)'
 ```
 
-Sponsors storage uses Firestore (native mode). Set `FIRESTORE_PROJECT_ID` and, when needed, `FIRESTORE_DATABASE_ID` for non-default database names.
-
-Production Stripe credentials are now loaded from Secret Manager on Cloud Run. If you run `--sandbox` locally, export the Stripe secrets in your shell first or fetch them from Secret Manager before starting the server.
-
 Main donation endpoints:
 
 - `POST /api/donations/checkout-session`
+- `POST /api/donations/confirm-session`
 - `POST /api/stripe/webhook`
 - `GET /api/sponsors`
 
 Local webhook forwarding:
 
 ```bash
-stripe listen --forward-to http://127.0.0.1:8080/api/stripe/webhook
+stripe listen --forward-to http://127.0.0.1:3000/api/stripe/webhook
 ```
 
 ## Cloud Run Deployment
-
-Set your project and region:
-
-```bash
-gcloud config set project YOUR_PROJECT_ID
-gcloud config set run/region europe-west1
-```
-
-Enable the required Google Cloud APIs:
-
-```bash
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
-```
 
 Deploy directly from the repository:
 
@@ -152,105 +116,24 @@ gcloud run deploy aperiodic-monotiles-generator \
 
 Notes:
 
+- The container runs `next start` via the standalone Next server.
 - `--concurrency 1` is a safer default because renders can be CPU- and memory-heavy.
-- `--memory 2Gi` is a good starting point for moderate image sizes.
-- Cloud Run exposes an HTTPS URL that serves both the frontend and the API.
-
-Example request after deploy:
-
-```bash
-SERVICE_URL="https://YOUR-SERVICE-URL"
-curl -X POST "$SERVICE_URL/api/einstein/render" \
-  -H "Content-Type: application/json" \
-  --data '{"iterations":5,"width":1600,"height":1600,"scalar":20,"colors":["black","seagreen","white","sandybrown","gold"],"format":"png"}' \
-  --output pattern.png
-```
+- Cloud Run exposes one HTTPS URL for both pages and `/api/*`.
 
 Available service endpoints:
 
-- `GET /` serves the React frontend
-- `GET /api` returns API usage details
-- `GET /api/about` returns references and acknowledgements
-- `GET /api/healthz` returns a simple health response
-- `POST /api/einstein/render` returns the generated Einstein image directly
-- `POST /api/spectre/render` returns the generated Spectre SVG directly
-
-Request payloads:
-
-`POST /api/einstein/render`
-
-```json
-{
-  "iterations": 5,
-  "width": 1600,
-  "height": 1600,
-  "scalar": 20,
-  "colors": ["black", "seagreen", "white", "sandybrown", "gold"],
-  "no_outline": false,
-  "seed": null,
-  "format": "png"
-}
-```
-
-Service limits:
-
-- `iterations` max: `6`
-- `width` and `height` max: `6000`
-- `scalar` max: `80`
-
-`POST /api/spectre/render`
-
-```json
-{
-  "width": 1600,
-  "height": 1600,
-  "level": 5,
-  "scale": 40,
-  "center_x": 0,
-  "center_y": 0,
-  "shape": "straight",
-  "palette": ["#17313b", "#1f6a5d", "#b4552d", "#d8b24c", "#f6f1e8"],
-  "background": "#f5f1e7",
-  "outline": "#17313b",
-  "stroke_width": 1.2
-}
-```
-
-These limits are there to reduce the chance of the service timing out or running out of memory while keeping both renderers responsive.
-
-## GitHub Pages
-
-The repository includes a GitHub Pages workflow at `.github/workflows/deploy-pages.yml`.
-
-Important:
-
-- GitHub Pages only publishes the static frontend from `web/`.
-- The generator API still needs a separate backend deployment.
-- The workflow builds the frontend for `/Aperiodos/` and points API requests to `https://www.aperiodos.com`.
-
-After pushing to `main`, enable GitHub Pages in repository settings and use `GitHub Actions` as the source. The Pages URL should be:
-
-```text
-https://trainvent.github.io/Aperiodos/
-```
+- `GET /`
+- `GET /api`
+- `GET /api/about`
+- `GET /api/healthz`
+- `POST /api/einstein/render`
+- `POST /api/spectre/render`
+- `POST /api/penrose/render`
 
 ## System Packages
 
-On Debian/Ubuntu, install the needed Python packages with:
+On Debian/Ubuntu, install the optional desktop preview dependencies only if you are working directly with the Python generator internals:
 
 ```bash
-sudo apt update
-sudo apt install -y python3 python3-pil python3-opencv python3-tk
+sudo apt-get install python3-tk
 ```
-
-Alternatively, install the packages via pip:
-
-```bash
-pip install pillow tkinter
-```
-
-Package notes:
-
-- `python3-pil` is used for the normal image renderer.
-- `python3-opencv` is only needed for `--seed` mode.
-- `python3-tk` is only needed for `--show-window`.

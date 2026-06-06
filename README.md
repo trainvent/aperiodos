@@ -1,23 +1,22 @@
 # Aperiodic Monotiles Generator
 
-Generate images based on aperiodic monotiles, with a Python Einstein backend and a Rust Spectre renderer.
-
-The project currently focuses on offline image generation. The longer-term goal is to use this generator as the backend for a website where people can tweak colors, size, image dimensions, tile variants, and download finished artwork.
+Generate images based on aperiodic monotiles. The web application is Next.js; Python and Rust live only behind it as generator engines.
 
 ## What It Does
 
-- Renders Einstein tile patterns from Python.
+- Serves the Aperiodos web UI and API from Next.js.
+- Renders Einstein tile patterns through the Python generator.
 - Includes a seed-based Einstein export mode for generating a unique cropped section of the pattern.
-- Includes a new Rust Spectre renderer that writes SVG snapshots.
+- Includes Rust Spectre and Penrose renderers that write SVG snapshots.
 
 ## Project Structure
 
 ```text
 .
 ├── aperiodic-generator      # Executable launcher for the Einstein Python generator
+├── web/                     # Next.js web app, API routes, donations, and frontend UI
 ├── src/
-│   ├── entry/               # Thin launcher scripts for CLI, GUI, and HTTP entrypoints
-│   ├── generators/          # Generator implementations and reference projects
+│   ├── generators/          # Generator implementations only
 │   │   ├── einstein_backend/ # Einstein backend implementation in Python
 │   │   ├── penrose/         # Rust Penrose renderer crate
 │   │   └── spectre_rs/      # Rust Spectre renderer crate
@@ -33,26 +32,12 @@ https://www.aperiodos.com/
 Generate the default full pattern:
 
 ```bash
-python3 src/entry/main.py
+./aperiodic-generator
 ```
 
 This writes an image to `output/einstein_pattern.jpg`.
 
-Open a small Tk form to choose values visually and run the generator:
-
-```bash
-python3 src/entry/main_visual.py
-```
-
-The visual launcher remembers your last-used settings and includes one default preset plus three saveable preset slots.
-
-Or launch it like a little desktop-style tool from the project root:
-
-```bash
-./aperiodic-generator
-```
-
-Pass normal CLI options to the same launcher and it renders directly without opening the GUI:
+Pass normal CLI options to the same launcher:
 
 ```bash
 ./aperiodic-generator \
@@ -64,29 +49,10 @@ Pass normal CLI options to the same launcher and it renders directly without ope
   --output output/custom-pattern.jpg
 ```
 
-Generate a larger image with custom colors:
-
-```bash
-python3 src/entry/main.py \
-  --iterations 6 \
-  --width 7000 \
-  --height 7000 \
-  --scalar 24 \
-  --no-outline \
-  --colors black seagreen white sandybrown gold \
-  --output output/custom-pattern.jpg
-```
-
 Generate a seed-based crop:
 
 ```bash
-python3 src/entry/main.py --seed 6 --output output/seed-6.png
-```
-
-Open a Tk preview window while also saving the file:
-
-```bash
-python3 src/entry/main.py --show-window
+./aperiodic-generator --seed 6 --output output/seed-6.png
 ```
 
 Developer setup, API service usage, and deployment notes live in [dev/INSTRUCTIONS.md](dev/INSTRUCTIONS.md).
@@ -130,7 +96,7 @@ Useful Spectre flags:
 
 - Very high iteration counts can become slow and memory-heavy.
 - More than 8 iterations can be very heavy to load and render, especially at large output sizes.
-- The current codebase is aimed at experimentation and image generation, not yet a polished web app.
+- The web surface belongs to `web/`; Python and Rust code should stay in `src/generators/`.
 - Generated files and Python cache files are intentionally ignored by git.
 
 ## References

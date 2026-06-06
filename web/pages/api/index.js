@@ -1,0 +1,81 @@
+import {
+  DEFAULT_COLORS,
+  DEFAULT_FOUR_COLORS,
+  DEFAULT_HTTP_HEIGHT,
+  DEFAULT_HTTP_WIDTH,
+  DEFAULT_ITERATIONS,
+  DEFAULT_SCALAR,
+  donationCurrency,
+  donationServiceAvailable,
+  minimumDonationCents,
+} from "../../server/config.js";
+import { methodNotAllowed } from "../../server/http.js";
+
+export default function handler(req, res) {
+  if (req.method !== "GET") {
+    return methodNotAllowed(res, ["GET"]);
+  }
+  return res.status(200).json({
+    service: "aperiodos",
+    status: "ok",
+    frontend: "next",
+    endpoints: {
+      "GET /api": "API overview",
+      "GET /api/healthz": "Basic health check",
+      "GET /api/about": "References and acknowledgements",
+      "GET /api/sponsors": "List public sponsors",
+      "POST /api/donations/checkout-session": "Create a Stripe checkout session for a donation",
+      "POST /api/stripe/webhook": "Stripe webhook endpoint for recording paid sponsors",
+      "POST /api/einstein/render": "Generate an Einstein image and return it directly",
+      "POST /api/spectre/render": "Generate a Spectre SVG, PNG, or JPG and return it directly",
+      "POST /api/penrose/render": "Generate a Penrose kite-dart, rhomb, or P1 SVG, PNG, or JPG and return it directly",
+    },
+    donations: {
+      enabled: donationServiceAvailable(),
+      currency: donationCurrency(),
+      minimum_cents: minimumDonationCents(),
+    },
+    einstein_example_payload: {
+      iterations: DEFAULT_ITERATIONS,
+      width: DEFAULT_HTTP_WIDTH,
+      height: DEFAULT_HTTP_HEIGHT,
+      scalar: DEFAULT_SCALAR,
+      colors: DEFAULT_COLORS,
+      color_mode: "families",
+      four_colors: DEFAULT_FOUR_COLORS,
+      no_outline: false,
+      seed: null,
+      format: "png",
+    },
+    spectre_example_payload: {
+      width: DEFAULT_HTTP_WIDTH,
+      height: DEFAULT_HTTP_HEIGHT,
+      level: 5,
+      scale: 40,
+      center_x: 0,
+      center_y: 0,
+      format: "svg",
+      draw_mode: "translation",
+      shape: "straight",
+      palette: ["#1f6a5d", "#b4552d", "#d8b24c", "#17313b"],
+      background: "#ffffff",
+      outline: "black",
+      stroke_width: 1.2,
+    },
+    penrose_example_payload: {
+      width: DEFAULT_HTTP_WIDTH,
+      height: DEFAULT_HTTP_HEIGHT,
+      iterations: 4,
+      scale: 320,
+      center_x: 0,
+      center_y: 0,
+      format: "svg",
+      build_logic: "default",
+      tile_mode: "kite-dart",
+      palette: ["wheat", "crimson"],
+      background: "white",
+      outline: "black",
+      stroke_width: 1.0,
+    },
+  });
+}

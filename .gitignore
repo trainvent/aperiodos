@@ -6,6 +6,7 @@ output/
 target/
 web/node_modules/
 web/dist/
+web/.next/
 PenroseGenerator/
 
 *.svg

@@ -1,4 +1,5 @@
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import Link from "next/link";
+import { useRouter } from "next/router";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import brandIconUrl from "./assets/custom-pattern_1024.png";
@@ -128,13 +129,14 @@ const DONATION_DEFAULTS = {
   message: ""
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
 }
 
 export default function App() {
   const { t, i18n } = useTranslation("common");
+  const router = useRouter();
   const language = i18n.resolvedLanguage === "en" ? "en" : "de";
 
   return (
@@ -142,10 +144,10 @@ export default function App() {
       <div className="ambient ambient-left" />
       <div className="ambient ambient-right" />
       <header className="topbar">
-        <NavLink className="brand" to="/">
+        <Link className="brand" href="/">
           <img className="brand-mark" src={brandIconUrl} alt="" />
           <span className="brand-copy">Aperiodos</span>
-        </NavLink>
+        </Link>
         <div className="topbar-right">
           <nav className="topnav">
             <TopNavLink to="/">{t("nav.home")}</TopNavLink>
@@ -172,15 +174,7 @@ export default function App() {
       </header>
 
       <main className="page">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/donate" element={<DonatePage />} />
-          <Route path="/einstein" element={<EinsteinPage />} />
-          <Route path="/spectre" element={<SpectrePage />} />
-          <Route path="/penrose" element={<PenrosePage />} />
-          <Route path="/sponsors" element={<Navigate to="/donate" replace />} />
-          <Route path="/about" element={<AboutPage />} />
-        </Routes>
+        <CurrentPage path={router.asPath} />
       </main>
 
       <footer className="footer">
@@ -198,11 +192,37 @@ export default function App() {
 }
 
 function TopNavLink({ to, children }) {
+  const router = useRouter();
+  const currentPath = normalizePath(router.asPath);
+  const isActive = currentPath === to || (to !== "/" && currentPath.startsWith(`${to}/`));
   return (
-    <NavLink className={({ isActive }) => `navlink${isActive ? " active" : ""}`} to={to}>
+    <Link className={`navlink${isActive ? " active" : ""}`} href={to}>
       {children}
-    </NavLink>
+    </Link>
   );
+}
+
+function normalizePath(path) {
+  const normalized = String(path || "/").split("?")[0].split("#")[0] || "/";
+  return normalized.endsWith("/") && normalized !== "/" ? normalized.slice(0, -1) : normalized;
+}
+
+function CurrentPage({ path }) {
+  switch (normalizePath(path)) {
+    case "/donate":
+    case "/sponsors":
+      return <DonatePage />;
+    case "/einstein":
+      return <EinsteinPage />;
+    case "/spectre":
+      return <SpectrePage />;
+    case "/penrose":
+      return <PenrosePage />;
+    case "/about":
+      return <AboutPage />;
+    default:
+      return <HomePage />;
+  }
 }
 
 function HomePage() {
@@ -264,9 +284,9 @@ function HomePage() {
                   <h2>{card.title}</h2>
                   <p>{card.description}</p>
                   <div className="feature-spacer" aria-hidden="true" />
-                  <NavLink
+                  <Link
                     className={card.buttonClassName}
-                    to={card.to}
+                    href={card.to}
                     aria-label={`${t("home.openLabel")} ${card.title}`}
                     style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
                   >
@@ -278,7 +298,7 @@ function HomePage() {
                         </svg>
                       </span>
                     ) : null}
-                  </NavLink>
+                  </Link>
                 </div>
               ))}
             </div>
@@ -293,9 +313,9 @@ function HomePage() {
                 <h2>{card.title}</h2>
                 <p>{card.description}</p>
                 <div className="feature-spacer" aria-hidden="true" />
-                <NavLink
+                <Link
                   className={card.buttonClassName}
-                  to={card.to}
+                  href={card.to}
                   aria-label={`${t("home.openLabel")} ${card.title}`}
                   style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
                 >
@@ -307,7 +327,7 @@ function HomePage() {
                       </svg>
                     </span>
                   ) : null}
-                </NavLink>
+                </Link>
               </article>
             ))}
           </div>
@@ -478,9 +498,9 @@ function SponsorsPage() {
           <h2>{t("sponsors.wall.title")}</h2>
           <SponsorsPanel />
           <div className="actions-row">
-            <NavLink className="button button-gold sponsor-cta" to="/donate">
+            <Link className="button button-gold sponsor-cta" href="/donate">
               {t("sponsors.wall.cta")}
-            </NavLink>
+            </Link>
           </div>
           <p className="status status-spaced">{t("sponsors.wall.status")}</p>
         </article>
