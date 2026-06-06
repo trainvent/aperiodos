@@ -288,10 +288,13 @@ function HomePage() {
                     className={card.buttonClassName}
                     href={card.to}
                     aria-label={`${t("home.openLabel")} ${card.title}`}
-                    style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
                   >
                     {card.arrow ? (
-                      <span className="card-cta" aria-hidden="true">
+                      <span
+                        className="card-cta"
+                        aria-hidden="true"
+                        style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
+                      >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M5 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -317,10 +320,13 @@ function HomePage() {
                   className={card.buttonClassName}
                   href={card.to}
                   aria-label={`${t("home.openLabel")} ${card.title}`}
-                  style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
                 >
                   {card.arrow ? (
-                    <span className="card-cta" aria-hidden="true">
+                    <span
+                      className="card-cta"
+                      aria-hidden="true"
+                      style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
+                    >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M5 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -540,8 +546,7 @@ function EinsteinPage() {
             label={t("generator.common.format")}
             options={[
               { value: "png", label: "PNG" },
-              { value: "jpg", label: "JPG" },
-              { value: "svg", label: "SVG" }
+              { value: "jpg", label: "JPG" }
             ]}
             full
           />
