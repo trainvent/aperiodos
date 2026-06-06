@@ -75,6 +75,18 @@ export STRIPE_SANDBOX_SECRET_KEY=sk_test_or_sandbox_key
 export STRIPE_SANDBOX_WEBHOOK_SECRET=whsec_...
 ```
 
+For local development, prefer the sandbox runner:
+
+```bash
+cd web
+npm run dev --sandbox
+```
+
+It loads the repo-root `.env`, forces `STRIPE_MODE=sandbox`, uses
+`STRIPE_SANDBOX_SECRET_KEY`, and writes sponsors to `.sandbox/sponsors.json`
+instead of Firestore. Set `SANDBOX_PUBLIC_APP_URL` if Stripe should redirect to
+a tunnel URL instead of `http://localhost:3000`.
+
 Optional environment variables:
 
 ```bash

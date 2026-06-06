@@ -1,8 +1,12 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+
 import { Firestore } from "@google-cloud/firestore";
 import Stripe from "stripe";
 
 import {
   MAX_DONATION_CENTS,
+  PROJECT_ROOT,
   donationCurrency,
   minimumDonationCents,
   stripeSecretKey,
@@ -12,6 +16,8 @@ import { ApiError } from "./http.js";
 
 let firestoreClient;
 let warnedAboutFirestore = false;
+
+const LOCAL_SPONSOR_STORE_PATH = path.join(PROJECT_ROOT, ".sandbox", "sponsors.json");
 
 function trimmedText(value, { maxLength, fallback = "" }) {
   const text = String(value || "").trim();
@@ -37,6 +43,29 @@ function stripeClient() {
     throw new ApiError("Missing Stripe secret key.", 503);
   }
   return new Stripe(secretKey);
+}
+
+function useLocalSponsorStore() {
+  return String(process.env.SPONSORS_STORE || "").trim().toLowerCase() === "local";
+}
+
+async function readLocalSponsorStore() {
+  try {
+    return JSON.parse(await fs.readFile(LOCAL_SPONSOR_STORE_PATH, "utf8"));
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw error;
+    }
+    return { sponsors: [], stripe_events: [] };
+  }
+}
+
+async function writeLocalSponsorStore(store) {
+  await fs.mkdir(path.dirname(LOCAL_SPONSOR_STORE_PATH), { recursive: true });
+  await fs.writeFile(
+    LOCAL_SPONSOR_STORE_PATH,
+    `${JSON.stringify({ sponsors: store.sponsors || [], stripe_events: store.stripe_events || [] }, null, 2)}\n`,
+  );
 }
 
 function firestoreConfigured() {
@@ -175,6 +204,21 @@ export function parseStripeEvent(rawBody, signatureHeader) {
 }
 
 export async function listPublicSponsors(limit = 100) {
+  if (useLocalSponsorStore()) {
+    const store = await readLocalSponsorStore();
+    const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 100, 1), 500);
+    return (store.sponsors || [])
+      .filter((sponsor) => sponsor.is_public)
+      .sort((left, right) => String(right.created_at || "").localeCompare(String(left.created_at || "")))
+      .slice(0, safeLimit)
+      .map((sponsor) => ({
+        name: sponsor.donor_name || "",
+        amount_cents: Number(sponsor.amount_cents || 0),
+        currency: sponsor.currency || "",
+        message: sponsor.message || "",
+        created_at: sponsor.created_at || "",
+      }));
+  }
   if (!firestoreConfigured()) {
     warnFirestoreSkipped();
     return [];
@@ -209,7 +253,7 @@ export async function listPublicSponsors(limit = 100) {
 }
 
 export async function recordSponsorFromEvent(event) {
-  if (!firestoreConfigured()) {
+  if (!useLocalSponsorStore() && !firestoreConfigured()) {
     throw new ApiError("Firestore is not configured on this server.", 503);
   }
   const eventId = String(event?.id || "").trim();
@@ -230,7 +274,7 @@ export async function recordSponsorFromEvent(event) {
 }
 
 export async function recordSponsorFromCheckoutSession({ session, eventId = "", sessionId = "", createdTs } = {}) {
-  if (!firestoreConfigured()) {
+  if (!useLocalSponsorStore() && !firestoreConfigured()) {
     throw new ApiError("Firestore is not configured on this server.", 503);
   }
   const resolvedSessionId = String(sessionId || session?.id || "").trim();
@@ -269,6 +313,32 @@ export async function recordSponsorFromCheckoutSession({ session, eventId = "", 
       ? new Date(createdTs * 1000).toISOString().replace(/\.\d{3}Z$/, "+00:00")
       : new Date().toISOString().replace(/\.\d{3}Z$/, "+00:00");
 
+  if (useLocalSponsorStore()) {
+    const store = await readLocalSponsorStore();
+    if ((store.sponsors || []).some((sponsor) => sponsor.stripe_session_id === resolvedSessionId)) {
+      if (eventId) {
+        await markEventProcessed(eventId);
+      }
+      return false;
+    }
+    store.sponsors = store.sponsors || [];
+    store.sponsors.push({
+      stripe_session_id: resolvedSessionId,
+      stripe_event_id: eventId,
+      donor_name: donorName,
+      amount_cents: amountCents,
+      currency: String(session?.currency || "eur").toLowerCase(),
+      message: donorMessage,
+      is_public: toBool(metadata.is_public, true),
+      created_at: createdAt,
+    });
+    await writeLocalSponsorStore(store);
+    if (eventId) {
+      await markEventProcessed(eventId);
+    }
+    return true;
+  }
+
   const sponsorRef = firestore().collection("sponsors").doc(resolvedSessionId);
   const existing = await sponsorRef.get();
   if (existing.exists) {
@@ -296,11 +366,24 @@ export async function recordSponsorFromCheckoutSession({ session, eventId = "", 
 }
 
 async function hasProcessedEvent(eventId) {
+  if (useLocalSponsorStore()) {
+    const store = await readLocalSponsorStore();
+    return (store.stripe_events || []).includes(eventId);
+  }
   const doc = await firestore().collection("stripe_events").doc(eventId).get();
   return doc.exists;
 }
 
 async function markEventProcessed(eventId) {
+  if (useLocalSponsorStore()) {
+    const store = await readLocalSponsorStore();
+    store.stripe_events = store.stripe_events || [];
+    if (!store.stripe_events.includes(eventId)) {
+      store.stripe_events.push(eventId);
+      await writeLocalSponsorStore(store);
+    }
+    return;
+  }
   await firestore().collection("stripe_events").doc(eventId).set({
     created_at: new Date().toISOString().replace(/\.\d{3}Z$/, "+00:00"),
   });
