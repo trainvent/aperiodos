@@ -6,5 +6,5 @@ __pycache__/
 output/
 web/node_modules/
 web/dist/
-src/spectre_rs/target/
-spectre/
+src/generators/*/target/
+src/generators/*/output/

@@ -6,8 +6,8 @@ This file collects the setup and deployment guidance that used to live in the ma
 
 - `web/` contains the React + Vite frontend.
 - `src/entry/web.py` serves the HTTP API and static frontend assets.
-- `src/einstein_backend/` contains the Python Einstein renderer.
-- `src/spectre_rs/` contains the Rust Spectre renderer crate.
+- `src/generators/einstein_backend/` contains the Python Einstein renderer.
+- `src/generators/spectre_rs/` contains the Rust Spectre renderer crate.
 - `requirements.txt` lists Python service dependencies.
 - `Dockerfile` supports container builds and Cloud Run deployment.
 

@@ -17,8 +17,10 @@ The project currently focuses on offline image generation. The longer-term goal 
 ├── aperiodic-generator      # Executable launcher for the Einstein Python generator
 ├── src/
 │   ├── entry/               # Thin launcher scripts for CLI, GUI, and HTTP entrypoints
-│   ├── einstein_backend/    # Einstein backend implementation in Python
-│   └── spectre_rs/          # Rust Spectre renderer crate
+│   ├── generators/          # Generator implementations and reference projects
+│   │   ├── einstein_backend/ # Einstein backend implementation in Python
+│   │   ├── penrose/         # Rust Penrose renderer crate
+│   │   └── spectre_rs/      # Rust Spectre renderer crate
 ├── output/                  # Generated images are written here by default
 └── README.md
 ```
@@ -94,7 +96,7 @@ Developer setup, API service usage, and deployment notes live in [dev/INSTRUCTIO
 Generate a Spectre SVG snapshot:
 
 ```bash
-cargo run --manifest-path src/spectre_rs/Cargo.toml -- \
+cargo run --manifest-path src/generators/spectre_rs/Cargo.toml -- \
   --output output/spectre.svg \
   --width 1600 \
   --height 1600 \

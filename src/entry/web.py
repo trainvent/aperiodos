@@ -53,19 +53,20 @@ _load_local_env_file()
 
 FRONTEND_DIST_DIR = PROJECT_ROOT / "web" / "dist"
 FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
-DEFAULT_SPECTRE_BINARY = PROJECT_ROOT / "src" / \
+GENERATORS_DIR = PROJECT_ROOT / "src" / "generators"
+DEFAULT_SPECTRE_BINARY = GENERATORS_DIR / \
     "spectre_rs" / "target" / "release" / "spectre_rs"
-DEBUG_SPECTRE_BINARY = PROJECT_ROOT / "src" / \
+DEBUG_SPECTRE_BINARY = GENERATORS_DIR / \
     "spectre_rs" / "target" / "debug" / "spectre_rs"
-DEFAULT_PENROSE_BINARY = PROJECT_ROOT / \
+DEFAULT_PENROSE_BINARY = GENERATORS_DIR / \
     "penrose" / "target" / "release" / "penrose_rs"
-DEBUG_PENROSE_BINARY = PROJECT_ROOT / \
+DEBUG_PENROSE_BINARY = GENERATORS_DIR / \
     "penrose" / "target" / "debug" / "penrose_rs"
 
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 
-from einstein_backend.cli import (  # noqa: E402
+from generators.einstein_backend.cli import (  # noqa: E402
     DEFAULT_COLORS,
     DEFAULT_FOUR_COLORS,
     DEFAULT_ITERATIONS,
@@ -82,7 +83,7 @@ from donations import (  # noqa: E402
     record_sponsor_from_event,
     retrieve_checkout_session,
 )
-from einstein_backend.seed_to_pattern import seed_to_pattern  # noqa: E402
+from generators.einstein_backend.seed_to_pattern import seed_to_pattern  # noqa: E402
 
 
 app = Flask(__name__)
@@ -152,8 +153,7 @@ ABOUT_CONTENT = {
         "planning, refactors, API shaping, and frontend/backend integration support."
     ),
     "notes": (
-        "The Rust-based Spectre work is being adapted into src/spectre_rs, with the older "
-        "spectre clone kept as a reference source. Einstein and Spectre share one visual language "
+        "The Rust-based Spectre renderer lives in src/generators/spectre_rs. Einstein and Spectre share one visual language "
         "inside the broader Trainvent web presence."
     ),
 }
@@ -375,7 +375,7 @@ def _penrose_binary_path():
     candidates = [path for path in (
         DEFAULT_PENROSE_BINARY, DEBUG_PENROSE_BINARY) if path.exists()]
     if candidates:
-        source_files = list((PROJECT_ROOT / "penrose" / "src").rglob("*.rs"))
+        source_files = list((GENERATORS_DIR / "penrose" / "src").rglob("*.rs"))
         if not source_files:
             return max(candidates, key=lambda path: path.stat().st_mtime)
 
@@ -541,8 +541,7 @@ def _run_spectre_renderer(payload):
     if palette:
         command.extend(["--palette", ",".join(palette)])
 
-    cwd = PROJECT_ROOT / "src" / \
-        "spectre_rs" if command[0] == "cargo" else None
+    cwd = GENERATORS_DIR / "spectre_rs" if command[0] == "cargo" else None
 
     try:
         result = subprocess.run(
@@ -654,7 +653,7 @@ def _run_penrose_renderer(payload):
     if palette:
         command.extend(["--palette", ",".join(palette)])
 
-    cwd = PROJECT_ROOT / "penrose" if command[0] == "cargo" else None
+    cwd = GENERATORS_DIR / "penrose" if command[0] == "cargo" else None
 
     try:
         result = subprocess.run(

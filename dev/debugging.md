@@ -14,5 +14,5 @@ npm run dev
 do
 for refreshing rust backend:
 ```
-cargo build --release --manifest-path src/spectre_rs/Cargo.toml
+cargo build --release --manifest-path src/generators/spectre_rs/Cargo.toml
 ```
