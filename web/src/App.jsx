@@ -2,7 +2,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import brandIconUrl from "./assets/custom-pattern_1024.png";
+
 
 const CSS_COLOR_OPTIONS = [
   "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque", "black",
@@ -145,7 +145,7 @@ export default function App() {
       <div className="ambient ambient-right" />
       <header className="topbar">
         <Link className="brand" href="/">
-          <img className="brand-mark" src={brandIconUrl} alt="" />
+          <img className="brand-mark" src="/custom-pattern_1024.png" alt="" />
           <span className="brand-copy">Aperiodos</span>
         </Link>
         <div className="topbar-right">

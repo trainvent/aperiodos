@@ -99,7 +99,8 @@ select {
 .brand-mark {
   width: 46px;
   height: 46px;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: transparent;
 }
 
 .brand-copy {
@@ -715,5 +716,7 @@ select {
     width: 40px;
     height: 40px;
     border-radius: 12px;
+    object-fit: contain;
+    background-color: transparent;
   }
 }
