@@ -1,9 +1,9 @@
-import { donationServiceAvailable } from "../../../server/config.js";
+import { donationServiceAvailable } from "../../../src/server/config.js";
 import {
   parseStripeEvent,
   recordSponsorFromEvent,
-} from "../../../server/donations.js";
-import { handleApiError, methodNotAllowed, readRawBody } from "../../../server/http.js";
+} from "../../../src/server/donations.js";
+import { handleApiError, methodNotAllowed, readRawBody } from "../../../src/server/http.js";
 
 export const config = {
   api: {

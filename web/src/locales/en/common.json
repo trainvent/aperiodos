@@ -38,7 +38,7 @@
       "message": "Message (optional)",
       "messagePlaceholder": "Thanks for the project!",
       "isPublic": "Show me on the public sponsors list",
-      "submit": "Continue To Stripe"
+      "submit": "Continue to Stripe"
     },
     "preview": { "title": "Public Sponsors" },
     "status": {
@@ -54,13 +54,13 @@
   },
   "sponsors": {
     "hero": { "title": "Sponsors", "lede": "People who support Aperiodos through donations." },
-    "wall": { "title": "Wall Of Support", "cta": "Donate Now", "status": "Public sponsors appear here after a successful donation." },
+    "wall": { "title": "Wall of Support", "cta": "Donate now", "status": "Public sponsors appear here after a successful donation." },
     "panel": { "loading": "Loading sponsors...", "none": "No sponsors yet." }
   },
   "generator": {
     "status": { "ready": "Ready to render.", "rendering": "Rendering...", "failed": "Render failed.", "complete": "Render complete.", "reset": "Settings reset." },
     "layout": { "settings": "Settings", "generate": "Generate", "reset": "Reset", "preview": "Preview", "download": "Download", "placeholder": "Your generated artwork will appear here. Start with the default settings or explore a new palette." },
-    "common": { "iterations": "Iterations", "scalar": "Scalar", "scale": "Scale", "width": "Width", "height": "Height", "format": "Format", "seed": "Seed", "optional": "Optional", "color1": "Color 1", "color2": "Color 2", "color3": "Color 3", "color4": "Color 4", "background": "Background", "outline": "Outline", "strokeWidth": "Stroke Width", "centerX": "Center X", "centerY": "Center Y", "colorPlaceholder": "Type or search a CSS color" },
+    "common": { "iterations": "Iterations", "level": "Level", "scalar": "Scalar", "scale": "Scale", "width": "Width", "height": "Height", "format": "Format", "seed": "Seed", "optional": "Optional", "color1": "Color 1", "color2": "Color 2", "color3": "Color 3", "color4": "Color 4", "background": "Background", "outline": "Outline", "strokeWidth": "Stroke Width", "centerX": "Center X", "centerY": "Center Y", "colorPlaceholder": "Type or search a CSS color" },
     "einstein": { "title": "Einstein Generator", "description": "Adjust scale, size, and palette, then render a new image in the format you like.", "coloring": "Coloring", "coloringFamilies": "Tile Families", "coloringFourColor": "Four-Color", "noOutline": "Render without black outlines" },
     "spectre": { "title": "Spectre Generator", "description": "Render bounded Spectre snapshots, choose a pattern variant, tune the palette and framing, and export SVG.", "drawMode": "Drawing Logic", "drawModeBuild": "Build", "drawModeTranslation": "Translation", "shape": "Shape", "shapeStraight": "Straight", "shapeCurved": "Curved" },
     "penrose": { "title": "Penrose Generator", "description": "Generate Penrose tilings as kite-darts, rhombs, or a derived option that includes the star-heavy pentagonal motif from Penrose's first tiling.", "tiles": "Tiles", "tilesP2": "P2: Kite & Dart", "tilesP3": "P3: Rhombs", "tilesP1": "P1: Stars", "buildLogic": "Build Logic", "buildLogicDefault": "Default", "buildLogicCartwheel": "Cartwheel" }
@@ -68,6 +68,6 @@
   "about": {
     "hero": { "title": "About Aperiodos", "summary": "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, and browser experiments. The site currently centers on monotiles, with plans to expand into other aperiodic patterns and Penrose tilings." },
     "references": { "hat": "Hat monotile reference page", "spectre": "Spectre project page", "einsteinRepo": "Earlier Einstein inspiration repo" },
-    "sections": { "references": "References", "credits": "Credits And Guidance", "technical": "Technical Realizations", "notes": "Project Notes", "creditsBody": "This Trainvent subservice draws on papers, mathematical references, and public open-source experiments to explore how these tilings can be rendered and presented on the web.", "technicalBody": "OpenAI helped with technical realization work across the project, including architecture planning, refactors, API shaping, and frontend/backend integration support.", "notesBody": "The Rust-based Spectre renderer lives in src/generators/spectre_rs. Einstein and Spectre share one visual language inside the broader Trainvent web presence." }
+    "sections": { "references": "References", "credits": "Credits and Notes", "technical": "Technical Implementation", "notes": "Project Notes", "creditsBody": "This Trainvent subservice builds on papers, mathematical references, and public open-source experiments to show how these patterns can be rendered and presented.", "technicalBody": "OpenAI helped with technical implementation, architecture planning, refactors, API shaping, and frontend/backend integration.", "notesBody": "The Rust-based Spectre renderer lives in src/generators/spectre_rs. Einstein and Spectre share a visual language in the Trainvent context." }
   }
 }

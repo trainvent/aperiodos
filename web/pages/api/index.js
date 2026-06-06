@@ -8,8 +8,8 @@ import {
   donationCurrency,
   donationServiceAvailable,
   minimumDonationCents,
-} from "../../server/config.js";
-import { methodNotAllowed } from "../../server/http.js";
+} from "../../src/server/config.js";
+import { methodNotAllowed } from "../../src/server/http.js";
 
 export default function handler(req, res) {
   if (req.method !== "GET") {

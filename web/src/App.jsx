@@ -616,7 +616,7 @@ function SpectrePage() {
         <>
           <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
           <NumberField values={values} setValues={setValues} name="height" label={t("generator.common.height")} min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="level" label={t("generator.common.seed")} min={1} max={8} />
+          <NumberField values={values} setValues={setValues} name="level" label={t("generator.common.level")} min={1} max={8} />
           <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={120} />
           <NumberField values={values} setValues={setValues} name="center_x" label={t("generator.common.centerX")} step="0.1" />
           <NumberField values={values} setValues={setValues} name="center_y" label={t("generator.common.centerY")} step="0.1" />
@@ -993,16 +993,17 @@ function GeneratorLayout({
 }
 
 function AboutPage() {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
+  const language = i18n.resolvedLanguage === "en" ? "en" : "de";
   const [content, setContent] = useState(() => createAboutFallback(t));
 
   useEffect(() => {
-    setContent((current) => (current === null ? createAboutFallback(t) : current));
-  }, [t]);
+    setContent(createAboutFallback(t));
+  }, [t, language]);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(apiUrl("/api/about"))
+    fetch(apiUrl(`/api/about?lang=${encodeURIComponent(language)}`))
       .then((response) => response.json())
       .then((data) => {
         if (!cancelled) {
@@ -1013,7 +1014,7 @@ function AboutPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [language]);
 
   return (
     <>

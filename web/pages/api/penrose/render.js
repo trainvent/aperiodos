@@ -1,5 +1,5 @@
-import { renderPenrose } from "../../../server/renderers.js";
-import { handleApiError, methodNotAllowed, sendBuffer } from "../../../server/http.js";
+import { renderPenrose } from "../../../src/server/renderers.js";
+import { handleApiError, methodNotAllowed, sendBuffer } from "../../../src/server/http.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

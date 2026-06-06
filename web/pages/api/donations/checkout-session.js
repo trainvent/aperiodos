@@ -1,11 +1,11 @@
-import { donationCurrency, donationServiceAvailable } from "../../../server/config.js";
+import { donationCurrency, donationServiceAvailable } from "../../../src/server/config.js";
 import {
   buildCheckoutUrls,
   coerceDonationAmount,
   createDonationCheckoutSession,
   resolvePublicAppUrl,
-} from "../../../server/donations.js";
-import { handleApiError, methodNotAllowed } from "../../../server/http.js";
+} from "../../../src/server/donations.js";
+import { handleApiError, methodNotAllowed } from "../../../src/server/http.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

@@ -1,4 +1,4 @@
-import { methodNotAllowed } from "../../server/http.js";
+import { methodNotAllowed } from "../../src/server/http.js";
 
 export default function handler(req, res) {
   if (req.method !== "GET") {
