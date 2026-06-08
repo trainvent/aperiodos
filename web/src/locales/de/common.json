@@ -40,7 +40,7 @@
 			"message": "Nachricht (optional)",
 			"messagePlaceholder": "Danke für das Projekt!",
 			"isPublic": "In der öffentlichen Sponsorenliste anzeigen",
-			"submit": "Weiter"
+			"submit": "Weiter zu Stripe"
 		},
 		"preview": { "title": "Ehrenliste" },
 		"status": {
