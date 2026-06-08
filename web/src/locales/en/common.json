@@ -35,7 +35,8 @@
 		},
 		"form": {
 			"title": "Donation",
-			"amount": "Amount ({{currency}})",
+			"currency": "Currency",
+			"amount": "Amount",
 			"publicName": "Public Name (optional)",
 			"message": "Message (optional)",
 			"messagePlaceholder": "Thanks for the project!",

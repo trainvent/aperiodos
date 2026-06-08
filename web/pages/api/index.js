@@ -1,5 +1,6 @@
 import {
   DEFAULT_COLORS,
+  DONATION_CURRENCIES,
   DEFAULT_FOUR_COLORS,
   DEFAULT_HTTP_HEIGHT,
   DEFAULT_HTTP_WIDTH,
@@ -33,6 +34,7 @@ export default function handler(req, res) {
     donations: {
       enabled: donationServiceAvailable(),
       currency: donationCurrency(),
+      supported_currencies: DONATION_CURRENCIES,
       minimum_cents: minimumDonationCents(),
     },
     einstein_example_payload: {

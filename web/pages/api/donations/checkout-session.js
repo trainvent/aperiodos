@@ -1,7 +1,8 @@
-import { donationCurrency, donationServiceAvailable } from "../../../src/server/config.js";
+import { donationServiceAvailable } from "../../../src/server/config.js";
 import {
   buildCheckoutUrls,
   coerceDonationAmount,
+  coerceDonationCurrency,
   createDonationCheckoutSession,
   resolvePublicAppUrl,
 } from "../../../src/server/donations.js";
@@ -17,10 +18,11 @@ export default async function handler(req, res) {
   try {
     const payload = req.body || {};
     const amountCents = coerceDonationAmount(payload);
+    const currency = coerceDonationCurrency(payload.currency);
     const checkoutUrls = buildCheckoutUrls(resolvePublicAppUrl(req), "/donate");
     const session = await createDonationCheckoutSession({
       amountCents,
-      currency: String(payload.currency || donationCurrency()).toLowerCase(),
+      currency,
       donorName: payload.name || "",
       donorMessage: payload.message || "",
       isPublic: true,

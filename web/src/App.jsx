@@ -125,9 +125,16 @@ const PENROSE_DEFAULTS = {
 
 const DONATION_DEFAULTS = {
   amount_major: 10,
+  currency: "EUR",
   name: "",
   message: ""
 };
+
+const DONATION_CURRENCY_OPTIONS = [
+  { value: "USD", label: "$ USD" },
+  { value: "GBP", label: "£ GBP" },
+  { value: "EUR", label: "€ EUR" }
+];
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 function apiUrl(path) {
@@ -351,6 +358,7 @@ function DonatePage() {
   const [donationSettings, setDonationSettings] = useState({
     enabled: true,
     currency: "EUR",
+    supportedCurrencies: DONATION_CURRENCY_OPTIONS.map((option) => option.value),
     minimumMajor: 1
   });
 
@@ -391,14 +399,20 @@ function DonatePage() {
         const donations = data.donations || {};
         const minimumCents = Number(donations.minimum_cents || 100);
         const minimumMajor = Math.max(0.5, minimumCents / 100);
-        const currency = String(donations.currency || "eur").toUpperCase();
+        const supportedCurrencies = Array.isArray(donations.supported_currencies)
+          ? donations.supported_currencies.map((entry) => String(entry).toUpperCase())
+          : DONATION_CURRENCY_OPTIONS.map((option) => option.value);
+        const fallbackCurrency = String(donations.currency || "eur").toUpperCase();
+        const currency = supportedCurrencies.includes(fallbackCurrency) ? fallbackCurrency : "EUR";
         setDonationSettings({
           enabled: Boolean(donations.enabled),
           currency,
+          supportedCurrencies,
           minimumMajor
         });
         setValues((current) => ({
           ...current,
+          currency: supportedCurrencies.includes(current.currency) ? current.currency : currency,
           amount_major: Math.max(Number(current.amount_major) || 0, minimumMajor)
         }));
       })
@@ -423,7 +437,7 @@ function DonatePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount_cents: amountCents,
-          currency: donationSettings.currency.toLowerCase(),
+          currency: values.currency.toLowerCase(),
           name: values.name,
           message: values.message,
           is_public: true
@@ -453,14 +467,20 @@ function DonatePage() {
         <form className="panel controls-panel" onSubmit={handleDonate}>
           <h2>{t("donate.form.title")}</h2>
           <div className="grid">
+            <SelectField
+              values={values}
+              setValues={setValues}
+              name="currency"
+              label={t("donate.form.currency")}
+              options={DONATION_CURRENCY_OPTIONS.filter((option) => donationSettings.supportedCurrencies.includes(option.value))}
+            />
             <NumberField
               values={values}
               setValues={setValues}
               name="amount_major"
-              label={t("donate.form.amount", { currency: donationSettings.currency })}
+              label={t("donate.form.amount")}
               min={donationSettings.minimumMajor}
               step="0.5"
-              full
             />
             <TextField values={values} setValues={setValues} name="name" label={t("donate.form.publicName")} full />
             <TextField

@@ -22,6 +22,7 @@ export const DEFAULT_ITERATIONS = 5;
 export const DEFAULT_SCALAR = 20;
 
 export const DEFAULT_DONATION_CURRENCY = "eur";
+export const DONATION_CURRENCIES = ["eur", "usd", "gbp"];
 export const DEFAULT_MIN_DONATION_CENTS = 100;
 export const MAX_DONATION_CENTS = 500_000;
 
@@ -47,7 +48,8 @@ export const ALLOWED_PENROSE_FORMATS = {
 };
 
 export function donationCurrency() {
-  return (process.env.DONATION_CURRENCY || DEFAULT_DONATION_CURRENCY).trim().toLowerCase() || DEFAULT_DONATION_CURRENCY;
+  const configured = (process.env.DONATION_CURRENCY || DEFAULT_DONATION_CURRENCY).trim().toLowerCase();
+  return DONATION_CURRENCIES.includes(configured) ? configured : DEFAULT_DONATION_CURRENCY;
 }
 
 export function minimumDonationCents() {

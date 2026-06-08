@@ -5,6 +5,7 @@ import { Firestore } from "@google-cloud/firestore";
 import Stripe from "stripe";
 
 import {
+  DONATION_CURRENCIES,
   MAX_DONATION_CENTS,
   PROJECT_ROOT,
   donationCurrency,
@@ -122,6 +123,14 @@ export function resolvePublicAppUrl(req) {
   return `${protocol}://${req.headers.host}`.replace(/\/$/, "");
 }
 
+export function coerceDonationCurrency(value) {
+  const currency = String(value || donationCurrency()).trim().toLowerCase();
+  if (!DONATION_CURRENCIES.includes(currency)) {
+    throw new ApiError("'currency' must be one of: eur, usd, gbp.");
+  }
+  return currency;
+}
+
 export function coerceDonationAmount(payload) {
   const minimumAmount = minimumDonationCents();
   const value = Number.parseInt(payload.amount_cents ?? minimumAmount, 10);
@@ -158,7 +167,7 @@ export async function createDonationCheckoutSession({ amountCents, currency, don
       {
         quantity: 1,
         price_data: {
-          currency: String(currency || donationCurrency()).toLowerCase(),
+          currency: coerceDonationCurrency(currency),
           unit_amount: Number(amountCents),
           product_data: {
             name: "Aperiodos Sponsor Donation",
