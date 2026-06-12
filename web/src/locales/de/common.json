@@ -11,7 +11,7 @@
 		"hero": {
 			"title": "Aperiodische Generatoren.",
 			"lede": "Passe die Einstellungen an und exportiere das Ergebnis.",
-			"tools": "Drei Werkzeuge",
+			"tools": "Drei Optionen",
 			"toolsText": "Einstein, Spectre und Penrose unterstützen schnellen Export in SVG, PNG und JPG."
 		},
 		"groups": {
@@ -19,9 +19,9 @@
 			"tileCombinations": "Kachel-Kombinationen"
 		},
 		"cards": {
-			"einsteinDescription": "eine einzelne Kachel, die Aperiodizität erzwingt, mit verschiedenen Farbschemata und Exportoptionen.",
-			"spectreDescription": "eine einzelne Kachel, die Aperiodizität ohne Spiegelung erzwingt und dadurch komplexere Formen benötigt.",
-			"penroseDescription": "erstelle klassische Penrose-Muster als Drachen/Pfeile, Rhomben oder eine sternreiche Variante."
+			"einsteinDescription": "Beidseitig verlegt, mit verschiedenen Farbschemata und Exportoptionen.",
+			"spectreDescription": "Ohne Spiegelung, aber mit einer komplexen Kachel mit gekrümmten Kanten.",
+			"penroseDescription": "Erstelle klassische Muster mit Drachen und Pfeilen, Rhomben oder als sternreiche Variante."
 		},
 		"openLabel": "Öffnen"
 	},

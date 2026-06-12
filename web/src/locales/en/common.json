@@ -19,9 +19,9 @@
 			"tileCombinations": "Tile-combinations"
 		},
 		"cards": {
-			"einsteinDescription": "a single tile enforcing aperiodicity, rendered with various coloring modes and export options.",
-			"spectreDescription": "a single tile that allows enforcing aperiodicity without tile-flip, thus requiring more complex shapes",
-			"penroseDescription": "build classic Penrose tilings as kite-darts, rhombs, or a star-rich derived variant."
+			"einsteinDescription": "Tiled in both orientations, with various color schemes and export options.",
+			"spectreDescription": "No reflection, but with a complex tile with curved edges.",
+			"penroseDescription": "Create classic patterns with kites and darts, rhombs, or a star-rich variant."
 		},
 		"openLabel": "Open"
 	},
