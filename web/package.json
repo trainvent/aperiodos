@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.js",
+    "test": "node --test src/server/*.test.js",
     "build": "next build",
     "build:pages": "next build",
     "start": "next start",

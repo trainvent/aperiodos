@@ -109,8 +109,55 @@ export PUBLIC_APP_URL=https://www.aperiodos.com
 export DONATION_CURRENCY=eur
 export MIN_DONATION_CENTS=100
 export FIRESTORE_PROJECT_ID=your-gcp-project-id
-export FIRESTORE_DATABASE_ID='(default)'
+export FIRESTORE_DATABASE_ID=aperiodos-storage
 ```
+
+## Render Quota
+
+All three render endpoints share a server-side quota. Production allows three
+render attempts per hashed public IP address per UTC day by default. Quota
+reservations use atomic Firestore transactions in the `render_quotas`
+collection; raw IP addresses are never stored.
+
+Production requires a private HMAC secret of at least 32 characters:
+
+```bash
+export RENDER_QUOTA_SECRET="$(openssl rand -hex 32)"
+export RENDER_DAILY_LIMIT=3
+export RENDER_GLOBAL_DAILY_LIMIT=50
+```
+
+Set `RENDER_QUOTA_SECRET` on the Cloud Run service before sending traffic to a
+revision containing the quota guard. Keep it stable across deployments; changing
+it resets the effective identity of every visitor. The development runner uses
+`.sandbox/render-quotas.json` and a development-only secret unless explicitly
+configured otherwise.
+
+For the existing service:
+
+```bash
+APERIODOS_QUOTA_SECRET="$(openssl rand -hex 32)"
+gcloud run services update aperiodic-monotiles-generator \
+  --region=europe-west1 \
+  --update-env-vars="RENDER_QUOTA_SECRET=${APERIODOS_QUOTA_SECRET},RENDER_DAILY_LIMIT=3,RENDER_GLOBAL_DAILY_LIMIT=50"
+unset APERIODOS_QUOTA_SECRET
+```
+
+Quota documents include an `expires_at` timestamp. Enable Firestore TTL once to
+remove old quota documents automatically:
+
+```bash
+gcloud firestore fields ttls update expires_at \
+  --collection-group=render_quotas \
+  --database=aperiodos-storage \
+  --enable-ttl
+```
+
+Use `RENDER_DAILY_LIMIT` to change the per-IP allowance (accepted range 1–100)
+and `RENDER_GLOBAL_DAILY_LIMIT` to change the service-wide allowance (accepted
+range 1–10,000). Both counters reset at midnight UTC. `deploy.sh` defaults to
+3 and 50 respectively and accepts shell overrides, for example
+`RENDER_GLOBAL_DAILY_LIMIT=75 make deploy`.
 
 Main donation endpoints:
 
@@ -137,7 +184,7 @@ gcloud run deploy aperiodic-monotiles-generator \
   --cpu 1 \
   --timeout 300 \
   --concurrency 1 \
-  --max-instances 3
+  --max-instances 1
 ```
 
 Notes:

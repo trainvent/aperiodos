@@ -18,6 +18,11 @@ https://www.aperiodos.com/
 
 The tool is free to use. Donations help keep it online and support further development.
 
+To keep the free service sustainable, generation endpoints share a small daily
+allowance enforced server-side. The service stores only a keyed hash of the
+requesting IP address, not the address itself. A separate service-wide daily
+ceiling prevents distributed traffic from causing unbounded rendering costs.
+
 ## Offline Use
 
 The original Einstein generator can also run locally:

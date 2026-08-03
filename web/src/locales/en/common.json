@@ -76,6 +76,9 @@
 			"rendering": "Rendering...",
 			"failed": "Render failed.",
 			"complete": "Render complete.",
+			"completeRemaining": "Render complete. {{count}} generation(s) remaining today.",
+			"dailyLimit": "You have used your {{count}} free generations for today. Please try again tomorrow.",
+			"serviceDailyLimit": "The service has reached its generation limit for today. Please try again tomorrow.",
 			"reset": "Settings reset."
 		},
 		"layout": {

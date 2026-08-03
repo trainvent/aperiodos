@@ -19,6 +19,7 @@ check:
 	$(PYTHON) -m compileall -q src/generators/einstein
 	cargo test --manifest-path src/generators/spectre/Cargo.toml
 	cargo test --manifest-path src/generators/penrose/Cargo.toml
+	cd web && npm test
 	cd web && npm run build
 
 deploy:

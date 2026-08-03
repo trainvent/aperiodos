@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { Firestore } from "@google-cloud/firestore";
 import Stripe from "stripe";
 
 import {
@@ -14,8 +13,8 @@ import {
   stripeWebhookSecret,
 } from "./config.js";
 import { ApiError } from "./http.js";
+import { firestore, firestoreConfigured } from "./firestore.js";
 
-let firestoreClient;
 let warnedAboutFirestore = false;
 
 const LOCAL_SPONSOR_STORE_PATH = path.join(PROJECT_ROOT, ".sandbox", "sponsors.json");
@@ -69,37 +68,12 @@ async function writeLocalSponsorStore(store) {
   );
 }
 
-function firestoreConfigured() {
-  if (String(process.env.FIRESTORE_DISABLED || "").trim().toLowerCase() === "1") {
-    return false;
-  }
-  return Boolean(
-    process.env.FIRESTORE_PROJECT_ID ||
-      process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-      process.env.GOOGLE_CLOUD_PROJECT ||
-      process.env.GCLOUD_PROJECT ||
-      process.env.K_SERVICE,
-  );
-}
-
 function warnFirestoreSkipped() {
   if (warnedAboutFirestore) {
     return;
   }
   warnedAboutFirestore = true;
   console.warn("Firestore is not configured; sponsors are disabled for this local run.");
-}
-
-function firestore() {
-  if (!firestoreConfigured()) {
-    throw new ApiError("Firestore is not configured on this server.", 503);
-  }
-  if (!firestoreClient) {
-    const projectId = process.env.FIRESTORE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || undefined;
-    const databaseId = process.env.FIRESTORE_DATABASE_ID || "(default)";
-    firestoreClient = new Firestore({ projectId, databaseId });
-  }
-  return firestoreClient;
 }
 
 export function buildCheckoutUrls(baseUrl, donatePath = "/donate") {

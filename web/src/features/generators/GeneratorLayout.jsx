@@ -40,6 +40,13 @@ export default function GeneratorLayout({
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
+        if (response.status === 429) {
+          if (response.headers.get("X-RateLimit-Scope") === "global") {
+            throw new Error(t("generator.status.serviceDailyLimit"));
+          }
+          const limit = Number.parseInt(response.headers.get("X-RateLimit-Limit") || "3", 10);
+          throw new Error(t("generator.status.dailyLimit", { count: limit }));
+        }
         throw new Error(data.error || t("generator.status.failed"));
       }
 
@@ -51,7 +58,12 @@ export default function GeneratorLayout({
       }
       lastUrlRef.current = nextUrl;
       setPreviewUrl(nextUrl);
-      setStatus(t("generator.status.complete"));
+      const remaining = Number.parseInt(response.headers.get("X-RateLimit-Remaining") || "", 10);
+      setStatus(
+        Number.isFinite(remaining)
+          ? t("generator.status.completeRemaining", { count: remaining })
+          : t("generator.status.complete"),
+      );
     } catch (error) {
       setStatus(error.message || t("generator.status.failed"));
     }

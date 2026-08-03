@@ -76,6 +76,9 @@
 			"rendering": "Rendering...",
 			"failed": "Render fehlgeschlagen.",
 			"complete": "Render abgeschlossen.",
+			"completeRemaining": "Render abgeschlossen. Heute verbleiben noch {{count}} Generierung(en).",
+			"dailyLimit": "Du hast deine {{count}} kostenlosen Generierungen für heute verbraucht. Bitte versuche es morgen erneut.",
+			"serviceDailyLimit": "Der Dienst hat sein Generierungslimit für heute erreicht. Bitte versuche es morgen erneut.",
 			"reset": "Einstellungen zurückgesetzt."
 		},
 		"layout": {

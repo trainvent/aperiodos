@@ -48,6 +48,7 @@ loadEnvFile(path.join(WEB_ROOT, ".env"));
 // Cloud Run starts the production server directly and therefore does not use
 // this default. Set SPONSORS_STORE=firestore explicitly to test Firestore locally.
 process.env.SPONSORS_STORE = process.env.SPONSORS_STORE || "local";
+process.env.RENDER_QUOTA_STORE = process.env.RENDER_QUOTA_STORE || "local";
 
 if (sandbox) {
   process.env.STRIPE_MODE = "sandbox";
@@ -62,6 +63,10 @@ if (process.env.SPONSORS_STORE === "local") {
   console.log("Using local sponsor storage at .sandbox/sponsors.json.");
 } else {
   console.log("Using Firestore sponsor storage; Google Application Default Credentials are required.");
+}
+
+if (process.env.RENDER_QUOTA_STORE === "local") {
+  console.log("Using local render quotas at .sandbox/render-quotas.json.");
 }
 
 const nextBin = path.join(WEB_ROOT, "node_modules", ".bin", process.platform === "win32" ? "next.cmd" : "next");
