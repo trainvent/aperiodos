@@ -39,7 +39,12 @@ The repository is organized by runtime responsibility:
 ├── web/                         Next.js UI and API routes
 │   ├── pages/                   Page and API route entry points
 │   ├── public/                  Static browser assets
-│   └── src/                     React UI and server-side services
+│   └── src/
+│       ├── components/          Shared React controls
+│       ├── features/            UI grouped by product feature
+│       ├── lib/                 Shared browser-side utilities
+│       ├── locales/             Translation resources
+│       └── server/              Server-side services
 ├── src/generators/
 │   ├── einstein/                Python Einstein generator
 │   ├── spectre/                 Rust Spectre generator

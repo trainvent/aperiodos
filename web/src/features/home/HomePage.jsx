@@ -1,0 +1,120 @@
+import Link from "next/link";
+import { useTranslation } from "react-i18next";
+
+export default function HomePage() {
+  const { t } = useTranslation("common");
+
+  const monotileCards = [
+    {
+      title: "Einstein",
+      description: t("home.cards.einsteinDescription"),
+      to: "/einstein",
+      className: "feature-einstein",
+      buttonClassName: "button",
+      arrow: true,
+      arrowColor: "seagreen"
+    },
+    {
+      title: "Spectre",
+      description: t("home.cards.spectreDescription"),
+      to: "/spectre",
+      className: "feature-spectre",
+      buttonClassName: "button button-green",
+      arrow: true,
+      arrowColor: "sienna"
+    }
+  ];
+
+  const otherCards = [
+    {
+      title: "Penrose",
+      description: t("home.cards.penroseDescription"),
+      to: "/penrose",
+      className: "feature-penrose",
+      buttonClassName: "button button-ink",
+      arrow: true,
+      arrowColor: "red"
+    }
+  ];
+
+  return (
+    <>
+      <section className="hero hero-grid">
+        <div>
+          <h1>{t("home.hero.title")}</h1>
+          <p className="lede">{t("home.hero.lede")}</p>
+        </div>
+        <aside className="hero-note panel">
+          <strong>{t("home.hero.tools")}</strong>
+          <p>{t("home.hero.toolsText")}</p>
+        </aside>
+      </section>
+
+      <section className="card-grid">
+        <div className="card-group panel-group monotile-group">
+          <article className="feature-card monotile-merged panel">
+            <div className="panel-kicker"><span className="group-title">{t("home.groups.monotile")}</span></div>
+            <div className="monotile-inner">
+              {monotileCards.map((card) => (
+                <div className="monotile-card" key={card.title}>
+                  <h2>{card.title}</h2>
+                  <p>{card.description}</p>
+                  <div className="feature-spacer" aria-hidden="true" />
+                  <Link
+                    className={card.buttonClassName}
+                    href={card.to}
+                    aria-label={`${t("home.openLabel")} ${card.title}`}
+                  >
+                    {card.arrow ? (
+                      <span
+                        className="card-cta"
+                        aria-hidden="true"
+                        style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M5 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    ) : null}
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </article>
+        </div>
+
+        <div className="card-group panel-group">
+          <div className="group-cards">
+            {otherCards.map((card, index) => (
+                <article key={card.title} className={`feature-card ${card.className} panel`}>
+                {index === 0 ? <div className="panel-kicker"><span className="group-title">{t("home.groups.tileCombinations")}</span></div> : null}
+                <h2>{card.title}</h2>
+                <p>{card.description}</p>
+                <div className="feature-spacer" aria-hidden="true" />
+                <Link
+                  className={card.buttonClassName}
+                  href={card.to}
+                  aria-label={`${t("home.openLabel")} ${card.title}`}
+                >
+                  {card.arrow ? (
+                    <span
+                      className="card-cta"
+                      aria-hidden="true"
+                      style={card.arrowColor ? { ['--cta-color']: card.arrowColor } : undefined}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  ) : null}
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}

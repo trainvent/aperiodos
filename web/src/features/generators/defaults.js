@@ -1,0 +1,57 @@
+export const EINSTEIN_DEFAULTS = {
+  iterations: 5,
+  scalar: 20,
+  width: 1600,
+  height: 1600,
+  format: "png",
+  color_mode: "families",
+  seed: "",
+  color_h1: "black",
+  color_h: "seagreen",
+  color_t: "white",
+  color_p: "sandybrown",
+  color_f: "gold",
+  four_color_1: "seagreen",
+  four_color_2: "sienna",
+  four_color_3: "goldenrod",
+  four_color_4: "midnightblue",
+  no_outline: false
+};
+
+export const SPECTRE_DEFAULTS = {
+  width: 900,
+  height: 900,
+  level: 5,
+  scale: 4,
+  center_x: 0,
+  center_y: 0,
+  format: "svg",
+  draw_mode: "translation",
+  shape: "straight",
+  background: "white",
+  outline: "black",
+  stroke_width: 1,
+  palette_1: "seagreen",
+  palette_2: "sienna",
+  palette_3: "goldenrod",
+  palette_4: "midnightblue"
+};
+
+export const PENROSE_DEFAULTS = {
+  width: 1200,
+  height: 1200,
+  iterations: 4,
+  scale: 320,
+  center_x: 0,
+  center_y: 0,
+  format: "svg",
+  build_logic: "default",
+  tile_mode: "kite-dart",
+  background: "white",
+  outline: "black",
+  stroke_width: 1,
+  palette_1: "wheat",
+  palette_2: "midnightblue",
+  palette_3: "sandybrown",
+  palette_4: "seagreen"
+};

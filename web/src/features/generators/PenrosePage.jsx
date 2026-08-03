@@ -1,0 +1,188 @@
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { ColorField, NumberField, SelectField } from "../../components/forms/FormFields";
+import { apiUrl } from "../../lib/api";
+import { PENROSE_DEFAULTS } from "./defaults";
+import GeneratorLayout from "./GeneratorLayout";
+
+export default function PenrosePage() {
+  const { t } = useTranslation("common");
+  const [values, setValues] = useState(PENROSE_DEFAULTS);
+  const previousTileModeRef = useRef(PENROSE_DEFAULTS.tile_mode);
+  const modeScaleDefaults = { "kite-dart": 320, rhombs: 320, p1: 320 };
+  const modeLegacyScales = { "kite-dart": [320], rhombs: [320], p1: [7, 10, 14, 285, 320] };
+  const p1PaletteDefaults = ["seagreen", "midnightblue", "sandybrown", "goldenrod"];
+  const legacyPaletteDefaults = ["wheat", "midnightblue", "sandybrown", "seagreen"];
+  const cartwheelPaletteDefaults = ["lightyellow", "lightcoral", "gainsboro", "dodgerblue"];
+  const cartwheelLegacyHexDefaults = ["#ffffb3", "#ff6666", "#e6e6e6", "#0080ff"];
+
+  useEffect(() => {
+    const previousMode = previousTileModeRef.current;
+    const nextMode = values.tile_mode;
+    previousTileModeRef.current = nextMode;
+
+    if (previousMode === nextMode) {
+      return;
+    }
+
+    setValues((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      const knownPreviousScales = [
+        modeScaleDefaults[previousMode],
+        ...(modeLegacyScales[previousMode] || [])
+      ];
+      if (knownPreviousScales.includes(Number(next.scale))) {
+        next.scale = modeScaleDefaults[nextMode];
+        changed = true;
+      }
+
+      if (nextMode === "p1") {
+        const currentPalette = [next.palette_1, next.palette_2, next.palette_3, next.palette_4];
+        const paletteLooksDefault =
+          currentPalette.every((color, index) => color === legacyPaletteDefaults[index]) ||
+          currentPalette.every((color, index) => color === PENROSE_DEFAULTS[`palette_${index + 1}`]);
+        if (paletteLooksDefault) {
+          [next.palette_1, next.palette_2, next.palette_3, next.palette_4] = p1PaletteDefaults;
+          changed = true;
+        }
+      }
+      if (nextMode !== "kite-dart" && next.build_logic !== "default") {
+        next.build_logic = "default";
+        changed = true;
+      }
+
+      return changed ? next : current;
+    });
+  }, [values.tile_mode, setValues]);
+
+  useEffect(() => {
+    if (values.tile_mode !== "kite-dart") {
+      return;
+    }
+
+    setValues((current) => {
+      const currentPalette = [current.palette_1, current.palette_2, current.palette_3, current.palette_4];
+      const matchesLegacyDefaults = currentPalette.every((color, index) => color === legacyPaletteDefaults[index]);
+      const matchesCartwheelDefaults =
+        currentPalette.every((color, index) => color === cartwheelPaletteDefaults[index]) ||
+        currentPalette.every((color, index) => color === cartwheelLegacyHexDefaults[index]);
+
+      if (current.build_logic === "cartwheel" && matchesLegacyDefaults) {
+        return {
+          ...current,
+          palette_1: cartwheelPaletteDefaults[0],
+          palette_2: cartwheelPaletteDefaults[1],
+          palette_3: cartwheelPaletteDefaults[2],
+          palette_4: cartwheelPaletteDefaults[3]
+        };
+      }
+
+      if (current.build_logic === "default" && matchesCartwheelDefaults) {
+        return {
+          ...current,
+          palette_1: legacyPaletteDefaults[0],
+          palette_2: legacyPaletteDefaults[1],
+          palette_3: legacyPaletteDefaults[2],
+          palette_4: legacyPaletteDefaults[3]
+        };
+      }
+
+      return current;
+    });
+  }, [values.build_logic, values.tile_mode, setValues]);
+
+  return (
+    <GeneratorLayout
+      title={t("generator.penrose.title")}
+      description={t("generator.penrose.description")}
+      controls={
+        <>
+          <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="height" label={t("generator.common.height")} min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={0} max={10} />
+          <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1200} />
+          <NumberField values={values} setValues={setValues} name="center_x" label={t("generator.common.centerX")} step="0.01" />
+          <NumberField values={values} setValues={setValues} name="center_y" label={t("generator.common.centerY")} step="0.01" />
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="tile_mode"
+            label={t("generator.penrose.tiles")}
+            options={[
+              { value: "kite-dart", label: t("generator.penrose.tilesP2") },
+              { value: "rhombs", label: t("generator.penrose.tilesP3") },
+              { value: "p1", label: t("generator.penrose.tilesP1") }
+            ]}
+          />
+          {values.tile_mode === "kite-dart" ? (
+            <SelectField
+              values={values}
+              setValues={setValues}
+              name="build_logic"
+              label={t("generator.penrose.buildLogic")}
+              options={[
+                { value: "default", label: t("generator.penrose.buildLogicDefault") },
+                { value: "cartwheel", label: t("generator.penrose.buildLogicCartwheel") }
+              ]}
+            />
+          ) : null}
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="format"
+            label={t("generator.common.format")}
+            options={[
+              { value: "svg", label: "SVG" },
+              { value: "png", label: "PNG" },
+              { value: "jpg", label: "JPG" }
+            ]}
+            full
+          />
+          <ColorField values={values} setValues={setValues} name="background" label={t("generator.common.background")} full />
+          <ColorField values={values} setValues={setValues} name="outline" label={t("generator.common.outline")} full />
+          <NumberField values={values} setValues={setValues} name="stroke_width" label={t("generator.common.strokeWidth")} min={0} max={20} step="0.1" />
+          <div className="swatches full">
+            <ColorField values={values} setValues={setValues} name="palette_1" label={t("generator.common.color1")} />
+            <ColorField values={values} setValues={setValues} name="palette_2" label={t("generator.common.color2")} />
+            <ColorField values={values} setValues={setValues} name="palette_3" label={t("generator.common.color3")} />
+            <ColorField values={values} setValues={setValues} name="palette_4" label={t("generator.common.color4")} />
+          </div>
+        </>
+      }
+      payload={() => ({
+        width: Number(values.width),
+        height: Number(values.height),
+        iterations: Number(values.iterations),
+        scale: Number(values.scale),
+        center_x: Number(values.center_x),
+        center_y: Number(values.center_y),
+        format: values.format,
+        build_logic: values.build_logic,
+        tile_mode: values.tile_mode,
+        background: values.background,
+        outline: values.outline,
+        stroke_width: Number(values.stroke_width),
+        palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4]
+          .map((value) => String(value).trim())
+          .filter(Boolean)
+      })}
+      endpoint={apiUrl("/api/penrose/render")}
+      downloadName={(payload) => `penrose.${payload.format}`}
+      previewType={(payload) => {
+        if (payload.format === "png") {
+          return "image/png";
+        }
+        if (payload.format === "jpg") {
+          return "image/jpeg";
+        }
+        return "image/svg+xml";
+      }}
+      values={values}
+      setValues={setValues}
+      defaults={PENROSE_DEFAULTS}
+    />
+  );
+}

@@ -3,6 +3,8 @@
 ## Repository Layout
 
 - `web/` contains the Next.js web app, API routes, Stripe donation flow, and Firestore sponsor reads/writes.
+- `web/src/features/` groups React views and feature-specific configuration by product area.
+- `web/src/components/` contains shared React controls; `web/src/lib/` contains shared browser-side utilities.
 - `src/generators/einstein/` contains the Python Einstein generator.
 - `src/generators/spectre/` contains the Rust Spectre renderer crate.
 - `src/generators/penrose/` contains the Rust Penrose renderer crate.
