@@ -154,7 +154,7 @@
 			"notes": "Project Notes",
 			"creditsBody": "This Trainvent subservice builds on papers, mathematical references, and public open-source experiments to show how these patterns can be rendered and presented.",
 			"technicalBody": "OpenAI helped with technical implementation, architecture planning, refactors, API shaping, and frontend/backend integration.",
-			"notesBody": "The Rust-based Spectre renderer lives in src/generators/spectre_rs. Einstein and Spectre share a visual language in the Trainvent context."
+			"notesBody": "The Rust-based Spectre renderer lives in src/generators/spectre. Einstein and Spectre share a visual language in the Trainvent context."
 		}
 	}
 }

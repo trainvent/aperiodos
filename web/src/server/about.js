@@ -64,7 +64,7 @@ const ABOUT_CONTENT_BY_LANGUAGE = {
     technical_realizations:
       "OpenAI hat bei technischer Realisierung, Architekturplanung, Refactors, API-Formgebung und Frontend/Backend-Integration geholfen.",
     notes:
-      "Der Rust-basierte Spectre-Renderer liegt in src/generators/spectre_rs. Einstein und Spectre teilen eine visuelle Sprache im Trainvent-Kontext.",
+      "Der Rust-basierte Spectre-Renderer liegt in src/generators/spectre. Einstein und Spectre teilen eine visuelle Sprache im Trainvent-Kontext.",
   },
   en: {
     title: "About Aperiodos",
@@ -76,7 +76,7 @@ const ABOUT_CONTENT_BY_LANGUAGE = {
     technical_realizations:
       "OpenAI helped with technical implementation, architecture planning, refactors, API shaping, and frontend/backend integration.",
     notes:
-      "The Rust-based Spectre renderer lives in src/generators/spectre_rs. Einstein and Spectre share a visual language in the Trainvent context.",
+      "The Rust-based Spectre renderer lives in src/generators/spectre. Einstein and Spectre share a visual language in the Trainvent context.",
   },
 };
 

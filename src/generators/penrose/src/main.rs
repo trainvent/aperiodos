@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use penrose_rs::{PenroseSeed, PenroseSvgConfig, PenroseTileMode, write_svg};
+use penrose::{PenroseSeed, PenroseSvgConfig, PenroseTileMode, write_svg};
 
 fn main() {
     let (output, config) = parse_args(env::args().skip(1));
@@ -98,7 +98,7 @@ fn parse_value<T: std::str::FromStr>(raw: String, flag: &str) -> T {
 
 fn print_help() {
     println!(
-        "penrose_rs\n\
+        "penrose\n\
          \n\
          Generates a Penrose kite-and-dart tiling snapshot as SVG.\n\
          \n\

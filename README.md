@@ -32,14 +32,35 @@ This writes a generated image to `output/einstein_pattern.jpg`.
 
 Development, setup, API, donation, and deployment notes live in [AGENTS.md](AGENTS.md).
 
+The repository is organized by runtime responsibility:
+
+```text
+.
+├── web/                         Next.js UI and API routes
+│   ├── pages/                   Page and API route entry points
+│   ├── public/                  Static browser assets
+│   └── src/                     React UI and server-side services
+├── src/generators/
+│   ├── einstein/                Python Einstein generator
+│   ├── spectre/                 Rust Spectre generator
+│   └── penrose/                 Rust Penrose generator
+├── Dockerfile                   Production multi-stage image
+└── Makefile                     Common development commands
+```
+
 Common commands:
 
 ```bash
+make install
 make dev
 make dev-sandbox
 make build
+make build-generators
+make check
 make deploy
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting changes.
 
 ## Credits And References
 

@@ -1,4 +1,4 @@
-"""Einstein backend utilities for generating aperiodic tile patterns."""
+"""Einstein generator for aperiodic tile patterns."""
 
 from .cli import main, render_pattern
 

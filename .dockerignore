@@ -1,8 +1,15 @@
 .git
 .gitignore
+.github
+.idea
+.vscode
+.env
+.env.*
+!.env.example
 .venv
 __pycache__/
 *.pyc
+.aperiodic-generator-settings.json
 output/
 web/node_modules/
 web/dist/

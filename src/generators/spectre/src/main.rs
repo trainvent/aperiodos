@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use spectre_rs::{DrawMode, ShapeMode, SpectreSvgConfig, write_svg};
+use spectre::{DrawMode, ShapeMode, SpectreSvgConfig, write_svg};
 
 fn main() {
     let (output, config) = parse_args(env::args().skip(1));
@@ -95,7 +95,7 @@ fn parse_value<T: std::str::FromStr>(raw: String, flag: &str) -> T {
 
 fn print_help() {
     println!(
-        "spectre_rs\n\
+        "spectre\n\
          \n\
          Generates a Spectre tiling snapshot as SVG.\n\
          \n\

@@ -10,10 +10,10 @@ RUN npm run build
 
 FROM rust:1.93-slim AS spectre-build
 
-WORKDIR /app/src/generators/spectre_rs
+WORKDIR /app/src/generators/spectre
 
-COPY src/generators/spectre_rs/Cargo.toml src/generators/spectre_rs/Cargo.lock ./
-COPY src/generators/spectre_rs/src ./src
+COPY src/generators/spectre/Cargo.toml src/generators/spectre/Cargo.lock ./
+COPY src/generators/spectre/src ./src
 RUN cargo build --release
 
 FROM rust:1.93-slim AS penrose-build
@@ -32,8 +32,8 @@ ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 ENV HOSTNAME=0.0.0.0
 ENV PYTHONPATH=/app/src
-ENV SPECTRE_BIN=/usr/local/bin/spectre_rs
-ENV PENROSE_BIN=/usr/local/bin/penrose_rs
+ENV SPECTRE_BIN=/usr/local/bin/spectre
+ENV PENROSE_BIN=/usr/local/bin/penrose
 ENV PATH=/opt/venv/bin:$PATH
 
 WORKDIR /app
@@ -50,8 +50,8 @@ COPY src ./src
 COPY --from=web-build /app/web/.next/standalone ./
 COPY --from=web-build /app/web/.next/static ./.next/static
 COPY --from=web-build /app/web/public ./public
-COPY --from=spectre-build /app/src/generators/spectre_rs/target/release/spectre_rs /usr/local/bin/spectre_rs
-COPY --from=penrose-build /app/src/generators/penrose/target/release/penrose_rs /usr/local/bin/penrose_rs
+COPY --from=spectre-build /app/src/generators/spectre/target/release/spectre /usr/local/bin/spectre
+COPY --from=penrose-build /app/src/generators/penrose/target/release/penrose /usr/local/bin/penrose
 
 WORKDIR /app
 

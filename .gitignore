@@ -1,6 +1,7 @@
 .venv/
 __pycache__/
 *.py[cod]
+.aperiodic-generator-settings.json
 
 output/
 .sandbox/
@@ -14,7 +15,9 @@ PenroseGenerator/
 *.png
 *.jpg
 !web/public/custom-pattern_1024.png
-!web/src/assets/custom-pattern_1024.png
 
 .env
+.env.*
+!.env.example
 .idea/
+.vscode/

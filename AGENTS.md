@@ -3,8 +3,8 @@
 ## Repository Layout
 
 - `web/` contains the Next.js web app, API routes, Stripe donation flow, and Firestore sponsor reads/writes.
-- `src/generators/einstein_backend/` contains the Python Einstein generator.
-- `src/generators/spectre_rs/` contains the Rust Spectre renderer crate.
+- `src/generators/einstein/` contains the Python Einstein generator.
+- `src/generators/spectre/` contains the Rust Spectre renderer crate.
 - `src/generators/penrose/` contains the Rust Penrose renderer crate.
 - `requirements.txt` lists Python packages needed by the Python generator only.
 - `Dockerfile` builds a Next.js server image with Python/Rust generators available at runtime.
@@ -30,8 +30,14 @@ cd ..
 Build Rust generators when you want local API routes to use binaries instead of `cargo run` fallbacks:
 
 ```bash
-cargo build --release --manifest-path src/generators/spectre_rs/Cargo.toml
+cargo build --release --manifest-path src/generators/spectre/Cargo.toml
 cargo build --release --manifest-path src/generators/penrose/Cargo.toml
+```
+
+Run the complete project verification suite:
+
+```bash
+make check
 ```
 
 ## Run Locally
@@ -130,6 +136,7 @@ Notes:
 
 - The container runs `next start` via the standalone Next server.
 - `--concurrency 1` is a safer default because renders can be CPU- and memory-heavy.
+- `deploy.sh` defaults to one maximum instance; set `MAX_INSTANCES` explicitly only when additional capacity is intentional.
 - Cloud Run exposes one HTTPS URL for both pages and `/api/*`.
 
 Available service endpoints:

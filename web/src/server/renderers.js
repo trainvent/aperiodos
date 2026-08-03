@@ -190,7 +190,7 @@ export async function renderEinstein(payload) {
     const pythonBin = process.env.PYTHON_BIN || "python3";
     const args = [
       "-m",
-      "generators.einstein_backend",
+      "generators.einstein",
       "--iterations",
       String(iterations),
       "--scalar",
@@ -250,9 +250,9 @@ export async function renderSpectre(payload) {
     allowedFormats: ALLOWED_SPECTRE_FORMATS,
     filenameBase: "spectre",
     binaryEnv: "SPECTRE_BIN",
-    releaseBinary: path.join(GENERATORS_DIR, "spectre_rs", "target", "release", "spectre_rs"),
-    debugBinary: path.join(GENERATORS_DIR, "spectre_rs", "target", "debug", "spectre_rs"),
-    cargoCwd: path.join(GENERATORS_DIR, "spectre_rs"),
+    releaseBinary: path.join(GENERATORS_DIR, "spectre", "target", "release", "spectre"),
+    debugBinary: path.join(GENERATORS_DIR, "spectre", "target", "debug", "spectre"),
+    cargoCwd: path.join(GENERATORS_DIR, "spectre"),
     args: [
       "--width",
       String(width),
@@ -309,8 +309,8 @@ export async function renderPenrose(payload) {
     allowedFormats: ALLOWED_PENROSE_FORMATS,
     filenameBase: "penrose",
     binaryEnv: "PENROSE_BIN",
-    releaseBinary: path.join(GENERATORS_DIR, "penrose", "target", "release", "penrose_rs"),
-    debugBinary: path.join(GENERATORS_DIR, "penrose", "target", "debug", "penrose_rs"),
+    releaseBinary: path.join(GENERATORS_DIR, "penrose", "target", "release", "penrose"),
+    debugBinary: path.join(GENERATORS_DIR, "penrose", "target", "debug", "penrose"),
     cargoCwd: path.join(GENERATORS_DIR, "penrose"),
     args: [
       "--width",
