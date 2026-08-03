@@ -44,13 +44,24 @@ const nextArgs = args.filter((arg) => arg !== "--sandbox");
 loadEnvFile(path.join(PROJECT_ROOT, ".env"));
 loadEnvFile(path.join(WEB_ROOT, ".env"));
 
+// Local development should not require Google Application Default Credentials.
+// Cloud Run starts the production server directly and therefore does not use
+// this default. Set SPONSORS_STORE=firestore explicitly to test Firestore locally.
+process.env.SPONSORS_STORE = process.env.SPONSORS_STORE || "local";
+
 if (sandbox) {
   process.env.STRIPE_MODE = "sandbox";
-  process.env.SPONSORS_STORE = process.env.SPONSORS_STORE || "local";
   process.env.FIRESTORE_DISABLED = process.env.FIRESTORE_DISABLED || "1";
   process.env.PUBLIC_APP_URL = process.env.SANDBOX_PUBLIC_APP_URL || "http://localhost:3000";
   console.log("Starting Next dev server in Stripe sandbox mode.");
-  console.log("Using local sponsor storage at .sandbox/sponsors.json unless SPONSORS_STORE is changed.");
+} else {
+  console.log("Starting Next dev server.");
+}
+
+if (process.env.SPONSORS_STORE === "local") {
+  console.log("Using local sponsor storage at .sandbox/sponsors.json.");
+} else {
+  console.log("Using Firestore sponsor storage; Google Application Default Credentials are required.");
 }
 
 const nextBin = path.join(WEB_ROOT, "node_modules", ".bin", process.platform === "win32" ? "next.cmd" : "next");

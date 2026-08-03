@@ -51,6 +51,12 @@ cd web
 npm run dev
 ```
 
+The development runner uses `.sandbox/sponsors.json` by default, so browsing
+the sponsors page does not require Google credentials. To exercise Firestore
+locally, authenticate with Application Default Credentials and start with
+`SPONSORS_STORE=firestore npm run dev`. Production uses Firestore automatically
+when deployed to Cloud Run and is not affected by the local-storage default.
+
 Smoke-test the API:
 
 ```bash
