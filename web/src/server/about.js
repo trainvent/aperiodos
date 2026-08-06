@@ -5,23 +5,23 @@ const REFERENCES = {
       url: "https://next.trainvent.com/",
     },
     {
-      label: "Hat-Monokachel-Referenzseite",
-      url: "https://cs.uwaterloo.ca/~csk/hat/h7h8.html",
+      label: "Hat-Monokachel Entdeckungsseite",
+      url: "https://cs.uwaterloo.ca/~csk/hat/",
     },
     {
-      label: "Spectre-Projektseite",
+      label: "Spectre Informationsseite",
       url: "https://cs.uwaterloo.ca/~csk/spectre/",
     },
     {
-      label: "Früheres Einstein-Inspirations-Repo",
+      label: "Einstein-Generator Inspiration",
       url: "https://github.com/asmoly/Einstein_Tile_Generator",
     },
     {
-      label: "necocen/spectre",
+      label: "Spectre-Generator Inspiration",
       url: "https://github.com/necocen/spectre",
     },
     {
-      label: "OpenAI",
+      label: "OpenAI wurde ",
       url: "https://openai.com/",
     },
   ],
