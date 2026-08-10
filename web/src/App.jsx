@@ -30,7 +30,18 @@ export default function App() {
             <TopNavLink to="/einstein">Einstein</TopNavLink>
             <TopNavLink to="/spectre">Spectre</TopNavLink>
             <TopNavLink to="/penrose">Penrose</TopNavLink>
-            <TopNavLink to="/donate">{t("nav.sponsors")}</TopNavLink>
+            <TopNavLink to="/donate">
+              <span className="sponsors-nav-label">
+                <svg
+                  className="sponsors-nav-heart"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21.2l7.8-7.7 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+                </svg>
+                {t("nav.sponsors")}
+              </span>
+            </TopNavLink>
             <TopNavLink to="/about">{t("nav.about")}</TopNavLink>
           </nav>
           <div className="lang-switch" role="group" aria-label={t("language.label")}>

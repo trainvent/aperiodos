@@ -179,6 +179,19 @@ select {
   color: var(--ink);
 }
 
+.sponsors-nav-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sponsors-nav-heart {
+  width: 0.9em;
+  height: 0.9em;
+  fill: var(--accent);
+  flex: none;
+}
+
 .page {
   display: grid;
   gap: 28px;
