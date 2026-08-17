@@ -17,6 +17,7 @@ export default async function handler(req, res) {
     const session = await createRenderCreditCheckoutSession({
       successUrl: `${baseUrl}${returnPath}?render_credits=success&session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${baseUrl}${returnPath}?render_credits=cancelled`,
+      language: req.body?.language,
     });
     return res.status(200).json({ checkout_url: session.url, checkout_session_id: session.id });
   } catch (error) {

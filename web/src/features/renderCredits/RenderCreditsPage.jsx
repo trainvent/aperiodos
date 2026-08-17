@@ -54,7 +54,7 @@ export default function RenderCreditsPage() {
       const response = await fetch(apiUrl("/api/render-credits/checkout-session"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ return_path: "/generation-codes" }),
+        body: JSON.stringify({ return_path: "/generation-codes", language }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || t("renderCredits.status.checkoutFailed"));

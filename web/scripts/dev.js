@@ -41,8 +41,10 @@ const args = process.argv.slice(2);
 const sandbox = args.includes("--sandbox") || process.env.npm_config_sandbox === "true";
 const nextArgs = args.filter((arg) => arg !== "--sandbox");
 
-loadEnvFile(path.join(PROJECT_ROOT, ".env"));
-loadEnvFile(path.join(WEB_ROOT, ".env"));
+if (process.env.SKIP_LOCAL_ENV_FILE !== "1") {
+  loadEnvFile(path.join(PROJECT_ROOT, ".env"));
+  loadEnvFile(path.join(WEB_ROOT, ".env"));
+}
 
 // Local development should not require Google Application Default Credentials.
 // Cloud Run starts the production server directly and therefore does not use

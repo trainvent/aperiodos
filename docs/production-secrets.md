@@ -14,6 +14,7 @@ explicit non-secret list and removes legacy secret-backed environment keys.
 | `aperiodos-stripe-live-webhook-secret` | Live endpoint signing secret (`whsec_...`) | `/secrets/stripe-webhook-secret/value` |
 | `aperiodos-render-quota-secret` | Stable random HMAC secret, at least 32 characters | `/secrets/render-quota-secret/value` |
 | `aperiodos-render-credit-secret` | Separate stable random HMAC secret, at least 32 characters | `/secrets/render-credit-secret/value` |
+| `aperiodos-sendgrid-api-key` | Restricted SendGrid key with Mail Send access | `/secrets/sendgrid-api-key/value` |
 
 The application restricted key should begin with only `Checkout Sessions:
 Write`; leave other permissions at `None`. Validate the complete flow with an
@@ -63,8 +64,16 @@ openssl rand -hex 32 | gcloud secrets create aperiodos-render-credit-secret \
 ```
 
 Grant the Cloud Run runtime service account `roles/secretmanager.secretAccessor`
-on these four secrets. Then deploy with `make deploy`. The deployment defaults
+on these five secrets. Then deploy with `make deploy`. The deployment defaults
 to secret version 1 and fails early if a configured version is unavailable.
+
+The deployment sends from `noreply@trainvent.com` with the name
+`Trainvent Aperiodos`. The address or its domain must be authenticated in
+SendGrid. Override it without changing code when needed:
+
+```bash
+SENDGRID_FROM_EMAIL=verified-sender@example.com make deploy
+```
 
 ## Rotation
 
@@ -87,16 +96,33 @@ Use `STRIPE_WEBHOOK_SECRET_VERSION` for webhook-secret rotation. Do not rotate
 the render HMAC secrets routinely: changing the quota secret changes visitor
 identities, and changing the credit secret invalidates all purchased codes.
 
-Local sandbox development may still use the ignored `.env` file. Those values
-are never used by the production deployment.
-
 For a complete local sandbox with automatic Stripe webhook forwarding, run:
 
 ```bash
 make dev-sandbox
 ```
 
-The Make target retrieves the Stripe CLI listener secret into a mode-`0600`
-temporary file, starts the listener and Next.js together, and removes the file
-when the process exits. The sandbox API key and sandbox Price ID must still be
-configured locally; no live credentials or payments are used.
+The launcher retrieves `aperiodos-stripe-sandbox-secret-key` and
+`aperiodos-sendgrid-api-key` from Google Secret Manager into mode-`0600`
+temporary files. It generates a fresh Stripe CLI webhook signing secret, starts
+the listener and Next.js together, and deletes all three files when the process
+exits. Secret values are never placed in command-line arguments or environment
+variables; only temporary file paths are passed to the application. The normal
+ignored `.env` files are deliberately skipped for this command.
+
+The sandbox Price ID is non-secret and has a checked-in default. Secret names,
+versions, sender details, and project can be overridden for one run, for example:
+
+```bash
+SENDGRID_FROM_EMAIL=verified-sender@example.com \
+STRIPE_SANDBOX_KEY_VERSION=2 \
+make dev-sandbox
+```
+
+The app and webhook listener use port `3000`. If that port is occupied by an
+unrelated service, select another one consistently with
+`SANDBOX_PORT=3001 make dev-sandbox`. Stop an already-running Next development
+server for this repository first because Next permits only one per worktree.
+
+SendGrid has no separate delivery sandbox in this setup: a successful Stripe
+sandbox payment sends a real message to the test customer's email address.

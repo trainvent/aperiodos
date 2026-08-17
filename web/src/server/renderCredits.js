@@ -105,8 +105,13 @@ function validatePaidCreditSession(session) {
   }
 }
 
-export async function createRenderCreditCheckoutSession({ successUrl, cancelUrl }) {
-  const metadata = { purchase_type: "render_credits", credit_count: String(RENDER_CREDIT_BUNDLE_SIZE) };
+export async function createRenderCreditCheckoutSession({ successUrl, cancelUrl, language = "en" }) {
+  const deliveryLanguage = String(language).toLowerCase() === "de" ? "de" : "en";
+  const metadata = {
+    purchase_type: "render_credits",
+    credit_count: String(RENDER_CREDIT_BUNDLE_SIZE),
+    delivery_language: deliveryLanguage,
+  };
   const configuredPriceId = renderCreditsPriceId();
   const session = await stripeClient().checkout.sessions.create({
     mode: "payment",
@@ -171,8 +176,99 @@ export async function fulfillRenderCreditsFromEvent(event) {
   const session = event.data?.object;
   if (session?.metadata?.purchase_type !== "render_credits") return false;
   if (String(session.payment_status || "").toLowerCase() !== "paid") return false;
-  await issueRenderCreditBundle(session);
+  const codes = await issueRenderCreditBundle(session);
+  const emailConfigured = Boolean(serverSecret("SENDGRID_API_KEY_FILE", "SENDGRID_API_KEY"));
+  if (!emailConfigured && useLocalStore()) return true;
+
+  const delivery = await reserveRenderCreditEmailDelivery(session.id, event.id);
+  if (delivery === "sent") return true;
+  if (delivery === "busy") throw new ApiError("Generation-code email delivery is already in progress.", 503);
+
+  try {
+    const { sendRenderCreditEmail } = await import("./renderCreditEmail.js");
+    await sendRenderCreditEmail({
+      recipient: String(session.customer_details?.email || session.customer_email || "").trim(),
+      codes,
+      language: session.metadata?.delivery_language,
+    });
+    await completeRenderCreditEmailDelivery(session.id, event.id);
+  } catch (error) {
+    await failRenderCreditEmailDelivery(session.id, event.id, error);
+    throw error;
+  }
   return true;
+}
+
+const EMAIL_DELIVERY_LEASE_MS = 5 * 60 * 1000;
+
+async function reserveRenderCreditEmailDelivery(sessionId, eventId) {
+  const now = new Date();
+  const deliveryEventId = String(eventId || "unknown");
+  if (useLocalStore()) {
+    return mutateLocalStore((store) => {
+      const bundle = store.bundles[sessionId];
+      if (bundle?.email_sent_at) return "sent";
+      const startedAt = Date.parse(bundle?.email_delivery_started_at || "");
+      if (bundle?.email_delivery_status === "sending" && Number.isFinite(startedAt) && now.getTime() - startedAt < EMAIL_DELIVERY_LEASE_MS) {
+        return "busy";
+      }
+      Object.assign(bundle, {
+        email_delivery_status: "sending",
+        email_delivery_event_id: deliveryEventId,
+        email_delivery_started_at: now.toISOString(),
+      });
+      return "reserved";
+    });
+  }
+
+  const database = firestore();
+  const bundleRef = database.collection(RENDER_CREDIT_BUNDLE_COLLECTION).doc(sessionId);
+  return database.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(bundleRef);
+    const bundle = snapshot.data() || {};
+    if (bundle.email_sent_at) return "sent";
+    const startedAt = bundle.email_delivery_started_at?.toDate?.() || new Date(bundle.email_delivery_started_at || 0);
+    if (bundle.email_delivery_status === "sending" && now.getTime() - startedAt.getTime() < EMAIL_DELIVERY_LEASE_MS) return "busy";
+    transaction.update(bundleRef, {
+      email_delivery_status: "sending",
+      email_delivery_event_id: deliveryEventId,
+      email_delivery_started_at: now,
+    });
+    return "reserved";
+  });
+}
+
+async function completeRenderCreditEmailDelivery(sessionId, eventId) {
+  const now = new Date();
+  const deliveryEventId = String(eventId || "unknown");
+  if (useLocalStore()) {
+    return mutateLocalStore((store) => Object.assign(store.bundles[sessionId], {
+      email_delivery_status: "sent",
+      email_delivery_event_id: deliveryEventId,
+      email_sent_at: now.toISOString(),
+    }));
+  }
+  return firestore().collection(RENDER_CREDIT_BUNDLE_COLLECTION).doc(sessionId).update({
+    email_delivery_status: "sent",
+    email_delivery_event_id: deliveryEventId,
+    email_sent_at: now,
+  });
+}
+
+async function failRenderCreditEmailDelivery(sessionId, eventId, error) {
+  const failure = {
+    email_delivery_status: "failed",
+    email_delivery_event_id: String(eventId || "unknown"),
+    email_delivery_failed_at: new Date(),
+    email_delivery_error: String(error?.message || error).slice(0, 500),
+  };
+  if (useLocalStore()) {
+    return mutateLocalStore((store) => Object.assign(store.bundles[sessionId], {
+      ...failure,
+      email_delivery_failed_at: failure.email_delivery_failed_at.toISOString(),
+    }));
+  }
+  return firestore().collection(RENDER_CREDIT_BUNDLE_COLLECTION).doc(sessionId).update(failure);
 }
 
 function pdfEscape(value) {

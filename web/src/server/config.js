@@ -98,6 +98,18 @@ export function renderCreditsPriceId() {
   return (process.env.STRIPE_RENDER_CREDITS_PRICE_ID || "").trim();
 }
 
+export function sendGridApiKey() {
+  return serverSecret("SENDGRID_API_KEY_FILE", "SENDGRID_API_KEY");
+}
+
+export function sendGridFromEmail() {
+  return (process.env.SENDGRID_FROM_EMAIL || "noreply@trainvent.com").trim();
+}
+
+export function sendGridFromName() {
+  return (process.env.SENDGRID_FROM_NAME || "Trainvent Aperiodos").trim();
+}
+
 export function donationServiceAvailable() {
   return Boolean(stripeSecretKey());
 }
