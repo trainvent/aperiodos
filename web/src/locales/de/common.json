@@ -101,6 +101,13 @@
 			"confirming": "Zahlung wird bestätigt und Codes werden vorbereitet...",
 			"confirmFailed": "Die gekauften Codes konnten nicht abgerufen werden.",
 			"ready": "Zahlung bestätigt. Deine zehn Codes sind bereit."
+		},
+		"email": {
+			"pending": "Deine E-Mail wird vorbereitet...",
+			"sending": "Deine E-Mail wird gesendet...",
+			"sent": "E-Mail mit Codes und PDF gesendet.",
+			"failed": "Die E-Mail konnte nicht gesendet werden. Deine Codes und das PDF sind weiterhin hier verfügbar.",
+			"delayed": "Die E-Mail-Bestätigung dauert länger als erwartet. Deine Codes und das PDF sind hier verfügbar."
 		}
 	},
 	"generator": {

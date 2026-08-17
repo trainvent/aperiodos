@@ -101,6 +101,13 @@
 			"confirming": "Confirming payment and preparing your codes...",
 			"confirmFailed": "Could not retrieve the purchased codes.",
 			"ready": "Payment confirmed. Your ten codes are ready."
+		},
+		"email": {
+			"pending": "Your email is being prepared...",
+			"sending": "Your email is being sent...",
+			"sent": "Email with codes and PDF sent.",
+			"failed": "The email could not be sent. Your codes and PDF are still available here.",
+			"delayed": "Email confirmation is taking longer than expected. Your codes and PDF are available here."
 		}
 	},
 	"generator": {

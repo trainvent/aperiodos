@@ -3,14 +3,50 @@ import { useTranslation } from "react-i18next";
 
 import { apiUrl } from "../../lib/api";
 
+function FeedbackMessage({ message, tone = "info" }) {
+  if (!message) return null;
+  const icon = tone === "success" ? "✓" : tone === "error" ? "×" : "…";
+  return (
+    <p className={`feedback-message feedback-${tone}`} role="status" aria-live="polite">
+      <span className="feedback-icon" aria-hidden="true">{icon}</span>
+      <span>{message}</span>
+    </p>
+  );
+}
+
 export default function RenderCreditsPage() {
   const { t, i18n } = useTranslation("common");
   const language = i18n.resolvedLanguage === "de" ? "de" : "en";
   const [status, setStatus] = useState("");
+  const [statusTone, setStatusTone] = useState("info");
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
+  const [emailDeliveryStatus, setEmailDeliveryStatus] = useState("");
   const confirmedSessionRef = useRef("");
+  const emailPollRef = useRef(0);
+
+  async function pollEmailDeliveryStatus(sessionId) {
+    const pollId = ++emailPollRef.current;
+    setEmailDeliveryStatus("pending");
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      try {
+        const response = await fetch(apiUrl(`/api/render-credits/email-status?session_id=${encodeURIComponent(sessionId)}`), {
+          cache: "no-store",
+        });
+        const data = await response.json().catch(() => ({}));
+        if (pollId !== emailPollRef.current) return;
+        if (response.ok && ["pending", "sending", "sent", "failed"].includes(data.status)) {
+          setEmailDeliveryStatus(data.status);
+          if (data.status === "sent" || data.status === "failed") return;
+        }
+      } catch {
+        // A short-lived polling error should not hide a later delivery result.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+    }
+    if (pollId === emailPollRef.current) setEmailDeliveryStatus("delayed");
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -18,12 +54,14 @@ export default function RenderCreditsPage() {
     const sessionId = params.get("session_id") || "";
     if (checkoutStatus === "cancelled") {
       setStatus(t("renderCredits.status.cancelled"));
+      setStatusTone("error");
       return;
     }
     if (checkoutStatus !== "success" || !sessionId || confirmedSessionRef.current === sessionId) return;
     confirmedSessionRef.current = sessionId;
     setLoading(true);
     setStatus(t("renderCredits.status.confirming"));
+    setStatusTone("info");
     fetch(apiUrl("/api/render-credits/confirm-session"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -35,6 +73,8 @@ export default function RenderCreditsPage() {
         const issuedCodes = Array.isArray(data.codes) ? data.codes : [];
         setCodes(issuedCodes);
         setStatus(t("renderCredits.status.ready"));
+        setStatusTone("success");
+        void pollEmailDeliveryStatus(sessionId);
         const pdfUrl = apiUrl(`/api/render-credits/codes.pdf?session_id=${encodeURIComponent(sessionId)}&lang=${language}`);
         const link = document.createElement("a");
         link.href = pdfUrl;
@@ -43,13 +83,17 @@ export default function RenderCreditsPage() {
         link.click();
         link.remove();
       })
-      .catch((error) => setStatus(error.message || t("renderCredits.status.confirmFailed")))
+      .catch((error) => {
+        setStatus(error.message || t("renderCredits.status.confirmFailed"));
+        setStatusTone("error");
+      })
       .finally(() => setLoading(false));
   }, [t, language]);
 
   async function startCheckout() {
     setLoading(true);
     setStatus(t("renderCredits.status.checkout"));
+    setStatusTone("info");
     try {
       const response = await fetch(apiUrl("/api/render-credits/checkout-session"), {
         method: "POST",
@@ -62,6 +106,7 @@ export default function RenderCreditsPage() {
       window.location.assign(data.checkout_url);
     } catch (error) {
       setStatus(error.message || t("renderCredits.status.checkoutFailed"));
+      setStatusTone("error");
       setLoading(false);
     }
   }
@@ -79,6 +124,12 @@ export default function RenderCreditsPage() {
   const pdfUrl = sessionId
     ? apiUrl(`/api/render-credits/codes.pdf?session_id=${encodeURIComponent(sessionId)}&lang=${language}`)
     : "";
+  const emailStatusMessage = emailDeliveryStatus
+    ? t(`renderCredits.email.${emailDeliveryStatus}`)
+    : "";
+  const emailStatusTone = emailDeliveryStatus === "sent"
+    ? "success"
+    : emailDeliveryStatus === "failed" ? "error" : "info";
 
   return (
     <>
@@ -102,7 +153,10 @@ export default function RenderCreditsPage() {
           <button className="button button-gold" type="button" onClick={startCheckout} disabled={loading}>
             {t("renderCredits.product.buy")}
           </button>
-          {status ? <p className="status status-spaced">{status}</p> : null}
+          <div className="feedback-stack">
+            <FeedbackMessage message={status} tone={statusTone} />
+            <FeedbackMessage message={emailStatusMessage} tone={emailStatusTone} />
+          </div>
         </section>
 
         <section className="panel credits-delivery">

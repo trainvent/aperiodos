@@ -28,6 +28,7 @@ export default function handler(req, res) {
       "POST /api/donations/checkout-session": "Create a Stripe checkout session for a donation",
       "POST /api/render-credits/checkout-session": "Buy ten single-use generation codes",
       "POST /api/render-credits/confirm-session": "Confirm payment and issue generation codes",
+      "GET /api/render-credits/email-status": "Check generation-code email delivery status",
       "POST /api/stripe/webhook": "Stripe webhook endpoint for recording paid sponsors",
       "POST /api/einstein/render": "Generate an Einstein image and return it directly",
       "POST /api/spectre/render": "Generate a Spectre SVG, PNG, or JPG and return it directly",

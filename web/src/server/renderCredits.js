@@ -199,6 +199,23 @@ export async function fulfillRenderCreditsFromEvent(event) {
   return true;
 }
 
+export async function getRenderCreditEmailDeliveryStatus(sessionId) {
+  const cleanSessionId = String(sessionId || "").trim();
+  if (!cleanSessionId) throw new ApiError("Missing Stripe checkout session id.");
+
+  let bundle;
+  if (useLocalStore()) {
+    bundle = (await readLocalStore()).bundles?.[cleanSessionId];
+  } else {
+    if (!firestoreConfigured()) throw new ApiError("Render credit storage is not configured on this server.", 503);
+    const snapshot = await firestore().collection(RENDER_CREDIT_BUNDLE_COLLECTION).doc(cleanSessionId).get();
+    bundle = snapshot.exists ? snapshot.data() : null;
+  }
+
+  const status = String(bundle?.email_delivery_status || "pending");
+  return ["pending", "sending", "sent", "failed"].includes(status) ? status : "pending";
+}
+
 const EMAIL_DELIVERY_LEASE_MS = 5 * 60 * 1000;
 
 async function reserveRenderCreditEmailDelivery(sessionId, eventId) {

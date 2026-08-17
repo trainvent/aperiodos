@@ -8,6 +8,7 @@ import {
   buildLocalizedRenderCreditsPdf,
   consumeLocalRenderCredit,
   deriveRenderCreditCodes,
+  getRenderCreditEmailDeliveryStatus,
   hashRenderCreditCode,
   issueRenderCreditBundle,
   normalizeRenderCreditCode,
@@ -55,6 +56,7 @@ test("paid bundles issue ten codes idempotently and codes are single-use", async
     const first = await issueRenderCreditBundle(session);
     const second = await issueRenderCreditBundle(session);
     assert.deepEqual(second, first);
+    assert.equal(await getRenderCreditEmailDeliveryStatus(session.id), "pending");
     const codeHash = hashRenderCreditCode(first[0]);
     assert.equal(await consumeLocalRenderCredit(codeHash), true);
     assert.equal(await consumeLocalRenderCredit(codeHash), false);
