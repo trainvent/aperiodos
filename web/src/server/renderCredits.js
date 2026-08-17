@@ -4,7 +4,7 @@ import path from "node:path";
 
 import Stripe from "stripe";
 
-import { PROJECT_ROOT, stripeSecretKey } from "./config.js";
+import { PROJECT_ROOT, renderCreditsPriceId, stripeSecretKey } from "./config.js";
 import { firestore, firestoreConfigured } from "./firestore.js";
 import { ApiError } from "./http.js";
 
@@ -104,19 +104,22 @@ function validatePaidCreditSession(session) {
 
 export async function createRenderCreditCheckoutSession({ successUrl, cancelUrl }) {
   const metadata = { purchase_type: "render_credits", credit_count: String(RENDER_CREDIT_BUNDLE_SIZE) };
+  const configuredPriceId = renderCreditsPriceId();
   const session = await stripeClient().checkout.sessions.create({
     mode: "payment",
     success_url: successUrl,
     cancel_url: cancelUrl,
     allow_promotion_codes: true,
-    line_items: [{
-      quantity: 1,
-      price_data: {
-        currency: RENDER_CREDIT_CURRENCY,
-        unit_amount: RENDER_CREDIT_PRICE_CENTS,
-        product_data: { name: `${RENDER_CREDIT_BUNDLE_SIZE} Aperiodos generation codes` },
-      },
-    }],
+    line_items: configuredPriceId
+      ? [{ quantity: 1, price: configuredPriceId }]
+      : [{
+          quantity: 1,
+          price_data: {
+            currency: RENDER_CREDIT_CURRENCY,
+            unit_amount: RENDER_CREDIT_PRICE_CENTS,
+            product_data: { name: `${RENDER_CREDIT_BUNDLE_SIZE} Aperiodos generation codes` },
+          },
+        }],
     payment_intent_data: { metadata, statement_descriptor_suffix: "Aperiodos" },
     metadata,
   });

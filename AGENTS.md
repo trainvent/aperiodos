@@ -87,6 +87,7 @@ Sandbox mode uses separate env vars:
 export STRIPE_MODE=sandbox
 export STRIPE_SANDBOX_SECRET_KEY=sk_test_or_sandbox_key
 export STRIPE_SANDBOX_WEBHOOK_SECRET=whsec_...
+export STRIPE_SANDBOX_RENDER_CREDITS_PRICE_ID=price_...
 ```
 
 For local development, prefer the sandbox runner:
@@ -105,6 +106,7 @@ Optional environment variables:
 
 ```bash
 export STRIPE_WEBHOOK_SECRET=whsec_...
+export STRIPE_RENDER_CREDITS_PRICE_ID=price_...
 export PUBLIC_APP_URL=https://www.aperiodos.com
 export DONATION_CURRENCY=eur
 export MIN_DONATION_CENTS=100

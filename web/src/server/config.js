@@ -78,6 +78,13 @@ export function stripeWebhookSecret() {
   return (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
 }
 
+export function renderCreditsPriceId() {
+  if (stripeMode() === "sandbox") {
+    return (process.env.STRIPE_SANDBOX_RENDER_CREDITS_PRICE_ID || "").trim();
+  }
+  return (process.env.STRIPE_RENDER_CREDITS_PRICE_ID || "").trim();
+}
+
 export function donationServiceAvailable() {
   return Boolean(stripeSecretKey());
 }
