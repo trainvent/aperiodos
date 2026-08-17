@@ -4,7 +4,7 @@ import path from "node:path";
 
 import Stripe from "stripe";
 
-import { PROJECT_ROOT, renderCreditsPriceId, stripeSecretKey } from "./config.js";
+import { PROJECT_ROOT, renderCreditsPriceId, serverSecret, stripeSecretKey } from "./config.js";
 import { firestore, firestoreConfigured } from "./firestore.js";
 import { ApiError } from "./http.js";
 
@@ -29,7 +29,8 @@ function useLocalStore() {
 }
 
 function creditSecret() {
-  const secret = String(process.env.RENDER_CREDIT_SECRET || process.env.RENDER_QUOTA_SECRET || "");
+  const secret = serverSecret("RENDER_CREDIT_SECRET_FILE", "RENDER_CREDIT_SECRET") ||
+    serverSecret("RENDER_QUOTA_SECRET_FILE", "RENDER_QUOTA_SECRET");
   const resolved = secret || (useLocalStore() ? LOCAL_DEVELOPMENT_SECRET : "");
   if (resolved.length < 32) {
     throw new ApiError("Render credits are not configured on this server.", 503);

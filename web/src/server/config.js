@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 
 export const WEB_ROOT = process.cwd();
@@ -64,18 +65,30 @@ export function stripeMode() {
   return (process.env.STRIPE_MODE || "live").trim().toLowerCase() || "live";
 }
 
+export function serverSecret(fileEnvironmentName, valueEnvironmentName) {
+  const filePath = String(process.env[fileEnvironmentName] || "").trim();
+  if (filePath) {
+    try {
+      return fs.readFileSync(filePath, "utf8").trim();
+    } catch (error) {
+      throw new Error(`Unable to read configured secret file '${fileEnvironmentName}'.`, { cause: error });
+    }
+  }
+  return String(process.env[valueEnvironmentName] || "").trim();
+}
+
 export function stripeSecretKey() {
   if (stripeMode() === "sandbox") {
-    return (process.env.STRIPE_SANDBOX_SECRET_KEY || "").trim();
+    return serverSecret("STRIPE_SANDBOX_SECRET_KEY_FILE", "STRIPE_SANDBOX_SECRET_KEY");
   }
-  return (process.env.STRIPE_SECRET_KEY || "").trim();
+  return serverSecret("STRIPE_SECRET_KEY_FILE", "STRIPE_SECRET_KEY");
 }
 
 export function stripeWebhookSecret() {
   if (stripeMode() === "sandbox") {
-    return (process.env.STRIPE_SANDBOX_WEBHOOK_SECRET || "").trim();
+    return serverSecret("STRIPE_SANDBOX_WEBHOOK_SECRET_FILE", "STRIPE_SANDBOX_WEBHOOK_SECRET");
   }
-  return (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+  return serverSecret("STRIPE_WEBHOOK_SECRET_FILE", "STRIPE_WEBHOOK_SECRET");
 }
 
 export function renderCreditsPriceId() {

@@ -1,5 +1,8 @@
 # Developer Instructions
 
+## Home Check
+- for root guidance, check .agents/
+
 ## Repository Layout
 
 - `web/` contains the Next.js web app, API routes, Stripe donation flow, and Firestore sponsor reads/writes.
@@ -126,6 +129,78 @@ export RENDER_CREDIT_SECRET="$(openssl rand -hex 32)"
 
 Keep this secret stable across deployments. Changing it invalidates previously
 purchased codes.
+
+### Production Secret Manager setup
+
+See `docs/production-secrets.md` for the complete create, mount, permission,
+deployment, and rotation procedure. Production secrets are mounted as read-only
+files rather than injected as secret environment-variable values.
+
+`deploy.sh` never contains secret values. It expects these Google Secret
+Manager resources, with version 1 by default:
+
+- `aperiodos-stripe-live-api-key` -> the live application restricted key
+- `aperiodos-stripe-live-webhook-secret` -> the live endpoint's `whsec_...`
+- `aperiodos-render-quota-secret` -> a stable random HMAC secret
+- `aperiodos-render-credit-secret` -> a separate stable random HMAC secret
+
+Create the Stripe secrets without putting their values in shell history. The
+commands prompt silently and pipe the value directly to Secret Manager:
+
+```bash
+read -r -s -p "Live Stripe restricted key: " APERIODOS_SECRET_VALUE; echo
+printf '%s' "$APERIODOS_SECRET_VALUE" | gcloud secrets create aperiodos-stripe-live-api-key \
+  --project=aperiodos --replication-policy=automatic --data-file=-
+unset APERIODOS_SECRET_VALUE
+
+read -r -s -p "Live Stripe webhook signing secret: " APERIODOS_SECRET_VALUE; echo
+printf '%s' "$APERIODOS_SECRET_VALUE" | gcloud secrets create aperiodos-stripe-live-webhook-secret \
+  --project=aperiodos --replication-policy=automatic --data-file=-
+unset APERIODOS_SECRET_VALUE
+```
+
+If production already has a `RENDER_QUOTA_SECRET`, migrate that exact value into
+Secret Manager rather than generating a replacement. For a first deployment,
+create the stable render secrets once:
+
+```bash
+openssl rand -hex 32 | gcloud secrets create aperiodos-render-quota-secret \
+  --project=aperiodos --replication-policy=automatic --data-file=-
+openssl rand -hex 32 | gcloud secrets create aperiodos-render-credit-secret \
+  --project=aperiodos --replication-policy=automatic --data-file=-
+```
+
+Do not rotate either render secret casually. Rotating the quota secret changes
+visitor identities; rotating the credit secret invalidates every previously
+purchased code.
+
+Create a dedicated live restricted key for the Cloud Run application. Its code
+only calls the Checkout Sessions create and retrieve endpoints, so begin with
+`Checkout Sessions: Write` and all other permissions set to `None`. Test the
+complete sandbox checkout first and use Stripe's restricted-key request logs if
+Stripe reports that another permission is required. Do not reuse the temporary
+CLI catalog-management key in the application.
+
+To rotate only a Stripe credential, add a new secret version using the same
+silent prompt pattern:
+
+```bash
+read -r -s -p "New live Stripe restricted key: " APERIODOS_SECRET_VALUE; echo
+printf '%s' "$APERIODOS_SECRET_VALUE" | gcloud secrets versions add aperiodos-stripe-live-api-key \
+  --project=aperiodos --data-file=-
+unset APERIODOS_SECRET_VALUE
+```
+
+Then deploy with the new numeric version, for example:
+
+```bash
+STRIPE_API_KEY_VERSION=2 make deploy
+```
+
+The Cloud Run service identity needs `roles/secretmanager.secretAccessor` for
+these four secrets. `deploy.sh` attaches the pinned versions and configures the
+live Price ID, public URL, Firestore database, donation currency, and quota
+limits.
 
 ## Render Quota
 

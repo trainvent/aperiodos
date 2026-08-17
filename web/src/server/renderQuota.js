@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import { isIP } from "node:net";
 import path from "node:path";
 
-import { PROJECT_ROOT } from "./config.js";
+import { PROJECT_ROOT, serverSecret } from "./config.js";
 import { firestore, firestoreConfigured } from "./firestore.js";
 import { ApiError } from "./http.js";
 import {
@@ -141,7 +141,7 @@ function localQuotaStorePath() {
 }
 
 function quotaSecret() {
-  const configured = String(process.env.RENDER_QUOTA_SECRET || "");
+  const configured = serverSecret("RENDER_QUOTA_SECRET_FILE", "RENDER_QUOTA_SECRET");
   return configured || (useLocalQuotaStore() ? LOCAL_DEVELOPMENT_SECRET : "");
 }
 
