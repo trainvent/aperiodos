@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { readFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -15,6 +16,7 @@ export const RENDER_CREDIT_COLLECTION = "render_credit_codes";
 export const RENDER_CREDIT_BUNDLE_COLLECTION = "render_credit_bundles";
 
 const LOCAL_STORE_PATH = path.join(PROJECT_ROOT, ".sandbox", "render-credits.json");
+const PDF_LOGO_PATH = path.join(process.cwd(), "public", "LeLogo.svg");
 const LOCAL_DEVELOPMENT_SECRET = "aperiodos-local-render-credit-secret";
 let localStoreQueue = Promise.resolve();
 
@@ -177,23 +179,114 @@ function pdfEscape(value) {
   return String(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
+function svgAttribute(attributes, name) {
+  return attributes.match(new RegExp(`\\b${name}="([^"]+)"`))?.[1] || "";
+}
+
+function svgLogoPdfCommands(svg, { x, y, size }) {
+  const viewBox = svg.match(/viewBox="[^"]*?([\d.]+)\s+([\d.]+)"/);
+  const width = Number(viewBox?.[1] || 900);
+  const height = Number(viewBox?.[2] || 900);
+  const scaleX = (value) => x + Number(value) * size / width;
+  const scaleY = (value) => y + (height - Number(value)) * size / height;
+  const commands = ["q", "1 1 1 rg", "0 0 0 RG", `${(10 * size / width).toFixed(3)} w`];
+
+  const circle = svg.match(/<circle\b([^>]*)\/>/);
+  if (circle) {
+    const cx = scaleX(svgAttribute(circle[1], "cx"));
+    const cy = scaleY(svgAttribute(circle[1], "cy"));
+    const radius = Number(svgAttribute(circle[1], "r")) * size / width;
+    const control = radius * 0.5522847498;
+    commands.push(
+      `${cx + radius} ${cy} m`,
+      `${cx + radius} ${cy + control} ${cx + control} ${cy + radius} ${cx} ${cy + radius} c`,
+      `${cx - control} ${cy + radius} ${cx - radius} ${cy + control} ${cx - radius} ${cy} c`,
+      `${cx - radius} ${cy - control} ${cx - control} ${cy - radius} ${cx} ${cy - radius} c`,
+      `${cx + control} ${cy - radius} ${cx + radius} ${cy - control} ${cx + radius} ${cy} c`,
+      "B",
+    );
+  }
+
+  for (const polygon of svg.matchAll(/<polygon\b([^>]*)\/>/g)) {
+    const points = svgAttribute(polygon[1], "points")
+      .trim()
+      .split(/\s+/)
+      .map((point) => point.split(",").map(Number));
+    if (points.length < 3) continue;
+    commands.push(`${scaleX(points[0][0])} ${scaleY(points[0][1])} m`);
+    for (const [pointX, pointY] of points.slice(1)) {
+      commands.push(`${scaleX(pointX)} ${scaleY(pointY)} l`);
+    }
+    commands.push("h", "B");
+  }
+
+  commands.push("Q");
+  return commands.join("\n");
+}
+
 export function buildRenderCreditsPdf(codes) {
+  return buildLocalizedRenderCreditsPdf(codes, "en");
+}
+
+const PDF_COPY = {
+  en: {
+    title: "Aperiodos generation codes",
+    product: "10 single-use pattern generations - EUR 5.00",
+    instructions: "Paste one code after your free daily generations are used. Tick it after use.",
+    note: "Codes do not expire. Each code can be redeemed once.",
+    createdBy: "CREATED BY",
+  },
+  de: {
+    title: "Aperiodos Generierungscodes",
+    product: "10 einmalig nutzbare Mustergenerierungen - EUR 5,00",
+    instructions: "Nach dem kostenlosen Tageslimit einen Code einsetzen und danach abhaken.",
+    note: "Codes verfallen nicht. Jeder Code kann einmal verwendet werden.",
+    createdBy: "ERSTELLT VON",
+  },
+};
+
+export function buildLocalizedRenderCreditsPdf(codes, language = "en") {
+  const copy = PDF_COPY[language] || PDF_COPY.en;
+  const checkboxObjectStart = 8;
+  const checkboxObjectIds = codes.map((_, index) => checkboxObjectStart + index);
+  const uncheckedAppearanceObjectId = checkboxObjectStart + codes.length;
+  const checkedAppearanceObjectId = uncheckedAppearanceObjectId + 1;
+  const logoCommands = svgLogoPdfCommands(readFileSync(PDF_LOGO_PATH, "utf8"), {
+    x: 64,
+    y: 58,
+    size: 58,
+  });
   const lines = [
-    { text: "Aperiodos generation codes", size: 20, y: 790 },
-    { text: "10 single-use pattern generations - EUR 5.00", size: 11, y: 765 },
-    { text: "Paste one code after your free daily generations are used. Tick it after use.", size: 10, y: 742 },
-    ...codes.map((code, index) => ({ text: `[  ]   ${code}`, size: 14, y: 700 - index * 48 })),
-    { text: "Codes do not expire. Each code can be redeemed once.", size: 9, y: 190 },
+    { text: copy.title, size: 20, y: 790, font: "F2" },
+    { text: copy.product, size: 11, y: 765 },
+    { text: copy.instructions, size: 10, y: 742 },
+    ...codes.map((code, index) => ({ text: code, size: 14, x: 88, y: 700 - index * 48 })),
+    { text: copy.note, size: 9, y: 190 },
+    { text: copy.createdBy, size: 8, x: 140, y: 97 },
+    { text: "Trainvent", size: 17, x: 140, y: 76, font: "F2" },
   ];
-  const stream = lines
-    .map(({ text, size, y }) => `BT /F1 ${size} Tf 64 ${y} Td (${pdfEscape(text)}) Tj ET`)
+  const textCommands = lines
+    .map(({ text, size, x = 64, y, font = "F1" }) =>
+      `BT /${font} ${size} Tf ${x} ${y} Td (${pdfEscape(text)}) Tj ET`)
     .join("\n");
+  const stream = `${textCommands}\n0.75 w 64 148 m 531 148 l S\n${logoCommands}`;
+  const checkboxObjects = codes.map((_, index) => {
+    const baseline = 700 - index * 48;
+    return `<< /Type /Annot /Subtype /Widget /FT /Btn /T (generation_code_${index + 1}) /F 4 /Rect [64 ${baseline - 3} 78 ${baseline + 11}] /V /Off /AS /Off /MK << /BC [0 0 0] /BG [1 1 1] >> /BS << /W 1 /S /S >> /AP << /N << /Off ${uncheckedAppearanceObjectId} 0 R /Yes ${checkedAppearanceObjectId} 0 R >> >> >>`;
+  });
+  const uncheckedAppearance = "q 1 1 1 rg 0 0 0 RG 1 w 0.5 0.5 13 13 re B Q";
+  const checkedAppearance = "q 1 1 1 rg 0 0 0 RG 1 w 0.5 0.5 13 13 re B 1.6 w 3 7 m 6 4 l 11 10 l S Q";
   const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R /Annots [${checkboxObjectIds.map((id) => `${id} 0 R`).join(" ")}] >>`,
     `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+    `<< /Fields [${checkboxObjectIds.map((id) => `${id} 0 R`).join(" ")}] /NeedAppearances false >>`,
+    ...checkboxObjects,
+    `<< /Type /XObject /Subtype /Form /BBox [0 0 14 14] /Resources << >> /Length ${Buffer.byteLength(uncheckedAppearance)} >>\nstream\n${uncheckedAppearance}\nendstream`,
+    `<< /Type /XObject /Subtype /Form /BBox [0 0 14 14] /Resources << >> /Length ${Buffer.byteLength(checkedAppearance)} >>\nstream\n${checkedAppearance}\nendstream`,
   ];
   let pdf = "%PDF-1.4\n";
   const offsets = [0];

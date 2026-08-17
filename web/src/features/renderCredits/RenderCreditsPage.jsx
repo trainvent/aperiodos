@@ -4,10 +4,12 @@ import { useTranslation } from "react-i18next";
 import { apiUrl } from "../../lib/api";
 
 export default function RenderCreditsPage() {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
+  const language = i18n.resolvedLanguage === "de" ? "de" : "en";
   const [status, setStatus] = useState("");
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [copyStatus, setCopyStatus] = useState("");
   const confirmedSessionRef = useRef("");
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export default function RenderCreditsPage() {
         const issuedCodes = Array.isArray(data.codes) ? data.codes : [];
         setCodes(issuedCodes);
         setStatus(t("renderCredits.status.ready"));
-        const pdfUrl = apiUrl(`/api/render-credits/codes.pdf?session_id=${encodeURIComponent(sessionId)}`);
+        const pdfUrl = apiUrl(`/api/render-credits/codes.pdf?session_id=${encodeURIComponent(sessionId)}&lang=${language}`);
         const link = document.createElement("a");
         link.href = pdfUrl;
         link.download = "aperiodos-generation-codes.pdf";
@@ -43,7 +45,7 @@ export default function RenderCreditsPage() {
       })
       .catch((error) => setStatus(error.message || t("renderCredits.status.confirmFailed")))
       .finally(() => setLoading(false));
-  }, [t]);
+  }, [t, language]);
 
   async function startCheckout() {
     setLoading(true);
@@ -64,9 +66,18 @@ export default function RenderCreditsPage() {
     }
   }
 
+  async function copyAllCodes() {
+    try {
+      await navigator.clipboard.writeText(codes.join("\n"));
+      setCopyStatus(t("renderCredits.delivery.copied"));
+    } catch {
+      setCopyStatus(t("renderCredits.delivery.copyFailed"));
+    }
+  }
+
   const sessionId = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("session_id") || "";
   const pdfUrl = sessionId
-    ? apiUrl(`/api/render-credits/codes.pdf?session_id=${encodeURIComponent(sessionId)}`)
+    ? apiUrl(`/api/render-credits/codes.pdf?session_id=${encodeURIComponent(sessionId)}&lang=${language}`)
     : "";
 
   return (
@@ -102,7 +113,13 @@ export default function RenderCreditsPage() {
               <ol className="credits-code-list">
                 {codes.map((code) => <li key={code}><code>{code}</code></li>)}
               </ol>
-              {pdfUrl ? <a className="button button-green" href={pdfUrl}>{t("renderCredits.delivery.download")}</a> : null}
+              <div className="actions-row">
+                <button className="button button-muted" type="button" onClick={copyAllCodes}>
+                  {t("renderCredits.delivery.copyAll")}
+                </button>
+                {pdfUrl ? <a className="button button-green" href={pdfUrl}>{t("renderCredits.delivery.download")}</a> : null}
+              </div>
+              {copyStatus ? <p className="status" role="status">{copyStatus}</p> : null}
             </>
           ) : <p className="status">{t("renderCredits.delivery.empty")}</p>}
         </section>

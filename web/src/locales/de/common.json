@@ -89,7 +89,10 @@
 			"title": "Deine Codes",
 			"empty": "Deine Codes und das druckbare PDF erscheinen hier nach der Zahlung.",
 			"help": "Der PDF-Download sollte automatisch starten. Lass diese Seite geöffnet, bis du ihn gespeichert hast.",
-			"download": "PDF erneut herunterladen"
+			"download": "PDF erneut herunterladen",
+			"copyAll": "Alle Codes kopieren",
+			"copied": "Alle zehn Codes wurden kopiert, einer pro Zeile.",
+			"copyFailed": "Die Codes konnten nicht kopiert werden. Bitte kopiere sie aus der Liste."
 		},
 		"status": {
 			"checkout": "Sicherer Stripe-Checkout wird geöffnet...",

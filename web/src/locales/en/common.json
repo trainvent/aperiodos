@@ -89,7 +89,10 @@
 			"title": "Your codes",
 			"empty": "Your codes and printable PDF will appear here after payment.",
 			"help": "Your PDF download should start automatically. Keep this page open until you have saved it.",
-			"download": "Download PDF again"
+			"download": "Download PDF again",
+			"copyAll": "Copy all codes",
+			"copied": "All ten codes copied, one per line.",
+			"copyFailed": "Could not copy the codes. Please copy them from the list."
 		},
 		"status": {
 			"checkout": "Opening secure Stripe checkout...",

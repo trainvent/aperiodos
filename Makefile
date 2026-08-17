@@ -6,7 +6,24 @@ dev:
 	cd web && npm run dev
 
 dev-sandbox:
-	cd web && npm run dev -- --sandbox
+	@set -eu; \
+	webhook_secret_file="$$(mktemp)"; \
+	listener_pid=""; \
+	cleanup() { \
+		if [ -n "$$listener_pid" ]; then kill "$$listener_pid" 2>/dev/null || true; fi; \
+		rm -f "$$webhook_secret_file"; \
+	}; \
+	trap cleanup EXIT INT TERM; \
+	chmod 600 "$$webhook_secret_file"; \
+	stripe listen --print-secret > "$$webhook_secret_file"; \
+	stripe listen \
+		--events checkout.session.completed,checkout.session.async_payment_succeeded \
+		--forward-to http://127.0.0.1:3000/api/stripe/webhook \
+		>/dev/null 2>&1 & \
+	listener_pid="$$!"; \
+	cd web && \
+		STRIPE_SANDBOX_WEBHOOK_SECRET_FILE="$$webhook_secret_file" \
+		npm run dev -- --sandbox
 
 build:
 	cd web && npm run build

@@ -1,6 +1,6 @@
 import { donationServiceAvailable } from "../../../src/server/config.js";
 import { retrieveCheckoutSession } from "../../../src/server/donations.js";
-import { buildRenderCreditsPdf, issueRenderCreditBundle } from "../../../src/server/renderCredits.js";
+import { buildLocalizedRenderCreditsPdf, issueRenderCreditBundle } from "../../../src/server/renderCredits.js";
 import { handleApiError, methodNotAllowed } from "../../../src/server/http.js";
 
 export default async function handler(req, res) {
@@ -9,7 +9,8 @@ export default async function handler(req, res) {
   try {
     const session = await retrieveCheckoutSession(req.query?.session_id);
     const codes = await issueRenderCreditBundle(session);
-    const pdf = buildRenderCreditsPdf(codes);
+    const language = String(req.query?.lang || "").toLowerCase() === "de" ? "de" : "en";
+    const pdf = buildLocalizedRenderCreditsPdf(codes, language);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="aperiodos-generation-codes.pdf"');
     res.setHeader("Content-Length", String(pdf.length));

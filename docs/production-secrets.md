@@ -89,3 +89,14 @@ identities, and changing the credit secret invalidates all purchased codes.
 
 Local sandbox development may still use the ignored `.env` file. Those values
 are never used by the production deployment.
+
+For a complete local sandbox with automatic Stripe webhook forwarding, run:
+
+```bash
+make dev-sandbox
+```
+
+The Make target retrieves the Stripe CLI listener secret into a mode-`0600`
+temporary file, starts the listener and Next.js together, and removes the file
+when the process exits. The sandbox API key and sandbox Price ID must still be
+configured locally; no live credentials or payments are used.

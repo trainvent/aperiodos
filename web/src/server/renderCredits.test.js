@@ -5,6 +5,7 @@ import test from "node:test";
 
 import {
   buildRenderCreditsPdf,
+  buildLocalizedRenderCreditsPdf,
   consumeLocalRenderCredit,
   deriveRenderCreditCodes,
   hashRenderCreditCode,
@@ -72,5 +73,16 @@ test("generation code PDF contains all codes and a valid PDF trailer", () => {
   const pdf = buildRenderCreditsPdf(codes);
   assert.equal(pdf.subarray(0, 8).toString(), "%PDF-1.4");
   assert.match(pdf.toString(), /AP00-0000-0000-0000-0000-09/);
+  assert.match(pdf.toString(), /\(Trainvent\)/);
+  assert.match(pdf.toString(), /\/Helvetica-Bold/);
+  assert.equal(pdf.toString().match(/\/Subtype \/Widget/g)?.length, 10);
+  assert.equal(pdf.toString().match(/\/FT \/Btn/g)?.length, 10);
+  assert.match(pdf.toString(), /\/AcroForm 7 0 R/);
+  assert.match(pdf.toString(), /\/AP << \/N << \/Off/);
   assert.match(pdf.toString(), /%%EOF/);
+
+  const germanPdf = buildLocalizedRenderCreditsPdf(codes, "de").toString();
+  assert.match(germanPdf, /\(Aperiodos Generierungscodes\)/);
+  assert.match(germanPdf, /\(ERSTELLT VON\)/);
+  assert.match(germanPdf, /Codes verfallen nicht/);
 });
