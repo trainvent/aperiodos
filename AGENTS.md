@@ -112,6 +112,19 @@ export FIRESTORE_PROJECT_ID=your-gcp-project-id
 export FIRESTORE_DATABASE_ID=aperiodos-storage
 ```
 
+Generation-code checkout sells ten single-use render codes for EUR 5. Stripe
+fulfillment stores only HMAC hashes of the codes. The printable PDF is derived
+from the paid Checkout Session and can be downloaded again from the Generation
+Codes page. By default codes use `RENDER_QUOTA_SECRET`; optionally isolate their
+identity with another stable secret of at least 32 characters:
+
+```bash
+export RENDER_CREDIT_SECRET="$(openssl rand -hex 32)"
+```
+
+Keep this secret stable across deployments. Changing it invalidates previously
+purchased codes.
+
 ## Render Quota
 
 All three render endpoints share a server-side quota. Production allows three

@@ -1,6 +1,7 @@
 {
 	"nav": {
 		"home": "Startseite",
+		"codes": "Generierungscodes",
 		"sponsors": "Sponsoren",
 		"about": "Über"
 	},
@@ -70,16 +71,53 @@
 			"none": "Noch keine Sponsoren."
 		}
 	},
+	"renderCredits": {
+		"hero": {
+			"title": "Generierungscodes",
+			"lede": "Erstelle weiter Muster, nachdem deine kostenlosen täglichen Generierungen aufgebraucht sind."
+		},
+		"product": {
+			"tag": "Einmaliger Kauf",
+			"title": "10 Generierungscodes",
+			"description": "Verwende einen Code für eine Mustergenerierung, nachdem das kostenlose Tageslimit erreicht wurde.",
+			"singleUse": "Zehn separate Einmal-Codes",
+			"noExpiry": "Kein Ablaufdatum",
+			"pdf": "Druckbares PDF mit einem Kontrollkästchen pro Code",
+			"buy": "10 Codes für 5 € kaufen"
+		},
+		"delivery": {
+			"title": "Deine Codes",
+			"empty": "Deine Codes und das druckbare PDF erscheinen hier nach der Zahlung.",
+			"help": "Der PDF-Download sollte automatisch starten. Lass diese Seite geöffnet, bis du ihn gespeichert hast.",
+			"download": "PDF erneut herunterladen"
+		},
+		"status": {
+			"checkout": "Sicherer Stripe-Checkout wird geöffnet...",
+			"checkoutFailed": "Checkout konnte nicht gestartet werden.",
+			"cancelled": "Der Checkout wurde abgebrochen. Es wurde nichts berechnet.",
+			"confirming": "Zahlung wird bestätigt und Codes werden vorbereitet...",
+			"confirmFailed": "Die gekauften Codes konnten nicht abgerufen werden.",
+			"ready": "Zahlung bestätigt. Deine zehn Codes sind bereit."
+		}
+	},
 	"generator": {
 		"status": {
 			"ready": "Bereit zum Rendern.",
 			"rendering": "Rendering...",
 			"failed": "Render fehlgeschlagen.",
 			"complete": "Render abgeschlossen.",
+			"completeWithCode": "Render abgeschlossen. Ein Generierungscode wurde verwendet.",
 			"completeRemaining": "Render abgeschlossen. Heute verbleiben noch {{count}} Generierung(en).",
 			"dailyLimit": "Du hast deine {{count}} kostenlosen Generierungen für heute verbraucht. Bitte versuche es morgen erneut.",
 			"serviceDailyLimit": "Der Dienst hat sein Generierungslimit für heute erreicht. Bitte versuche es morgen erneut.",
 			"reset": "Einstellungen zurückgesetzt."
+		},
+		"credits": {
+			"title": "Mit einem Generierungscode fortfahren",
+			"help": "Füge unten einen unbenutzten Code ein und starte die Generierung erneut.",
+			"label": "Generierungscode",
+			"invalid": "Dieser Generierungscode ist ungültig oder wurde bereits verwendet.",
+			"buy": "10 Codes für 5 € kaufen"
 		},
 		"layout": {
 			"settings": "Einstellungen",

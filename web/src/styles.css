@@ -346,6 +346,63 @@ h1 {
   gap: 24px;
 }
 
+.credits-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(360px, 1.15fr);
+  gap: 24px;
+}
+
+.credits-product,
+.credits-delivery {
+  padding: 28px;
+}
+
+.credits-product h2 {
+  margin-bottom: 8px;
+}
+
+.credits-price {
+  margin: 24px 0 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3rem, 7vw, 5rem);
+  line-height: 1;
+  color: var(--accent-strong);
+}
+
+.credits-benefits {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0;
+  padding-left: 20px;
+  color: var(--ink-soft);
+}
+
+.credits-code-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 28px;
+  margin: 22px 0;
+  padding-left: 30px;
+}
+
+.credits-code-list code {
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.credit-redeem {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(23, 49, 59, 0.12);
+}
+
+.credit-redeem h3,
+.credit-redeem p {
+  margin: 0;
+}
+
 .controls-panel,
 .preview-panel {
   padding: 22px;
@@ -709,6 +766,14 @@ select {
   .hero-grid,
   .card-grid,
   .generator-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .credits-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .credits-code-list {
     grid-template-columns: 1fr;
   }
 

@@ -6,6 +6,11 @@ import path from "node:path";
 import { PROJECT_ROOT } from "./config.js";
 import { firestore, firestoreConfigured } from "./firestore.js";
 import { ApiError } from "./http.js";
+import {
+  consumeLocalRenderCredit,
+  hashRenderCreditCode,
+  renderCreditDocumentRef,
+} from "./renderCredits.js";
 
 export const DEFAULT_RENDER_DAILY_LIMIT = 3;
 export const DEFAULT_RENDER_GLOBAL_DAILY_LIMIT = 50;
@@ -152,25 +157,44 @@ async function readLocalQuotaStore() {
   }
 }
 
-async function reserveLocalQuota(documentId, globalDocumentId, day, limit, globalLimit, resetAt) {
+async function reserveLocalQuota(documentId, globalDocumentId, day, limit, globalLimit, resetAt, creditHash) {
   const operation = localQuotaQueue.then(async () => {
     const store = await readLocalQuotaStore();
-    const state = nextCombinedQuotaState(
+    let state = nextCombinedQuotaState(
       store[documentId]?.count,
       store[globalDocumentId]?.count,
       limit,
       globalLimit,
     );
+    if (!state.allowed && state.blockedBy === "ip" && creditHash && state.globalRemaining === 0) {
+      state = { ...state, blockedBy: "global" };
+    }
+    if (!state.allowed && state.blockedBy === "ip" && creditHash) {
+      const creditAccepted = await consumeLocalRenderCredit(creditHash);
+      state = creditAccepted
+        ? {
+            allowed: true,
+            blockedBy: null,
+            count: state.count,
+            remaining: 0,
+            globalCount: state.globalCount + 1,
+            globalRemaining: Math.max(0, globalLimit - state.globalCount - 1),
+            creditUsed: true,
+          }
+        : { ...state, blockedBy: "credit" };
+    }
     if (state.allowed) {
       const currentDayEntries = Object.fromEntries(
         Object.entries(store).filter(([, entry]) => entry?.day === day),
       );
-      currentDayEntries[documentId] = {
-        day,
-        count: state.count,
-        scope: "ip",
-        reset_at: resetAt.toISOString(),
-      };
+      if (!state.creditUsed) {
+        currentDayEntries[documentId] = {
+          day,
+          count: state.count,
+          scope: "ip",
+          reset_at: resetAt.toISOString(),
+        };
+      }
       currentDayEntries[globalDocumentId] = {
         day,
         count: state.globalCount,
@@ -187,24 +211,43 @@ async function reserveLocalQuota(documentId, globalDocumentId, day, limit, globa
   return operation;
 }
 
-async function reserveFirestoreQuota(documentId, globalDocumentId, day, limit, globalLimit, resetAt) {
+async function reserveFirestoreQuota(documentId, globalDocumentId, day, limit, globalLimit, resetAt, creditHash) {
   if (!firestoreConfigured()) {
     throw new ApiError("Render quota storage is not configured on this server.", 503);
   }
   const database = firestore();
   const quotaRef = database.collection(RENDER_QUOTA_COLLECTION).doc(documentId);
   const globalQuotaRef = database.collection(RENDER_QUOTA_COLLECTION).doc(globalDocumentId);
+  const creditRef = renderCreditDocumentRef(database, creditHash);
   return database.runTransaction(async (transaction) => {
-    const [snapshot, globalSnapshot] = await Promise.all([
+    const [snapshot, globalSnapshot, creditSnapshot] = await Promise.all([
       transaction.get(quotaRef),
       transaction.get(globalQuotaRef),
+      creditRef ? transaction.get(creditRef) : Promise.resolve(null),
     ]);
-    const state = nextCombinedQuotaState(
+    let state = nextCombinedQuotaState(
       snapshot.exists ? snapshot.data()?.count : 0,
       globalSnapshot.exists ? globalSnapshot.data()?.count : 0,
       limit,
       globalLimit,
     );
+    if (!state.allowed && state.blockedBy === "ip" && creditHash && state.globalRemaining === 0) {
+      state = { ...state, blockedBy: "global" };
+    }
+    if (!state.allowed && state.blockedBy === "ip" && creditHash) {
+      const credit = creditSnapshot?.exists ? creditSnapshot.data() : null;
+      state = credit && !credit.used
+        ? {
+            allowed: true,
+            blockedBy: null,
+            count: state.count,
+            remaining: 0,
+            globalCount: state.globalCount + 1,
+            globalRemaining: Math.max(0, globalLimit - state.globalCount - 1),
+            creditUsed: true,
+          }
+        : { ...state, blockedBy: "credit" };
+    }
     if (state.allowed) {
       const timestamps = {
         day,
@@ -212,15 +255,19 @@ async function reserveFirestoreQuota(documentId, globalDocumentId, day, limit, g
         expires_at: new Date(resetAt.getTime() + 7 * 24 * 60 * 60 * 1000),
         updated_at: new Date(),
       };
-      transaction.set(
-        quotaRef,
-        {
-          ...timestamps,
-          count: state.count,
-          scope: "ip",
-        },
-        { merge: true },
-      );
+      if (!state.creditUsed) {
+        transaction.set(
+          quotaRef,
+          {
+            ...timestamps,
+            count: state.count,
+            scope: "ip",
+          },
+          { merge: true },
+        );
+      } else {
+        transaction.update(creditRef, { used: true, used_at: new Date() });
+      }
       transaction.set(
         globalQuotaRef,
         {
@@ -243,12 +290,15 @@ export async function enforceRenderQuota(req, res, { now = new Date() } = {}) {
   const ipHash = hashClientIp(ip, quotaSecret());
   const documentId = `${day}_${ipHash}`;
   const globalDocumentId = `global_${day}`;
+  const suppliedCredit = String(req?.headers?.["x-render-credit-code"] || "");
+  const creditHash = suppliedCredit ? hashRenderCreditCode(suppliedCredit) : "";
+  const creditLookup = suppliedCredit ? creditHash || "invalid" : "";
 
   let state;
   try {
     state = useLocalQuotaStore()
-      ? await reserveLocalQuota(documentId, globalDocumentId, day, limit, globalLimit, resetAt)
-      : await reserveFirestoreQuota(documentId, globalDocumentId, day, limit, globalLimit, resetAt);
+      ? await reserveLocalQuota(documentId, globalDocumentId, day, limit, globalLimit, resetAt, creditLookup)
+      : await reserveFirestoreQuota(documentId, globalDocumentId, day, limit, globalLimit, resetAt, creditLookup);
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -263,16 +313,19 @@ export async function enforceRenderQuota(req, res, { now = new Date() } = {}) {
   res.setHeader("X-RateLimit-Reset", String(resetEpochSeconds));
   res.setHeader("X-Global-RateLimit-Limit", String(globalLimit));
   res.setHeader("X-Global-RateLimit-Remaining", String(state.globalRemaining));
+  if (state.creditUsed) res.setHeader("X-Render-Credit-Used", "true");
 
   if (!state.allowed) {
     const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - new Date(now).getTime()) / 1000));
     res.setHeader("Retry-After", String(retryAfterSeconds));
     res.setHeader("X-RateLimit-Scope", state.blockedBy);
-    const message =
+    const message = state.blockedBy === "credit"
+      ? "That generation code is invalid or has already been used."
+      :
       state.blockedBy === "global"
         ? `The service-wide daily generation limit has been reached. Try again after ${resetAt.toISOString()}.`
         : `Daily generation limit reached. Try again after ${resetAt.toISOString()}.`;
-    throw new ApiError(message, 429);
+    throw new ApiError(message, state.blockedBy === "credit" ? 403 : 429);
   }
 
   return { ...state, limit, globalLimit, resetAt };

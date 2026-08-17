@@ -3,6 +3,7 @@ import {
   parseStripeEvent,
   recordSponsorFromEvent,
 } from "../../../src/server/donations.js";
+import { fulfillRenderCreditsFromEvent } from "../../../src/server/renderCredits.js";
 import { handleApiError, methodNotAllowed, readRawBody } from "../../../src/server/http.js";
 
 export const config = {
@@ -21,7 +22,9 @@ export default async function handler(req, res) {
   try {
     const rawBody = await readRawBody(req);
     const event = parseStripeEvent(rawBody, req.headers["stripe-signature"] || "");
-    const recorded = await recordSponsorFromEvent(event);
+    const recorded = event?.data?.object?.metadata?.purchase_type === "render_credits"
+      ? await fulfillRenderCreditsFromEvent(event)
+      : await recordSponsorFromEvent(event);
     return res.status(200).json({ received: true, recorded: Boolean(recorded) });
   } catch (error) {
     return handleApiError(res, error);

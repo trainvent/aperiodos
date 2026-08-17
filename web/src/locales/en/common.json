@@ -1,6 +1,7 @@
 {
 	"nav": {
 		"home": "Home",
+		"codes": "Generation Codes",
 		"sponsors": "Sponsors",
 		"about": "About"
 	},
@@ -70,16 +71,53 @@
 			"none": "No sponsors yet."
 		}
 	},
+	"renderCredits": {
+		"hero": {
+			"title": "Generation Codes",
+			"lede": "Keep creating after your free daily generations are used."
+		},
+		"product": {
+			"tag": "One-time purchase",
+			"title": "10 generation codes",
+			"description": "Use one code for one pattern generation after reaching the free daily limit.",
+			"singleUse": "Ten separate single-use codes",
+			"noExpiry": "No expiry date",
+			"pdf": "Printable PDF with a checkbox for every code",
+			"buy": "Buy 10 codes for €5"
+		},
+		"delivery": {
+			"title": "Your codes",
+			"empty": "Your codes and printable PDF will appear here after payment.",
+			"help": "Your PDF download should start automatically. Keep this page open until you have saved it.",
+			"download": "Download PDF again"
+		},
+		"status": {
+			"checkout": "Opening secure Stripe checkout...",
+			"checkoutFailed": "Could not start checkout.",
+			"cancelled": "Checkout was cancelled. No payment was taken.",
+			"confirming": "Confirming payment and preparing your codes...",
+			"confirmFailed": "Could not retrieve the purchased codes.",
+			"ready": "Payment confirmed. Your ten codes are ready."
+		}
+	},
 	"generator": {
 		"status": {
 			"ready": "Ready to render.",
 			"rendering": "Rendering...",
 			"failed": "Render failed.",
 			"complete": "Render complete.",
+			"completeWithCode": "Render complete. One generation code was used.",
 			"completeRemaining": "Render complete. {{count}} generation(s) remaining today.",
 			"dailyLimit": "You have used your {{count}} free generations for today. Please try again tomorrow.",
 			"serviceDailyLimit": "The service has reached its generation limit for today. Please try again tomorrow.",
 			"reset": "Settings reset."
+		},
+		"credits": {
+			"title": "Continue with a generation code",
+			"help": "Paste one unused code below, then generate again.",
+			"label": "Generation code",
+			"invalid": "That generation code is invalid or has already been used.",
+			"buy": "Buy 10 codes for €5"
 		},
 		"layout": {
 			"settings": "Settings",

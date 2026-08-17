@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import Link from "next/link";
 
 export default function GeneratorLayout({
   title,
@@ -16,6 +17,8 @@ export default function GeneratorLayout({
   const { t } = useTranslation("common");
   const [status, setStatus] = useState(() => t("generator.status.ready"));
   const [previewUrl, setPreviewUrl] = useState("");
+  const [quotaExhausted, setQuotaExhausted] = useState(false);
+  const [creditCode, setCreditCode] = useState("");
   const lastUrlRef = useRef("");
 
   useEffect(() => {
@@ -34,7 +37,10 @@ export default function GeneratorLayout({
     try {
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(creditCode.trim() ? { "X-Render-Credit-Code": creditCode.trim() } : {}),
+        },
         body: JSON.stringify(requestPayload)
       });
 
@@ -45,7 +51,12 @@ export default function GeneratorLayout({
             throw new Error(t("generator.status.serviceDailyLimit"));
           }
           const limit = Number.parseInt(response.headers.get("X-RateLimit-Limit") || "3", 10);
+          setQuotaExhausted(true);
           throw new Error(t("generator.status.dailyLimit", { count: limit }));
+        }
+        if (response.status === 403 && creditCode.trim()) {
+          setQuotaExhausted(true);
+          throw new Error(data.error || t("generator.credits.invalid"));
         }
         throw new Error(data.error || t("generator.status.failed"));
       }
@@ -59,9 +70,13 @@ export default function GeneratorLayout({
       lastUrlRef.current = nextUrl;
       setPreviewUrl(nextUrl);
       const remaining = Number.parseInt(response.headers.get("X-RateLimit-Remaining") || "", 10);
+      const usedCredit = response.headers.get("X-Render-Credit-Used") === "true";
+      if (usedCredit) setCreditCode("");
       setStatus(
         Number.isFinite(remaining)
-          ? t("generator.status.completeRemaining", { count: remaining })
+          ? usedCredit
+            ? t("generator.status.completeWithCode")
+            : t("generator.status.completeRemaining", { count: remaining })
           : t("generator.status.complete"),
       );
     } catch (error) {
@@ -93,6 +108,24 @@ export default function GeneratorLayout({
               {t("generator.layout.reset")}
             </button>
           </div>
+          {quotaExhausted ? (
+            <div className="credit-redeem">
+              <h3>{t("generator.credits.title")}</h3>
+              <p>{t("generator.credits.help")}</p>
+              <label>
+                {t("generator.credits.label")}
+                <input
+                  value={creditCode}
+                  onChange={(event) => setCreditCode(event.target.value)}
+                  placeholder="AP00-0000-0000-0000-0000-00"
+                  autoComplete="off"
+                />
+              </label>
+              <Link className="button button-gold small" href="/generation-codes">
+                {t("generator.credits.buy")}
+              </Link>
+            </div>
+          ) : null}
         </form>
 
         <section className="panel preview-panel">
