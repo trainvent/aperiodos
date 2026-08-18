@@ -12,7 +12,6 @@ export default function EinsteinPage() {
   return (
     <GeneratorLayout
       title={t("generator.einstein.title")}
-      description={t("generator.einstein.description")}
       controls={
         <>
           <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={1} max={6} />

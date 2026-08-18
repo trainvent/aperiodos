@@ -7,13 +7,7 @@ export default function SponsorsPage() {
   const { t } = useTranslation("common");
 
   return (
-    <>
-      <section className="hero">
-        <h1>{t("sponsors.hero.title")}</h1>
-        <p className="lede">{t("sponsors.hero.lede")}</p>
-      </section>
-
-      <section className="stack">
+    <section className="stack">
         <article className="panel prose-panel">
           <h2>{t("sponsors.wall.title")}</h2>
           <SponsorsPanel />
@@ -24,7 +18,6 @@ export default function SponsorsPage() {
           </div>
           <p className="status status-spaced">{t("sponsors.wall.status")}</p>
         </article>
-      </section>
-    </>
+    </section>
   );
 }

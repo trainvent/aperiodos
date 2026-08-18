@@ -11,6 +11,7 @@
 	"home": {
 		"hero": {
 			"title": "Aperiodische Generatoren.",
+			"workflow": "Arbeitsablauf",
 			"lede": "Passe die Einstellungen an und exportiere das Ergebnis.",
 			"tools": "Drei Optionen",
 			"toolsText": "Einstein, Spectre und Penrose unterstützen schnellen Export in SVG, PNG und JPG."

@@ -44,7 +44,7 @@ select {
 
 .shell {
   position: relative;
-  width: min(1180px, calc(100% - 32px));
+  width: min(1320px, calc(100% - 32px));
   margin: 0 auto;
   padding: 32px 0 56px;
 }
@@ -85,6 +85,13 @@ select {
   margin-bottom: 34px;
 }
 
+.brand-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -105,6 +112,23 @@ select {
 
 .brand-copy {
   line-height: 1;
+}
+
+.brand-separator {
+  width: 1px;
+  height: 1em;
+  flex: none;
+  background: rgba(23, 49, 59, 0.38);
+}
+
+.page-title {
+  margin: 0;
+  max-width: none;
+  font-size: 0.98rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  color: var(--ink-soft);
 }
 
 .topnav,
@@ -179,17 +203,26 @@ select {
   color: var(--ink);
 }
 
+.shop-nav-label,
 .sponsors-nav-label {
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
+.shop-nav-icon,
 .sponsors-nav-heart {
   width: 0.9em;
   height: 0.9em;
-  fill: var(--accent);
   flex: none;
+}
+
+.shop-nav-icon {
+  fill: #c98b2e;
+}
+
+.sponsors-nav-heart {
+  fill: var(--accent);
 }
 
 .page {
@@ -229,6 +262,38 @@ h1 {
   font-size: 1.06rem;
   line-height: 1.65;
   color: var(--ink-soft);
+}
+
+.home-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+  align-items: center;
+  gap: 32px;
+  padding: 20px 4px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.home-intro-copy {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.home-intro-tools {
+  padding-left: 32px;
+  border-left: 1px solid var(--line);
+}
+
+.home-intro-workflow strong,
+.home-intro-tools strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .panel {
@@ -342,7 +407,7 @@ h1 {
 
 .generator-layout {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 440px 1fr;
   gap: 24px;
 }
 
@@ -465,6 +530,7 @@ select {
   background-position: 0 0, 0 5px, 5px -5px, -5px 0;
 }
 
+.field-pair,
 .swatches {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -831,6 +897,18 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .home-intro {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .home-intro-tools {
+    padding-top: 16px;
+    padding-left: 0;
+    border-top: 1px solid var(--line);
+    border-left: none;
+  }
+
   .monotile-merged,
   .feature-penrose {
     min-height: 280px;
@@ -842,6 +920,10 @@ select {
 
   .brand {
     gap: 10px;
+  }
+
+  .brand-heading {
+    gap: 9px;
   }
 
   .brand-mark {

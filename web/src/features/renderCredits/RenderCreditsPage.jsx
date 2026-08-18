@@ -132,12 +132,7 @@ export default function RenderCreditsPage() {
     : emailDeliveryStatus === "failed" ? "error" : "info";
 
   return (
-    <>
-      <section className="hero">
-        <h1>{t("renderCredits.hero.title")}</h1>
-        <p className="lede">{t("renderCredits.hero.lede")}</p>
-      </section>
-      <section className="credits-layout">
+    <section className="credits-layout">
         <section className="panel credits-product">
           <div>
             <span className="tag">{t("renderCredits.product.tag")}</span>
@@ -177,7 +172,6 @@ export default function RenderCreditsPage() {
             </>
           ) : <p className="status">{t("renderCredits.delivery.empty")}</p>}
         </section>
-      </section>
-    </>
+    </section>
   );
 }

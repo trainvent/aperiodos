@@ -97,7 +97,6 @@ export default function PenrosePage() {
   return (
     <GeneratorLayout
       title={t("generator.penrose.title")}
-      description={t("generator.penrose.description")}
       controls={
         <>
           <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
@@ -129,21 +128,24 @@ export default function PenrosePage() {
               ]}
             />
           ) : null}
-          <SelectField
-            values={values}
-            setValues={setValues}
-            name="format"
-            label={t("generator.common.format")}
-            options={[
-              { value: "svg", label: "SVG" },
-              { value: "png", label: "PNG" },
-              { value: "jpg", label: "JPG" }
-            ]}
-            full
-          />
-          <ColorField values={values} setValues={setValues} name="background" label={t("generator.common.background")} full />
-          <ColorField values={values} setValues={setValues} name="outline" label={t("generator.common.outline")} full />
-          <NumberField values={values} setValues={setValues} name="stroke_width" label={t("generator.common.strokeWidth")} min={0} max={20} step="0.1" />
+          <div className="field-pair full">
+            <SelectField
+              values={values}
+              setValues={setValues}
+              name="format"
+              label={t("generator.common.format")}
+              options={[
+                { value: "svg", label: "SVG" },
+                { value: "png", label: "PNG" },
+                { value: "jpg", label: "JPG" }
+              ]}
+            />
+            <NumberField values={values} setValues={setValues} name="stroke_width" label={t("generator.common.strokeWidth")} min={0} max={20} step="0.1" />
+          </div>
+          <div className="field-pair full">
+            <ColorField values={values} setValues={setValues} name="background" label={t("generator.common.background")} />
+            <ColorField values={values} setValues={setValues} name="outline" label={t("generator.common.outline")} />
+          </div>
           <div className="swatches full">
             <ColorField values={values} setValues={setValues} name="palette_1" label={t("generator.common.color1")} />
             <ColorField values={values} setValues={setValues} name="palette_2" label={t("generator.common.color2")} />

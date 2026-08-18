@@ -64,13 +64,7 @@ export default function AboutPage() {
   }, [language]);
 
   return (
-    <>
-      <section className="hero">
-        <h1>{content.title}</h1>
-        <p className="lede">{content.summary}</p>
-      </section>
-
-      <section className="stack">
+    <section className="stack">
         <article className="panel prose-panel">
           <h2>{t("about.sections.references")}</h2>
           <ul className="reference-list">
@@ -96,7 +90,6 @@ export default function AboutPage() {
           <h2>{t("about.sections.notes")}</h2>
           <p>{content.notes}</p>
         </article>
-      </section>
-    </>
+    </section>
   );
 }

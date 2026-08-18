@@ -11,6 +11,7 @@
 	"home": {
 		"hero": {
 			"title": "Aperiodic generators.",
+			"workflow": "Workflow",
 			"lede": "Adjust settings to your liking and export the result.",
 			"tools": "Three tools",
 			"toolsText": "Einstein, Spectre, and Penrose all support quick exports in SVG, PNG, and JPG."

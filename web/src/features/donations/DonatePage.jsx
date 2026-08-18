@@ -113,13 +113,7 @@ export default function DonatePage() {
   }
 
   return (
-    <>
-      <section className="hero">
-        <h1>{t("donate.hero.title")}</h1>
-        <p className="lede">{t("donate.hero.lede")}</p>
-      </section>
-
-      <section className="generator-layout">
+    <section className="generator-layout">
         <form className="panel controls-panel" onSubmit={handleDonate}>
           <h2>{t("donate.form.title")}</h2>
           <div className="grid">
@@ -160,7 +154,6 @@ export default function DonatePage() {
           <h2>{t("donate.preview.title")}</h2>
           <SponsorsPanel compact refreshToken={sponsorRefreshToken} />
         </section>
-      </section>
-    </>
+    </section>
   );
 }

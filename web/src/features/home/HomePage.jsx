@@ -39,15 +39,15 @@ export default function HomePage() {
 
   return (
     <>
-      <section className="hero hero-grid">
-        <div>
-          <h1>{t("home.hero.title")}</h1>
-          <p className="lede">{t("home.hero.lede")}</p>
+      <section className="home-intro">
+        <div className="home-intro-workflow">
+          <strong>{t("home.hero.workflow")}</strong>
+          <p className="home-intro-copy">{t("home.hero.lede")}</p>
         </div>
-        <aside className="hero-note panel">
+        <div className="home-intro-tools">
           <strong>{t("home.hero.tools")}</strong>
-          <p>{t("home.hero.toolsText")}</p>
-        </aside>
+          <p className="home-intro-copy">{t("home.hero.toolsText")}</p>
+        </div>
       </section>
 
       <section className="card-grid">

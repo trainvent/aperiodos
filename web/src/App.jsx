@@ -15,23 +15,44 @@ export default function App() {
   const { t, i18n } = useTranslation("common");
   const router = useRouter();
   const language = i18n.resolvedLanguage === "en" ? "en" : "de";
+  const currentPath = normalizePath(router.asPath);
+  const pageTitle = getPageTitle(currentPath, t);
 
   return (
     <div className="shell">
       <div className="ambient ambient-left" />
       <div className="ambient ambient-right" />
       <header className="topbar">
-        <Link className="brand" href="/">
-          <img className="brand-mark" src="/custom-pattern_1024.png" alt="" />
-          <span className="brand-copy">Aperiodos</span>
-        </Link>
+        <div className="brand-heading">
+          <Link className="brand" href="/">
+            <img className="brand-mark" src="/custom-pattern_1024.png" alt="" />
+            <span className="brand-copy">Aperiodos</span>
+          </Link>
+          {currentPath !== "/" ? (
+            <>
+              <span className="brand-separator" aria-hidden="true" />
+              <h1 className="page-title">{pageTitle}</h1>
+            </>
+          ) : null}
+        </div>
         <div className="topbar-right">
           <nav className="topnav">
             <TopNavLink to="/">{t("nav.home")}</TopNavLink>
             <TopNavLink to="/einstein">Einstein</TopNavLink>
             <TopNavLink to="/spectre">Spectre</TopNavLink>
             <TopNavLink to="/penrose">Penrose</TopNavLink>
-            <TopNavLink to="/generation-codes">{t("nav.codes")}</TopNavLink>
+            <TopNavLink to="/generation-codes">
+              <span className="shop-nav-label">
+                <svg
+                  className="shop-nav-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M7 7V6a5 5 0 0 1 10 0v1h2.2l1 14H3.8l1-14H7Zm2 0h6V6a3 3 0 0 0-6 0v1Z" />
+                </svg>
+                {t("nav.codes")}
+              </span>
+            </TopNavLink>
             <TopNavLink to="/donate">
               <span className="sponsors-nav-label">
                 <svg
@@ -92,6 +113,27 @@ function TopNavLink({ to, children }) {
 function normalizePath(path) {
   const normalized = String(path || "/").split("?")[0].split("#")[0] || "/";
   return normalized.endsWith("/") && normalized !== "/" ? normalized.slice(0, -1) : normalized;
+}
+
+function getPageTitle(path, t) {
+  switch (path) {
+    case "/einstein":
+      return t("generator.einstein.title");
+    case "/spectre":
+      return t("generator.spectre.title");
+    case "/penrose":
+      return t("generator.penrose.title");
+    case "/generation-codes":
+      return t("renderCredits.hero.title");
+    case "/donate":
+      return t("donate.hero.title");
+    case "/sponsors":
+      return t("sponsors.hero.title");
+    case "/about":
+      return t("about.hero.title");
+    default:
+      return t("home.hero.title");
+  }
 }
 
 function CurrentPage({ path }) {
