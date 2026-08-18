@@ -48,8 +48,10 @@ function EinsteinExample() {
   return (
     <div className="tile-example tile-example-einstein" aria-hidden="true">
       <svg viewBox="0 0 160 120">
-        <polygon className="tile-example-shadow" points={points} transform="translate(6 5)" />
-        <polygon className="einstein-tile" points={points} />
+        <g className="einstein-flip">
+          <polygon className="tile-example-shadow" points={points} transform="translate(6 5)" />
+          <polygon className="einstein-tile" points={points} />
+        </g>
       </svg>
     </div>
   );
@@ -80,21 +82,17 @@ function SpectreExample() {
 }
 
 function PenroseExample() {
-  const colors = ["#1f6a5d", "#d18047", "#204f7a", "#d8b24c", "#b4552d"];
   return (
     <div className="tile-example tile-example-penrose" aria-hidden="true">
       <svg viewBox="0 0 160 120">
-        {colors.map((color, index) => (
-          <g key={color} transform={`rotate(${index * 72} 80 60)`}>
-            <polygon
-              className="penrose-piece"
-              points="80,60 96,38 80,10 71,39"
-              fill={color}
-              style={{ "--piece-index": index }}
-            />
-          </g>
-        ))}
-        <circle className="penrose-center" cx="80" cy="60" r="4" />
+        <polygon
+          className="penrose-tile penrose-kite"
+          points="31.63,70.86 50.10,14 79.99,35.72 91.40,70.86"
+        />
+        <polygon
+          className="penrose-tile penrose-dart"
+          points="79.99,106 128.38,70.86 79.99,35.72 91.40,70.86"
+        />
       </svg>
     </div>
   );

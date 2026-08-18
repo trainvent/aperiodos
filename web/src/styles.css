@@ -406,13 +406,24 @@ h1 {
 }
 
 .tile-example {
-  position: absolute;
-  left: 18px;
-  bottom: 14px;
+  position: relative;
   width: 138px;
   height: 104px;
+  flex: none;
   pointer-events: none;
   opacity: 0.92;
+}
+
+.feature-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.monotile-card .feature-spacer,
+.feature-penrose .feature-spacer {
+  min-height: 2px;
 }
 
 .tile-example svg {
@@ -429,7 +440,7 @@ h1 {
 
 .einstein-tile,
 .spectre-tile,
-.penrose-piece {
+.penrose-tile {
   stroke: rgba(23, 49, 59, 0.78);
   stroke-width: 1.5;
   stroke-linejoin: round;
@@ -439,20 +450,29 @@ h1 {
   fill: rgba(209, 128, 71, 0.84);
 }
 
+.einstein-flip {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: einstein-flip 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 .spectre-tile {
   fill: rgba(78, 143, 127, 0.86);
 }
 
-.penrose-piece {
+.penrose-tile {
   transform-box: view-box;
   transform-origin: 80px 60px;
-  animation: penrose-assemble 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  animation-delay: calc(var(--piece-index) * 90ms);
 }
 
-.penrose-center {
-  fill: var(--ink);
-  opacity: 0.78;
+.penrose-kite {
+  fill: rgba(216, 178, 76, 0.9);
+  animation: penrose-kite-assemble 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.penrose-dart {
+  fill: rgba(32, 79, 122, 0.88);
+  animation: penrose-dart-assemble 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 .monotile-card > h2,
@@ -466,30 +486,53 @@ h1 {
   z-index: 1;
 }
 
-.monotile-card > a,
-.feature-penrose > a {
-  justify-self: end;
+@keyframes penrose-kite-assemble {
+  0%, 12% {
+    opacity: 0.58;
+    transform: translate(-24px, 10px) rotate(-10deg);
+  }
+  28%, 76% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  92%, 100% {
+    opacity: 0.58;
+    transform: translate(-24px, 10px) rotate(-10deg);
+  }
 }
 
-@keyframes penrose-assemble {
-  0%, 10% {
-    opacity: 0;
-    transform: translateY(-24px) scale(0.7);
+@keyframes einstein-flip {
+  0%, 18% {
+    transform: scaleX(1);
   }
-  30%, 72% {
-    opacity: 0.94;
-    transform: translateY(0) scale(1);
+  38%, 68% {
+    transform: scaleX(-1);
   }
-  90%, 100% {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.88);
+  88%, 100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes penrose-dart-assemble {
+  0%, 20% {
+    opacity: 0.58;
+    transform: translate(26px, -12px) rotate(12deg);
+  }
+  38%, 76% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  92%, 100% {
+    opacity: 0.58;
+    transform: translate(26px, -12px) rotate(12deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .penrose-piece {
+  .einstein-flip,
+  .penrose-tile {
     animation: none;
-    opacity: 0.94;
+    opacity: 1;
   }
 }
 
