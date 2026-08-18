@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import AboutPage from "./features/about/AboutPage";
@@ -17,6 +18,7 @@ export default function App() {
   const language = i18n.resolvedLanguage === "en" ? "en" : "de";
   const currentPath = normalizePath(router.asPath);
   const pageTitle = getPageTitle(currentPath, t);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="shell">
@@ -35,8 +37,20 @@ export default function App() {
             </>
           ) : null}
         </div>
-        <div className="topbar-right">
-          <nav className="topnav">
+        <button
+          className={`mobile-menu-toggle${mobileMenuOpen ? " open" : ""}`}
+          type="button"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="primary-navigation"
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <div className={`topbar-right${mobileMenuOpen ? " open" : ""}`} id="primary-navigation">
+          <nav className="topnav" onClick={() => setMobileMenuOpen(false)}>
             <TopNavLink to="/">{t("nav.home")}</TopNavLink>
             <TopNavLink to="/einstein">Einstein</TopNavLink>
             <TopNavLink to="/spectre">Spectre</TopNavLink>
