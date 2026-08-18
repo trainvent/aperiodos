@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 
+import TileExample from "./TileExample";
+
 export default function HomePage() {
   const { t } = useTranslation("common");
 
@@ -12,7 +14,8 @@ export default function HomePage() {
       className: "feature-einstein",
       buttonClassName: "button",
       arrow: true,
-      arrowColor: "seagreen"
+      arrowColor: "seagreen",
+      example: "einstein"
     },
     {
       title: "Spectre",
@@ -21,7 +24,8 @@ export default function HomePage() {
       className: "feature-spectre",
       buttonClassName: "button button-green",
       arrow: true,
-      arrowColor: "sienna"
+      arrowColor: "sienna",
+      example: "spectre"
     }
   ];
 
@@ -33,7 +37,8 @@ export default function HomePage() {
       className: "feature-penrose",
       buttonClassName: "button button-ink",
       arrow: true,
-      arrowColor: "red"
+      arrowColor: "red",
+      example: "penrose"
     }
   ];
 
@@ -59,6 +64,7 @@ export default function HomePage() {
                 <div className="monotile-card" key={card.title}>
                   <h2>{card.title}</h2>
                   <p>{card.description}</p>
+                  <TileExample type={card.example} />
                   <div className="feature-spacer" aria-hidden="true" />
                   <Link
                     className={card.buttonClassName}
@@ -91,6 +97,7 @@ export default function HomePage() {
                 {index === 0 ? <div className="panel-kicker"><span className="group-title">{t("home.groups.tileCombinations")}</span></div> : null}
                 <h2>{card.title}</h2>
                 <p>{card.description}</p>
+                <TileExample type={card.example} />
                 <div className="feature-spacer" aria-hidden="true" />
                 <Link
                   className={card.buttonClassName}

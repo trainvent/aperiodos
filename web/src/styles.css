@@ -405,6 +405,94 @@ h1 {
   min-height: 28px;
 }
 
+.tile-example {
+  position: absolute;
+  left: 18px;
+  bottom: 14px;
+  width: 138px;
+  height: 104px;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.tile-example svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tile-example-shadow {
+  fill: rgba(23, 49, 59, 0.09);
+  stroke: none;
+}
+
+.einstein-tile,
+.spectre-tile,
+.penrose-piece {
+  stroke: rgba(23, 49, 59, 0.78);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.einstein-tile {
+  fill: rgba(209, 128, 71, 0.84);
+}
+
+.spectre-tile {
+  fill: rgba(78, 143, 127, 0.86);
+}
+
+.penrose-piece {
+  transform-box: view-box;
+  transform-origin: 80px 60px;
+  animation: penrose-assemble 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: calc(var(--piece-index) * 90ms);
+}
+
+.penrose-center {
+  fill: var(--ink);
+  opacity: 0.78;
+}
+
+.monotile-card > h2,
+.monotile-card > p,
+.monotile-card > a,
+.feature-penrose > h2,
+.feature-penrose > p,
+.feature-penrose > a,
+.feature-penrose > .panel-kicker {
+  position: relative;
+  z-index: 1;
+}
+
+.monotile-card > a,
+.feature-penrose > a {
+  justify-self: end;
+}
+
+@keyframes penrose-assemble {
+  0%, 10% {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.7);
+  }
+  30%, 72% {
+    opacity: 0.94;
+    transform: translateY(0) scale(1);
+  }
+  90%, 100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .penrose-piece {
+    animation: none;
+    opacity: 0.94;
+  }
+}
+
 .generator-layout {
   display: grid;
   grid-template-columns: 440px 1fr;
@@ -932,5 +1020,26 @@ select {
     border-radius: 12px;
     object-fit: contain;
     background-color: transparent;
+  }
+}
+
+@media (max-width: 600px) {
+  .monotile-inner {
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .monotile-card {
+    min-height: 238px;
+  }
+
+  .monotile-card + .monotile-card::before {
+    inset: -14px 18px auto;
+    border-top: 2px dotted rgba(23, 49, 59, 0.12);
+    border-left: 0;
+  }
+
+  .monotile-merged {
+    min-height: 0;
   }
 }
