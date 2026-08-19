@@ -44,9 +44,12 @@ select {
 
 .shell {
   position: relative;
-  width: min(1320px, calc(100% - 32px));
+  display: flex;
+  min-height: 100dvh;
+  width: 100%;
   margin: 0 auto;
-  padding: 32px 0 56px;
+  padding: 32px clamp(16px, 2vw, 40px) 24px;
+  flex-direction: column;
 }
 
 .ambient {
@@ -231,7 +234,9 @@ select {
 
 .page {
   display: grid;
+  flex: 1 0 auto;
   gap: 28px;
+  align-content: start;
 }
 
 .hero {
@@ -753,8 +758,11 @@ select {
 
 /* Merged monotile styling */
 .monotile-merged {
+  height: 100%;
   padding: 20px;
   min-height: 220px;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
 }
 
 /* Keep Monotile and Tile-combinations cards visually aligned in height */
@@ -764,7 +772,14 @@ select {
 }
 
 .feature-penrose {
-  padding-bottom: 22px;
+  height: 100%;
+  padding-bottom: 28px;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  align-content: stretch;
+}
+
+.group-cards {
+  height: 100%;
 }
 
 .monotile-inner {
@@ -776,8 +791,9 @@ select {
 .monotile-card {
   flex: 1 1 0;
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 10px;
-  align-content: start;
+  align-content: stretch;
   padding: 8px 18px;
   position: relative;
 }
@@ -969,8 +985,155 @@ select {
   gap: 18px;
 }
 
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: stretch;
+}
+
+.about-grid .prose-panel {
+  padding: 28px;
+}
+
+.about-grid .prose-panel p,
+.about-grid .reference-list {
+  max-width: 65ch;
+}
+
 .preview-panel-short {
   min-height: unset;
+}
+
+.sponsors-page {
+  display: grid;
+  gap: 28px;
+}
+
+.sponsors-intro {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.2fr);
+  column-gap: 48px;
+  align-items: end;
+  padding: 14px 4px 18px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.sponsors-intro .eyebrow {
+  align-self: start;
+}
+
+.sponsors-intro h2 {
+  max-width: 28ch;
+  margin: 6px 0 0;
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.sponsors-intro > p:last-child {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  max-width: 60ch;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.sponsors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: stretch;
+  min-height: calc(100dvh - 400px);
+}
+
+.sponsor-group-panel {
+  display: flex;
+  min-width: 0;
+  padding: 28px;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.sponsor-group-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  min-height: 80px;
+}
+
+.sponsor-group-heading h2 {
+  margin-bottom: 8px;
+}
+
+.sponsor-group-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(23, 49, 59, 0.08);
+  color: var(--ink);
+}
+
+.sponsor-group-icon svg {
+  width: 21px;
+  height: 21px;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sponsor-logo-placeholder {
+  display: grid;
+  min-height: 108px;
+  padding: 18px 28px;
+  place-items: center;
+  border: 1px dashed rgba(23, 49, 59, 0.24);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--ink-soft);
+  text-align: center;
+  font-size: clamp(1.15rem, 2vw, 1.6rem);
+  line-height: 1.35;
+}
+
+.sponsor-logo-placeholder span {
+  max-width: 24ch;
+}
+
+.sponsor-group-actions {
+  margin-top: auto;
+}
+
+.sponsor-donation-form {
+  display: grid;
+  margin-top: auto;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.sponsor-donation-form h2 {
+  margin-bottom: 14px;
+}
+
+.sponsor-donation-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1200px) {
+  .sponsor-donation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sponsor-donation-grid > label:nth-child(3) {
+    grid-column: 1 / -1;
+  }
 }
 
 .sponsor-list {
@@ -979,6 +1142,11 @@ select {
   padding: 0;
   display: grid;
   gap: 12px;
+}
+
+.sponsor-group-panel > .sponsor-list {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-content: start;
 }
 
 .sponsor-item {
@@ -1022,6 +1190,29 @@ select {
   .card-grid,
   .generator-layout {
     grid-template-columns: 1fr;
+  }
+
+  .about-grid,
+  .sponsors-grid,
+  .sponsors-intro {
+    grid-template-columns: 1fr;
+  }
+
+  .sponsors-grid {
+    min-height: 0;
+  }
+
+  .sponsors-intro {
+    gap: 12px;
+  }
+
+  .sponsors-intro > p:last-child {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .sponsor-group-heading {
+    min-height: 0;
   }
 
   .credits-layout {

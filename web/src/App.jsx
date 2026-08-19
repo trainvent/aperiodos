@@ -67,7 +67,7 @@ export default function App() {
                 {t("nav.codes")}
               </span>
             </TopNavLink>
-            <TopNavLink to="/donate">
+            <TopNavLink to="/sponsors">
               <span className="sponsors-nav-label">
                 <svg
                   className="sponsors-nav-heart"

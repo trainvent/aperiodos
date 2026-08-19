@@ -62,10 +62,24 @@
 			"title": "Sponsoren",
 			"lede": "Personen, die Aperiodos durch Spenden unterstützen."
 		},
+		"support": {
+			"eyebrow": "Aperiodos unterstützen",
+			"title": "Hilf mit, den kostenlosen Dienst am Laufen zu halten.",
+			"body": "Jeder Beitrag hilft bei den Hosting-Kosten und hält die Erzeugung aperiodischer Muster frei zugänglich."
+		},
+		"people": {
+			"title": "Personen",
+			"description": "Private Unterstützerinnen und Unterstützer, die Aperiodos beim Wachsen helfen."
+		},
+		"institutions": {
+			"title": "Institutionen",
+			"description": "Unternehmen, Forschungsgruppen und Organisationen können das Projekt unterstützen.",
+			"placeholder": "Hier könnte deine Werbung stehen.",
+			"contact": "Kontakt aufnehmen"
+		},
 		"wall": {
 			"title": "Unterstützerwand",
-			"cta": "Jetzt spenden",
-			"status": "Öffentliche Sponsoren erscheinen hier nach einer erfolgreichen Spende."
+			"cta": "Jetzt spenden"
 		},
 		"panel": {
 			"loading": "Sponsoren werden geladen...",

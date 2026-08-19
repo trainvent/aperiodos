@@ -64,7 +64,7 @@ export default function AboutPage() {
   }, [language]);
 
   return (
-    <section className="stack">
+    <section className="about-grid">
         <article className="panel prose-panel">
           <h2>{t("about.sections.references")}</h2>
           <ul className="reference-list">

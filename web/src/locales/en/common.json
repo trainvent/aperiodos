@@ -62,10 +62,24 @@
 			"title": "Sponsors",
 			"lede": "People who support Aperiodos through donations."
 		},
+		"support": {
+			"eyebrow": "Support Aperiodos",
+			"title": "Help keep the free service running.",
+			"body": "Every contribution helps cover hosting and keeps aperiodic pattern generation freely available."
+		},
+		"people": {
+			"title": "People",
+			"description": "Individual supporters who help Aperiodos grow."
+		},
+		"institutions": {
+			"title": "Institutions",
+			"description": "Companies, research groups, and organizations can support the project.",
+			"placeholder": "Your advertisement could be here.",
+			"contact": "Contact us"
+		},
 		"wall": {
 			"title": "Wall of Support",
-			"cta": "Donate now",
-			"status": "Public sponsors appear here after a successful donation."
+			"cta": "Donate now"
 		},
 		"panel": {
 			"loading": "Loading sponsors...",
