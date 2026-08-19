@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField, ColorField, NumberField, SelectField, TextField } from "../../components/forms/FormFields";
+import { ColorField, NumberField, SelectField, TextField } from "../../components/forms/FormFields";
 import { apiUrl } from "../../lib/api";
 import { EINSTEIN_DEFAULTS } from "./defaults";
 import GeneratorLayout from "./GeneratorLayout";
@@ -27,7 +27,6 @@ export default function EinsteinPage() {
               { value: "families", label: t("generator.einstein.coloringFamilies") },
               { value: "four_color", label: t("generator.einstein.coloringFourColor") }
             ]}
-            full
           />
           <SelectField
             values={values}
@@ -38,9 +37,13 @@ export default function EinsteinPage() {
               { value: "png", label: "PNG" },
               { value: "jpg", label: "JPG" }
             ]}
-            full
           />
-          <TextField values={values} setValues={setValues} name="seed" label={t("generator.common.seed")} placeholder={t("generator.common.optional")} full />
+          <TextField values={values} setValues={setValues} name="seed" label={t("generator.common.seed")} placeholder={t("generator.common.optional")} />
+          <NumberField values={values} setValues={setValues} name="stroke_width" label={t("generator.common.strokeWidth")} min={0} max={20} step="0.1" />
+          <div className="field-pair full">
+            <ColorField values={values} setValues={setValues} name="background" label={t("generator.common.background")} />
+            <ColorField values={values} setValues={setValues} name="outline" label={t("generator.common.outline")} />
+          </div>
           {values.color_mode === "families" ? (
             <div className="swatches full">
               <ColorField values={values} setValues={setValues} name="color_h1" label="H1" />
@@ -57,12 +60,6 @@ export default function EinsteinPage() {
               <ColorField values={values} setValues={setValues} name="four_color_4" label={t("generator.common.color4")} />
             </div>
           )}
-          <CheckboxField
-            values={values}
-            setValues={setValues}
-            name="no_outline"
-            label={t("generator.einstein.noOutline")}
-          />
         </>
       }
       payload={() => {
@@ -75,7 +72,9 @@ export default function EinsteinPage() {
           color_mode: values.color_mode,
           colors: [values.color_h1, values.color_h, values.color_t, values.color_p, values.color_f],
           four_colors: [values.four_color_1, values.four_color_2, values.four_color_3, values.four_color_4],
-          no_outline: Boolean(values.no_outline)
+          background: values.background,
+          outline: values.outline,
+          stroke_width: Number(values.stroke_width)
         };
         if (String(values.seed).trim()) {
           payload.seed = Number(values.seed);

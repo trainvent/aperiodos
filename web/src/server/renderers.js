@@ -183,7 +183,9 @@ export async function renderEinstein(payload) {
   const colorMode = coerceOneOf(payload, "color_mode", "families", ["families", "four_color"]);
   const colors = coerceColors(payload);
   const fourColors = coerceFourColors(payload);
-  const noOutline = Boolean(payload.no_outline);
+  const background = String(payload.background || "white");
+  const outline = String(payload.outline || "black");
+  const strokeWidth = coerceFloat(payload, "stroke_width", payload.no_outline ? 0 : 2, { minimum: 0.0, maximum: 20.0 });
   const seed = payload.seed;
 
   return withTempFile(imageFormat, async (outputPath) => {
@@ -207,10 +209,13 @@ export async function renderEinstein(payload) {
       colorMode,
       "--four-colors",
       ...fourColors,
+      "--background",
+      background,
+      "--outline",
+      outline,
+      "--stroke-width",
+      String(strokeWidth),
     ];
-    if (noOutline) {
-      args.push("--no-outline");
-    }
     if (seed !== undefined && seed !== null && String(seed).trim() !== "") {
       args.push("--seed", String(coerceInt(payload, "seed", seed, { minimum: 1 })));
     }

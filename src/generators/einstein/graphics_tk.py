@@ -41,7 +41,7 @@ class EinsteinImage:
     def set_scalar(self, scalar):
         self.scalar = scalar
 
-    def draw_polygon(self, vertices, fill="blue", outline="black"):
+    def draw_polygon(self, vertices, fill="blue", outline="black", outline_width=2):
         coords = []
         cx = self.width / 2
         cy = self.height / 2
@@ -62,7 +62,7 @@ class EinsteinImage:
         else:
             fill_val = fill
 
-        self.draw.polygon(coords, fill=fill_val, outline=outline)
+        self.draw.polygon(coords, fill=fill_val, outline=outline, width=max(1, round(outline_width)) if outline else 1)
 
     def save(self, filename):
         try:
@@ -85,17 +85,29 @@ def draw_tiles(
     filename="output/einstein_pattern.jpg",
     show_window=False,
     draw_outline=True,
+    background="white",
+    outline="black",
+    stroke_width=2,
 ):
-    outline = "black" if draw_outline else None
-    outline_width = 2 if draw_outline else 0
+    outline = outline if draw_outline and stroke_width > 0 else None
+    outline_width = stroke_width if outline else 0
     if filename:
         output_path = Path(filename)
         if output_path.suffix.lower() == ".svg":
-            save_tiles_svg(tiles, width=width, height=height, scalar=scalar, filename=filename, draw_outline=draw_outline)
+            save_tiles_svg(
+                tiles,
+                width=width,
+                height=height,
+                scalar=scalar,
+                filename=filename,
+                background=background,
+                outline=outline or "none",
+                stroke_width=outline_width,
+            )
         else:
-            img = EinsteinImage(width, height, bg="white", scalar=scalar)
+            img = EinsteinImage(width, height, bg=background, scalar=scalar)
             for tile in tiles:
-                img.draw_polygon(tile[0], fill=tile[1][1], outline=outline)
+                img.draw_polygon(tile[0], fill=tile[1][1], outline=outline, outline_width=outline_width)
 
             img.save(filename)
     if show_window:
@@ -105,7 +117,7 @@ def draw_tiles(
                 "Run with show_window=False or install a Python build with Tk support."
             )
         root = Tk()
-        canvas = EinsteinCanvas(root, width=width, height=height)
+        canvas = EinsteinCanvas(root, width=width, height=height, bg=background)
         canvas.set_scalar(scalar)
 
         for tile in tiles:

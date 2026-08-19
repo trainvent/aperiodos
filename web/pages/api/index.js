@@ -48,6 +48,7 @@ export default function handler(req, res) {
       colors: DEFAULT_COLORS,
       color_mode: "families",
       four_colors: DEFAULT_FOUR_COLORS,
+      background: "white",
       no_outline: false,
       seed: null,
       format: "png",

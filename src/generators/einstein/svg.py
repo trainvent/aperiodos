@@ -27,15 +27,14 @@ def _svg_polygon(points, fill, stroke, stroke_width):
     )
 
 
-def save_tiles_svg(tiles, width, height, scalar, filename, draw_outline=True):
+def save_tiles_svg(tiles, width, height, scalar, filename, background="white", outline="black", stroke_width=2):
     cx = width / 2
     cy = height / 2
-    stroke = "black" if draw_outline else "none"
-    stroke_width = 2 if draw_outline else 0
+    stroke = outline if stroke_width > 0 else "none"
 
     lines = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}">',
-        '<rect width="100%" height="100%" fill="white" />',
+        f'<rect width="100%" height="100%" fill="{escape(str(background))}" />',
     ]
 
     for tile in tiles:
@@ -51,13 +50,14 @@ def save_tiles_svg(tiles, width, height, scalar, filename, draw_outline=True):
     return str(output_path)
 
 
-def save_seed_tiles_svg(tiles, width, height, scalar, offset_coord, filename, draw_outline=True):
-    stroke = "black" if draw_outline else "none"
-    stroke_width = 2 if draw_outline else 0
+def save_seed_tiles_svg(
+    tiles, width, height, scalar, offset_coord, filename, background="white", outline="black", stroke_width=2
+):
+    stroke = outline if stroke_width > 0 else "none"
 
     lines = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}">',
-        '<rect width="100%" height="100%" fill="white" />',
+        f'<rect width="100%" height="100%" fill="{escape(str(background))}" />',
     ]
 
     for tile in tiles:

@@ -178,8 +178,7 @@
 			"description": "Skalierung, Größe und Palette anpassen, dann ein neues Bild im gewünschten Format rendern.",
 			"coloring": "Farbmodus",
 			"coloringFamilies": "Kachel-Familien",
-			"coloringFourColor": "Vier-Farben",
-			"noOutline": "Ohne Konturen rendern"
+			"coloringFourColor": "Vier-Farben"
 		},
 		"spectre": {
 			"title": "Spectre-Generator",

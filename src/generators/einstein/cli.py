@@ -29,6 +29,9 @@ def render_pattern(
     four_colors=DEFAULT_FOUR_COLORS,
     show_window=False,
     draw_outline=True,
+    background="white",
+    outline="black",
+    stroke_width=2,
 ):
     reset_generator()
     for _ in range(iterations):
@@ -45,6 +48,9 @@ def render_pattern(
         filename=output,
         show_window=show_window,
         draw_outline=draw_outline,
+        background=background,
+        outline=outline,
+        stroke_width=stroke_width,
     )
 
 
@@ -76,7 +82,10 @@ def build_parser():
         help="Four CSS-style colors for the optional four-color Einstein mode.",
     )
     parser.add_argument("--show-window", action="store_true", help="Open a Tk window in addition to saving the image.")
-    parser.add_argument("--no-outline", action="store_true", help="Render filled tiles without black outlines.")
+    parser.add_argument("--background", default="white", help="CSS-style background color.")
+    parser.add_argument("--outline", default="black", help="CSS-style outline color.")
+    parser.add_argument("--stroke-width", type=float, default=2, help="Outline width in pixels; use 0 for no outline.")
+    parser.add_argument("--no-outline", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--seed", type=int, help="Generate a seed-based cropped pattern instead of the full centered render.")
     return parser
 
@@ -88,6 +97,9 @@ def main(argv=None):
             seed=args.seed,
             output_file_name=args.output,
             draw_outline=not args.no_outline,
+            background=args.background,
+            outline=args.outline,
+            stroke_width=args.stroke_width,
             colors=tuple(args.colors),
             color_mode=args.color_mode,
             four_colors=tuple(args.four_colors),
@@ -104,6 +116,9 @@ def main(argv=None):
             four_colors=tuple(args.four_colors),
             show_window=args.show_window,
             draw_outline=not args.no_outline,
+            background=args.background,
+            outline=args.outline,
+            stroke_width=args.stroke_width,
         )
 
     print(output)

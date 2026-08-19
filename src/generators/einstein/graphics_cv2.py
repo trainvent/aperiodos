@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from PIL import ImageColor
 
 from .geometry import Vector
 
@@ -7,7 +8,15 @@ OUTPUT_IMAGE_DIMENSIONS = Vector(800, 800)
 SCALAR = 50
 
 
-def draw_tile(tile, image, offset_coord=Vector(0, 0), draw_outline=True):
+def draw_tile(
+    tile,
+    image,
+    offset_coord=Vector(0, 0),
+    draw_outline=True,
+    outline="black",
+    stroke_width=2,
+    coverage_mask=None,
+):
     fill = tile[1][1]
     vertices = np.zeros((len(tile[0]), 2))
 
@@ -16,7 +25,10 @@ def draw_tile(tile, image, offset_coord=Vector(0, 0), draw_outline=True):
         vertices[i][1] = tile[0][i].y * SCALAR + OUTPUT_IMAGE_DIMENSIONS.y + offset_coord.y * OUTPUT_IMAGE_DIMENSIONS.y
 
     vertices = vertices.astype(int)
+    if coverage_mask is not None:
+        cv2.fillPoly(coverage_mask, pts=[vertices], color=255)
     output_image = cv2.fillPoly(image, pts=[vertices], color=fill)
-    if draw_outline:
-        output_image = cv2.polylines(image, [vertices], True, (0, 0, 0), 2)
+    if draw_outline and stroke_width > 0:
+        outline_bgr = tuple(reversed(ImageColor.getrgb(outline)))
+        output_image = cv2.polylines(image, [vertices], True, outline_bgr, max(1, round(stroke_width)))
     return output_image

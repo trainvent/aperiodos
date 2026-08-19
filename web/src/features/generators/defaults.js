@@ -15,7 +15,9 @@ export const EINSTEIN_DEFAULTS = {
   four_color_2: "sienna",
   four_color_3: "goldenrod",
   four_color_4: "midnightblue",
-  no_outline: false
+  background: "white",
+  outline: "black",
+  stroke_width: 2
 };
 
 export const SPECTRE_DEFAULTS = {

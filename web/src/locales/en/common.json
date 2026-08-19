@@ -178,8 +178,7 @@
 			"description": "Adjust scale, size, and palette, then render a new image in the format you like.",
 			"coloring": "Coloring",
 			"coloringFamilies": "Tile Families",
-			"coloringFourColor": "Four-Color",
-			"noOutline": "Render without black outlines"
+			"coloringFourColor": "Four-Color"
 		},
 		"spectre": {
 			"title": "Spectre Generator",
