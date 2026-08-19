@@ -19,8 +19,7 @@ export default async function handler(req, res) {
     const payload = req.body || {};
     const amountCents = coerceDonationAmount(payload);
     const currency = coerceDonationCurrency(payload.currency);
-    const returnPath = payload.return_path === "/sponsors" ? "/sponsors" : "/donate";
-    const checkoutUrls = buildCheckoutUrls(resolvePublicAppUrl(req), returnPath);
+    const checkoutUrls = buildCheckoutUrls(resolvePublicAppUrl(req), "/sponsors");
     const session = await createDonationCheckoutSession({
       amountCents,
       currency,

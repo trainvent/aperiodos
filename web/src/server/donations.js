@@ -76,7 +76,7 @@ function warnFirestoreSkipped() {
   console.warn("Firestore is not configured; sponsors are disabled for this local run.");
 }
 
-export function buildCheckoutUrls(baseUrl, donatePath = "/donate") {
+export function buildCheckoutUrls(baseUrl, donatePath = "/sponsors") {
   const normalized = baseUrl.replace(/\/$/, "");
   return {
     successUrl: `${normalized}${donatePath}?status=success&session_id={CHECKOUT_SESSION_ID}`,

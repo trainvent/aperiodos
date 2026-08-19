@@ -72,4 +72,3 @@ function formatSponsorDate(isoDateString) {
   return date.toLocaleDateString();
 }
 
-

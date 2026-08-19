@@ -4,13 +4,12 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import AboutPage from "./features/about/AboutPage";
-import DonatePage from "./features/donations/DonatePage";
-import SponsorsPage from "./features/donations/SponsorsPage";
 import EinsteinPage from "./features/generators/EinsteinPage";
 import PenrosePage from "./features/generators/PenrosePage";
 import SpectrePage from "./features/generators/SpectrePage";
 import HomePage from "./features/home/HomePage";
 import RenderCreditsPage from "./features/renderCredits/RenderCreditsPage";
+import SponsorsPage from "./features/sponsors/SponsorsPage";
 
 export default function App() {
   const { t, i18n } = useTranslation("common");
@@ -140,7 +139,6 @@ function getPageTitle(path, t) {
     case "/generation-codes":
       return t("renderCredits.hero.title");
     case "/donate":
-      return t("donate.hero.title");
     case "/sponsors":
       return t("sponsors.hero.title");
     case "/about":
@@ -153,7 +151,6 @@ function getPageTitle(path, t) {
 function CurrentPage({ path }) {
   switch (normalizePath(path)) {
     case "/donate":
-      return <DonatePage />;
     case "/sponsors":
       return <SponsorsPage />;
     case "/einstein":

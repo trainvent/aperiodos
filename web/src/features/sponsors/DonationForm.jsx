@@ -5,7 +5,7 @@ import { NumberField, SelectField, TextField } from "../../components/forms/Form
 import { apiUrl } from "../../lib/api";
 import { DONATION_CURRENCY_OPTIONS, DONATION_DEFAULTS } from "./config";
 
-export default function DonationForm({ className = "", inlineName = false, returnPath = "/donate", onSponsorRecorded }) {
+export default function DonationForm({ className = "", inlineName = false, returnPath = "/sponsors", onSponsorRecorded }) {
   const { t } = useTranslation("common");
   const [values, setValues] = useState(DONATION_DEFAULTS);
   const [status, setStatus] = useState(() => t("donate.status.default"));
