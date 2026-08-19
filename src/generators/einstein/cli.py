@@ -23,6 +23,8 @@ def render_pattern(
     scalar=DEFAULT_SCALAR,
     width=DEFAULT_WIDTH,
     height=DEFAULT_HEIGHT,
+    center_x=0,
+    center_y=0,
     output=DEFAULT_OUTPUT,
     colors=DEFAULT_COLORS,
     color_mode="families",
@@ -45,6 +47,8 @@ def render_pattern(
         width=width,
         height=height,
         scalar=scalar,
+        center_x=center_x,
+        center_y=center_y,
         filename=output,
         show_window=show_window,
         draw_outline=draw_outline,
@@ -60,6 +64,8 @@ def build_parser():
     parser.add_argument("--scalar", type=int, default=DEFAULT_SCALAR, help="Pixel scale for each tile coordinate.")
     parser.add_argument("--width", type=int, default=DEFAULT_WIDTH, help="Output image width in pixels.")
     parser.add_argument("--height", type=int, default=DEFAULT_HEIGHT, help="Output image height in pixels.")
+    parser.add_argument("--center-x", type=float, default=0, help="Pattern-space X coordinate placed at the canvas center.")
+    parser.add_argument("--center-y", type=float, default=0, help="Pattern-space Y coordinate placed at the canvas center.")
     parser.add_argument("--output", default=DEFAULT_OUTPUT, help="Path for the generated image.")
     parser.add_argument(
         "--colors",
@@ -96,6 +102,8 @@ def main(argv=None):
         output = seed_to_pattern(
             seed=args.seed,
             output_file_name=args.output,
+            center_x=args.center_x,
+            center_y=args.center_y,
             draw_outline=not args.no_outline,
             background=args.background,
             outline=args.outline,
@@ -110,6 +118,8 @@ def main(argv=None):
             scalar=args.scalar,
             width=args.width,
             height=args.height,
+            center_x=args.center_x,
+            center_y=args.center_y,
             output=args.output,
             colors=tuple(args.colors),
             color_mode=args.color_mode,

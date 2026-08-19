@@ -23,7 +23,7 @@ export default function EinsteinPage() {
               <NumberField values={values} setValues={setValues} name="scalar" label={t("generator.common.scalar")} min={1} max={80} />
             </SettingsRow>
           }
-          allowSvg={false}
+          centerStep="0.1"
           modes={
             <SettingsRow>
               <SelectField
@@ -65,6 +65,8 @@ export default function EinsteinPage() {
           scalar: Number(values.scalar),
           width: Number(values.width),
           height: Number(values.height),
+          center_x: Number(values.center_x),
+          center_y: Number(values.center_y),
           format: values.format,
           color_mode: values.color_mode,
           colors: [values.color_h1, values.color_h, values.color_t, values.color_p, values.color_f],

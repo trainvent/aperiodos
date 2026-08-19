@@ -45,6 +45,8 @@ export default function handler(req, res) {
       width: DEFAULT_HTTP_WIDTH,
       height: DEFAULT_HTTP_HEIGHT,
       scalar: DEFAULT_SCALAR,
+      center_x: 0,
+      center_y: 0,
       colors: DEFAULT_COLORS,
       color_mode: "families",
       four_colors: DEFAULT_FOUR_COLORS,

@@ -4,6 +4,10 @@ from PIL import Image, ImageDraw
 
 from .svg import save_tiles_svg
 
+
+def is_no_color(color):
+    return str(color).strip().lower() in ("none", "transparent")
+
 try:
     from tkinter import Canvas, Tk
     TK_AVAILABLE = True
@@ -14,9 +18,11 @@ except (ImportError, ModuleNotFoundError):
 
 
 class EinsteinCanvas(Canvas):
-    def __init__(self, master, *args, **kwargs):
+    def __init__(self, master, *args, center_x=0, center_y=0, **kwargs):
         Canvas.__init__(self, master, *args, **kwargs)
         self.scalar = 1
+        self.center_x = center_x
+        self.center_y = center_y
 
     def set_scalar(self, scalar):
         self.scalar = scalar
@@ -24,17 +30,20 @@ class EinsteinCanvas(Canvas):
     def draw_polygon(self, vertices, fill="blue", outline="black", outline_width=2):
         coordinates = []
         for vec in vertices:
-            coordinates.append(vec.x * self.scalar + self.winfo_reqwidth() / 2)
-            coordinates.append(vec.y * self.scalar + self.winfo_reqheight() / 2)
+            coordinates.append((vec.x - self.center_x) * self.scalar + self.winfo_reqwidth() / 2)
+            coordinates.append((vec.y - self.center_y) * self.scalar + self.winfo_reqheight() / 2)
 
-        self.create_polygon(coordinates, fill=fill, width=outline_width, outline=outline)
+        canvas_fill = "" if str(fill).strip().lower() in ("none", "transparent") else fill
+        self.create_polygon(coordinates, fill=canvas_fill, width=outline_width, outline=outline)
 
 
 class EinsteinImage:
-    def __init__(self, width, height, bg=(255, 255, 255), scalar=1):
+    def __init__(self, width, height, bg=(255, 255, 255), scalar=1, center_x=0, center_y=0):
         self.width = width
         self.height = height
         self.scalar = scalar
+        self.center_x = center_x
+        self.center_y = center_y
         self.img = Image.new("RGB", (width, height), bg)
         self.draw = ImageDraw.Draw(self.img)
 
@@ -46,7 +55,7 @@ class EinsteinImage:
         cx = self.width / 2
         cy = self.height / 2
         for vec in vertices:
-            coords.append((vec.x * self.scalar + cx, vec.y * self.scalar + cy))
+            coords.append(((vec.x - self.center_x) * self.scalar + cx, (vec.y - self.center_y) * self.scalar + cy))
 
         if isinstance(fill, (list, tuple)):
             if len(fill) == 0:
@@ -62,6 +71,8 @@ class EinsteinImage:
         else:
             fill_val = fill
 
+        if fill_val is None and outline is None:
+            return
         self.draw.polygon(coords, fill=fill_val, outline=outline, width=max(1, round(outline_width)) if outline else 1)
 
     def save(self, filename):
@@ -82,6 +93,8 @@ def draw_tiles(
     width=500,
     height=500,
     scalar=20,
+    center_x=0,
+    center_y=0,
     filename="output/einstein_pattern.jpg",
     show_window=False,
     draw_outline=True,
@@ -89,7 +102,7 @@ def draw_tiles(
     outline="black",
     stroke_width=2,
 ):
-    outline = outline if draw_outline and stroke_width > 0 else None
+    outline = outline if draw_outline and stroke_width > 0 and not is_no_color(outline) else None
     outline_width = stroke_width if outline else 0
     if filename:
         output_path = Path(filename)
@@ -99,13 +112,18 @@ def draw_tiles(
                 width=width,
                 height=height,
                 scalar=scalar,
+                center_x=center_x,
+                center_y=center_y,
                 filename=filename,
                 background=background,
                 outline=outline or "none",
                 stroke_width=outline_width,
             )
         else:
-            img = EinsteinImage(width, height, bg=background, scalar=scalar)
+            raster_background = "white" if is_no_color(background) else background
+            img = EinsteinImage(
+                width, height, bg=raster_background, scalar=scalar, center_x=center_x, center_y=center_y
+            )
             for tile in tiles:
                 img.draw_polygon(tile[0], fill=tile[1][1], outline=outline, outline_width=outline_width)
 
@@ -117,7 +135,10 @@ def draw_tiles(
                 "Run with show_window=False or install a Python build with Tk support."
             )
         root = Tk()
-        canvas = EinsteinCanvas(root, width=width, height=height, bg=background)
+        canvas_background = "white" if is_no_color(background) else background
+        canvas = EinsteinCanvas(
+            root, width=width, height=height, bg=canvas_background, center_x=center_x, center_y=center_y
+        )
         canvas.set_scalar(scalar)
 
         for tile in tiles:

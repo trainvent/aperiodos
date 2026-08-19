@@ -670,6 +670,18 @@ select {
   background-position: 0 0, 0 5px, 5px -5px, -5px 0;
 }
 
+.color-chip-none {
+  background-color: #fff;
+  background-image: conic-gradient(
+    rgba(23, 49, 59, 0.22) 25%,
+    #fff 0 50%,
+    rgba(23, 49, 59, 0.22) 0 75%,
+    #fff 0
+  );
+  background-size: 8px 8px;
+  background-position: 0 0;
+}
+
 .field-pair,
 .swatches {
   display: grid;

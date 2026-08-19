@@ -49,6 +49,8 @@ def seed_to_coordinate(seed):
 def seed_to_pattern(
     seed=1,
     output_file_name="output/seed-pattern.png",
+    center_x=0,
+    center_y=0,
     draw_outline=True,
     background="white",
     colors=DEFAULT_COLORS,
@@ -74,7 +76,8 @@ def seed_to_pattern(
 
     reset_generator()
     next_generation(colors)
-    background_bgr = tuple(reversed(ImageColor.getrgb(background)))
+    raster_background = "white" if str(background).strip().lower() in ("none", "transparent") else background
+    background_bgr = tuple(reversed(ImageColor.getrgb(raster_background)))
 
     while True:
         output_image = np.full(
@@ -88,6 +91,8 @@ def seed_to_pattern(
                 tile,
                 output_image,
                 offset_coord=offset_coordinate,
+                center_x=center_x,
+                center_y=center_y,
                 draw_outline=draw_outline,
                 outline=outline,
                 stroke_width=stroke_width,
@@ -103,6 +108,8 @@ def seed_to_pattern(
                     scalar=SCALAR,
                     offset_coord=offset_coordinate,
                     filename=str(output_path),
+                    center_x=center_x,
+                    center_y=center_y,
                     background=background,
                     outline=outline if draw_outline else "none",
                     stroke_width=stroke_width if draw_outline else 0,

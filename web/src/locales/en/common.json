@@ -171,6 +171,7 @@
 			"strokeWidth": "Stroke Width",
 			"centerX": "Center X",
 			"centerY": "Center Y",
+			"noColor": "No color",
 			"colorPlaceholder": "Type or search a CSS color"
 		},
 		"einstein": {
@@ -197,9 +198,9 @@
 			"tilesP2": "P2: Kite & Dart",
 			"tilesP3": "P3: Rhombs",
 			"tilesP1": "P1: Stars",
-			"buildLogic": "Build Logic",
-			"buildLogicDefault": "Default",
-			"buildLogicCartwheel": "Cartwheel"
+			"drawLogic": "Drawing Logic",
+			"drawLogicDefault": "Default",
+			"drawLogicCartwheel": "Cartwheel"
 		}
 	},
 	"about": {

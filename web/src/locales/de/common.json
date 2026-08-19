@@ -171,6 +171,7 @@
 			"strokeWidth": "Strichbreite",
 			"centerX": "Zentrum X",
 			"centerY": "Zentrum Y",
+			"noColor": "Keine Farbe",
 			"colorPlaceholder": "Geben Sie einen CSS-Farbwert ein oder suchen Sie danach"
 		},
 		"einstein": {
@@ -197,9 +198,9 @@
 			"tilesP2": "P2: Drachen & Pfeile",
 			"tilesP3": "P3: Rauten",
 			"tilesP1": "P1: Sterne",
-			"buildLogic": "Bau-Logik",
-			"buildLogicDefault": "Standard",
-			"buildLogicCartwheel": "Cartwheel"
+			"drawLogic": "Zeichenlogik",
+			"drawLogicDefault": "Standard",
+			"drawLogicCartwheel": "Cartwheel"
 		}
 	},
 	"about": {

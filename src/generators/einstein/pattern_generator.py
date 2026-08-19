@@ -9,6 +9,12 @@ DEFAULT_FOUR_COLORS = ("seagreen", "sienna", "goldenrod", "midnightblue")
 vertices_to_draw = []
 
 
+def color_values(color):
+    css_color = str(color)
+    raster_color = None if css_color.strip().lower() in ("none", "transparent") else ImageColor.getrgb(css_color)
+    return [css_color, raster_color]
+
+
 def draw_polygon(shape, T, fill):
     vertices_to_draw.append([[], fill])
     for i in range(0, len(shape)):
@@ -282,11 +288,11 @@ def reset_generator():
 def next_generation(colorquintett=DEFAULT_COLORS):
     col = colorquintett
     colors = {
-        'H1': [col[0], ImageColor.getrgb(col[0]), 'H1'],
-        'H': [col[1], ImageColor.getrgb(col[1]), 'H'],
-        'T': [col[2], ImageColor.getrgb(col[2]), 'T'],
-        'P': [col[3], ImageColor.getrgb(col[3]), 'P'],
-        'F': [col[4], ImageColor.getrgb(col[4]), 'F']
+        'H1': [*color_values(col[0]), 'H1'],
+        'H': [*color_values(col[1]), 'H'],
+        'T': [*color_values(col[2]), 'T'],
+        'P': [*color_values(col[3]), 'P'],
+        'F': [*color_values(col[4]), 'F']
     }
     vertices_to_draw.clear()
     draw(colors)
@@ -297,7 +303,7 @@ def apply_four_coloring(colorquadruple=DEFAULT_FOUR_COLORS):
     if not vertices_to_draw:
         return
 
-    palette = [[color, ImageColor.getrgb(color)] for color in colorquadruple]
+    palette = [color_values(color) for color in colorquadruple]
     special_indices = special_tile_indices(vertices_to_draw)
     adjacency = build_edge_adjacency(vertices_to_draw)
     color_indices = [None] * len(vertices_to_draw)

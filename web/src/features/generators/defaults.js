@@ -3,6 +3,8 @@ export const EINSTEIN_DEFAULTS = {
   scalar: 20,
   width: 1600,
   height: 1600,
+  center_x: 0,
+  center_y: 0,
   format: "png",
   color_mode: "families",
   seed: "",

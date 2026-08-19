@@ -180,6 +180,8 @@ export async function renderEinstein(payload) {
   const scalar = coerceInt(payload, "scalar", DEFAULT_SCALAR, { minimum: 1, maximum: MAX_SCALAR });
   const width = coerceInt(payload, "width", DEFAULT_HTTP_WIDTH, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
   const height = coerceInt(payload, "height", DEFAULT_HTTP_HEIGHT, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
+  const centerX = coerceFloat(payload, "center_x", 0.0);
+  const centerY = coerceFloat(payload, "center_y", 0.0);
   const colorMode = coerceOneOf(payload, "color_mode", "families", ["families", "four_color"]);
   const colors = coerceColors(payload);
   const fourColors = coerceFourColors(payload);
@@ -201,6 +203,10 @@ export async function renderEinstein(payload) {
       String(width),
       "--height",
       String(height),
+      "--center-x",
+      String(centerX),
+      "--center-y",
+      String(centerY),
       "--output",
       outputPath,
       "--colors",

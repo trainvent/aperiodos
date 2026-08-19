@@ -61,6 +61,8 @@ export function TextField({ values, setValues, name, label, placeholder, full = 
 export function ColorField({ values, setValues, name, label, placeholder, full = false }) {
   const { t } = useTranslation("common");
   const listId = `color-options-${name}`;
+  const colorValue = String(values[name] ?? "").trim();
+  const hasNoColor = !colorValue || colorValue.toLowerCase() === "none" || colorValue.toLowerCase() === "transparent";
   const cachedValueRef = useRef("");
   const autoClearedRef = useRef(false);
   const resolvedPlaceholder = placeholder || t("generator.common.colorPlaceholder");
@@ -89,7 +91,11 @@ export function ColorField({ values, setValues, name, label, placeholder, full =
     <label className={full ? "full color-field" : "color-field"}>
       <span>{label}</span>
       <div className="color-input-wrap">
-        <span className="color-chip" style={{ background: values[name] || "transparent" }} aria-hidden="true" />
+        <span
+          className={`color-chip${hasNoColor ? " color-chip-none" : ""}`}
+          style={hasNoColor ? undefined : { background: values[name] }}
+          aria-hidden="true"
+        />
         <input
           name={name}
           type="text"
@@ -101,6 +107,7 @@ export function ColorField({ values, setValues, name, label, placeholder, full =
           onChange={(event) => setValues((current) => ({ ...current, [name]: event.target.value }))}
         />
         <datalist id={listId}>
+          <option value="none" label={t("generator.common.noColor")} />
           {CSS_COLOR_OPTIONS.map((color) => (
             <option key={color} value={color} />
           ))}
@@ -110,13 +117,14 @@ export function ColorField({ values, setValues, name, label, placeholder, full =
   );
 }
 
-export function SelectField({ values, setValues, name, label, options, full = false }) {
+export function SelectField({ values, setValues, name, label, options, full = false, disabled = false }) {
   return (
     <label className={full ? "full" : ""}>
       <span>{label}</span>
       <select
         name={name}
         value={values[name]}
+        disabled={disabled}
         onChange={(event) => setValues((current) => ({ ...current, [name]: event.target.value }))}
       >
         {options.map((option) => (

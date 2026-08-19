@@ -114,6 +114,17 @@ export default function PenrosePage() {
               <SelectField
                 values={values}
                 setValues={setValues}
+                name="build_logic"
+                label={t("generator.penrose.drawLogic")}
+                options={[
+                  { value: "default", label: t("generator.penrose.drawLogicDefault") },
+                  { value: "cartwheel", label: t("generator.penrose.drawLogicCartwheel") }
+                ]}
+                disabled={values.tile_mode !== "kite-dart"}
+              />
+              <SelectField
+                values={values}
+                setValues={setValues}
                 name="tile_mode"
                 label={t("generator.penrose.tiles")}
                 options={[
@@ -122,18 +133,6 @@ export default function PenrosePage() {
                   { value: "p1", label: t("generator.penrose.tilesP1") }
                 ]}
               />
-              {values.tile_mode === "kite-dart" ? (
-                <SelectField
-                  values={values}
-                  setValues={setValues}
-                  name="build_logic"
-                  label={t("generator.penrose.buildLogic")}
-                  options={[
-                    { value: "default", label: t("generator.penrose.buildLogicDefault") },
-                    { value: "cartwheel", label: t("generator.penrose.buildLogicCartwheel") }
-                  ]}
-                />
-              ) : null}
             </SettingsRow>
           }
           palette={

@@ -27,7 +27,9 @@ def _svg_polygon(points, fill, stroke, stroke_width):
     )
 
 
-def save_tiles_svg(tiles, width, height, scalar, filename, background="white", outline="black", stroke_width=2):
+def save_tiles_svg(
+    tiles, width, height, scalar, filename, center_x=0, center_y=0, background="white", outline="black", stroke_width=2
+):
     cx = width / 2
     cy = height / 2
     stroke = outline if stroke_width > 0 else "none"
@@ -38,7 +40,7 @@ def save_tiles_svg(tiles, width, height, scalar, filename, background="white", o
     ]
 
     for tile in tiles:
-        points = [(vec.x * scalar + cx, vec.y * scalar + cy) for vec in tile[0]]
+        points = [((vec.x - center_x) * scalar + cx, (vec.y - center_y) * scalar + cy) for vec in tile[0]]
         fill = _normalize_svg_color(tile[1])
         lines.append(_svg_polygon(points, fill, stroke, stroke_width))
 
@@ -51,7 +53,7 @@ def save_tiles_svg(tiles, width, height, scalar, filename, background="white", o
 
 
 def save_seed_tiles_svg(
-    tiles, width, height, scalar, offset_coord, filename, background="white", outline="black", stroke_width=2
+    tiles, width, height, scalar, offset_coord, filename, center_x=0, center_y=0, background="white", outline="black", stroke_width=2
 ):
     stroke = outline if stroke_width > 0 else "none"
 
@@ -63,8 +65,8 @@ def save_seed_tiles_svg(
     for tile in tiles:
         points = [
             (
-                vec.x * scalar - offset_coord.x * width,
-                vec.y * scalar + height + offset_coord.y * height,
+                (vec.x - center_x) * scalar - offset_coord.x * width,
+                (vec.y - center_y) * scalar + height + offset_coord.y * height,
             )
             for vec in tile[0]
         ]
