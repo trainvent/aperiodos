@@ -5,6 +5,7 @@ import { ColorField, NumberField, SelectField, TextField } from "../../component
 import { apiUrl } from "../../lib/api";
 import { EINSTEIN_DEFAULTS } from "./defaults";
 import GeneratorLayout from "./GeneratorLayout";
+import GeneratorSettingsScaffold, { SettingsRow } from "./GeneratorSettingsScaffold";
 
 export default function EinsteinPage() {
   const { t } = useTranslation("common");
@@ -13,54 +14,50 @@ export default function EinsteinPage() {
     <GeneratorLayout
       title={t("generator.einstein.title")}
       controls={
-        <>
-          <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={1} max={6} />
-          <NumberField values={values} setValues={setValues} name="scalar" label={t("generator.common.scalar")} min={1} max={80} />
-          <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="height" label={t("generator.common.height")} min={64} max={6000} />
-          <SelectField
-            values={values}
-            setValues={setValues}
-            name="color_mode"
-            label={t("generator.einstein.coloring")}
-            options={[
-              { value: "families", label: t("generator.einstein.coloringFamilies") },
-              { value: "four_color", label: t("generator.einstein.coloringFourColor") }
-            ]}
-          />
-          <SelectField
-            values={values}
-            setValues={setValues}
-            name="format"
-            label={t("generator.common.format")}
-            options={[
-              { value: "png", label: "PNG" },
-              { value: "jpg", label: "JPG" }
-            ]}
-          />
-          <TextField values={values} setValues={setValues} name="seed" label={t("generator.common.seed")} placeholder={t("generator.common.optional")} />
-          <NumberField values={values} setValues={setValues} name="stroke_width" label={t("generator.common.strokeWidth")} min={0} max={20} step="0.1" />
-          <div className="field-pair full">
-            <ColorField values={values} setValues={setValues} name="background" label={t("generator.common.background")} />
-            <ColorField values={values} setValues={setValues} name="outline" label={t("generator.common.outline")} />
-          </div>
-          {values.color_mode === "families" ? (
-            <div className="swatches full">
-              <ColorField values={values} setValues={setValues} name="color_h1" label="H1" />
-              <ColorField values={values} setValues={setValues} name="color_h" label="H" />
-              <ColorField values={values} setValues={setValues} name="color_t" label="T" />
-              <ColorField values={values} setValues={setValues} name="color_p" label="P" />
-              <ColorField values={values} setValues={setValues} name="color_f" label="F" full />
-            </div>
-          ) : (
-            <div className="swatches full">
-              <ColorField values={values} setValues={setValues} name="four_color_1" label={t("generator.common.color1")} />
-              <ColorField values={values} setValues={setValues} name="four_color_2" label={t("generator.common.color2")} />
-              <ColorField values={values} setValues={setValues} name="four_color_3" label={t("generator.common.color3")} />
-              <ColorField values={values} setValues={setValues} name="four_color_4" label={t("generator.common.color4")} />
-            </div>
-          )}
-        </>
+        <GeneratorSettingsScaffold
+          values={values}
+          setValues={setValues}
+          parameters={
+            <SettingsRow>
+              <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={1} max={6} />
+              <NumberField values={values} setValues={setValues} name="scalar" label={t("generator.common.scalar")} min={1} max={80} />
+            </SettingsRow>
+          }
+          allowSvg={false}
+          modes={
+            <SettingsRow>
+              <SelectField
+                values={values}
+                setValues={setValues}
+                name="color_mode"
+                label={t("generator.einstein.coloring")}
+                options={[
+                  { value: "families", label: t("generator.einstein.coloringFamilies") },
+                  { value: "four_color", label: t("generator.einstein.coloringFourColor") }
+                ]}
+              />
+              <TextField values={values} setValues={setValues} name="seed" label={t("generator.common.seed")} placeholder={t("generator.common.optional")} />
+            </SettingsRow>
+          }
+          palette={
+            values.color_mode === "families" ? (
+              <>
+                <ColorField values={values} setValues={setValues} name="color_h1" label="H1" />
+                <ColorField values={values} setValues={setValues} name="color_h" label="H" />
+                <ColorField values={values} setValues={setValues} name="color_t" label="T" />
+                <ColorField values={values} setValues={setValues} name="color_p" label="P" />
+                <ColorField values={values} setValues={setValues} name="color_f" label="F" full />
+              </>
+            ) : (
+              <>
+                <ColorField values={values} setValues={setValues} name="four_color_1" label={t("generator.common.color1")} />
+                <ColorField values={values} setValues={setValues} name="four_color_2" label={t("generator.common.color2")} />
+                <ColorField values={values} setValues={setValues} name="four_color_3" label={t("generator.common.color3")} />
+                <ColorField values={values} setValues={setValues} name="four_color_4" label={t("generator.common.color4")} />
+              </>
+            )
+          }
+        />
       }
       payload={() => {
         const payload = {

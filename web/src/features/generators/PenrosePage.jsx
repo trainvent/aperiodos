@@ -5,6 +5,7 @@ import { ColorField, NumberField, SelectField } from "../../components/forms/For
 import { apiUrl } from "../../lib/api";
 import { PENROSE_DEFAULTS } from "./defaults";
 import GeneratorLayout from "./GeneratorLayout";
+import GeneratorSettingsScaffold, { SettingsRow } from "./GeneratorSettingsScaffold";
 
 export default function PenrosePage() {
   const { t } = useTranslation("common");
@@ -98,61 +99,52 @@ export default function PenrosePage() {
     <GeneratorLayout
       title={t("generator.penrose.title")}
       controls={
-        <>
-          <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="height" label={t("generator.common.height")} min={64} max={6000} />
-          <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={0} max={10} />
-          <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1200} />
-          <NumberField values={values} setValues={setValues} name="center_x" label={t("generator.common.centerX")} step="0.01" />
-          <NumberField values={values} setValues={setValues} name="center_y" label={t("generator.common.centerY")} step="0.01" />
-          <SelectField
-            values={values}
-            setValues={setValues}
-            name="tile_mode"
-            label={t("generator.penrose.tiles")}
-            options={[
-              { value: "kite-dart", label: t("generator.penrose.tilesP2") },
-              { value: "rhombs", label: t("generator.penrose.tilesP3") },
-              { value: "p1", label: t("generator.penrose.tilesP1") }
-            ]}
-          />
-          {values.tile_mode === "kite-dart" ? (
-            <SelectField
-              values={values}
-              setValues={setValues}
-              name="build_logic"
-              label={t("generator.penrose.buildLogic")}
-              options={[
-                { value: "default", label: t("generator.penrose.buildLogicDefault") },
-                { value: "cartwheel", label: t("generator.penrose.buildLogicCartwheel") }
-              ]}
-            />
-          ) : null}
-          <div className="field-pair full">
-            <SelectField
-              values={values}
-              setValues={setValues}
-              name="format"
-              label={t("generator.common.format")}
-              options={[
-                { value: "svg", label: "SVG" },
-                { value: "png", label: "PNG" },
-                { value: "jpg", label: "JPG" }
-              ]}
-            />
-            <NumberField values={values} setValues={setValues} name="stroke_width" label={t("generator.common.strokeWidth")} min={0} max={20} step="0.1" />
-          </div>
-          <div className="field-pair full">
-            <ColorField values={values} setValues={setValues} name="background" label={t("generator.common.background")} />
-            <ColorField values={values} setValues={setValues} name="outline" label={t("generator.common.outline")} />
-          </div>
-          <div className="swatches full">
-            <ColorField values={values} setValues={setValues} name="palette_1" label={t("generator.common.color1")} />
-            <ColorField values={values} setValues={setValues} name="palette_2" label={t("generator.common.color2")} />
-            <ColorField values={values} setValues={setValues} name="palette_3" label={t("generator.common.color3")} />
-            <ColorField values={values} setValues={setValues} name="palette_4" label={t("generator.common.color4")} />
-          </div>
-        </>
+        <GeneratorSettingsScaffold
+          values={values}
+          setValues={setValues}
+          parameters={
+            <SettingsRow>
+              <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={0} max={10} />
+              <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1200} />
+            </SettingsRow>
+          }
+          centerStep="0.01"
+          modes={
+            <SettingsRow>
+              <SelectField
+                values={values}
+                setValues={setValues}
+                name="tile_mode"
+                label={t("generator.penrose.tiles")}
+                options={[
+                  { value: "kite-dart", label: t("generator.penrose.tilesP2") },
+                  { value: "rhombs", label: t("generator.penrose.tilesP3") },
+                  { value: "p1", label: t("generator.penrose.tilesP1") }
+                ]}
+              />
+              {values.tile_mode === "kite-dart" ? (
+                <SelectField
+                  values={values}
+                  setValues={setValues}
+                  name="build_logic"
+                  label={t("generator.penrose.buildLogic")}
+                  options={[
+                    { value: "default", label: t("generator.penrose.buildLogicDefault") },
+                    { value: "cartwheel", label: t("generator.penrose.buildLogicCartwheel") }
+                  ]}
+                />
+              ) : null}
+            </SettingsRow>
+          }
+          palette={
+            <>
+              <ColorField values={values} setValues={setValues} name="palette_1" label={t("generator.common.color1")} />
+              <ColorField values={values} setValues={setValues} name="palette_2" label={t("generator.common.color2")} />
+              <ColorField values={values} setValues={setValues} name="palette_3" label={t("generator.common.color3")} />
+              <ColorField values={values} setValues={setValues} name="palette_4" label={t("generator.common.color4")} />
+            </>
+          }
+        />
       }
       payload={() => ({
         width: Number(values.width),
