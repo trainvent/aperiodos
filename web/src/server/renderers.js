@@ -13,17 +13,18 @@ import {
   DEFAULT_HTTP_HEIGHT,
   DEFAULT_HTTP_WIDTH,
   DEFAULT_ITERATIONS,
-  DEFAULT_SCALAR,
+  DEFAULT_SCALE,
+  EINSTEIN_SCALE_NORMALIZATION,
   GENERATORS_DIR,
   MAX_IMAGE_DIMENSION,
   MAX_ITERATIONS,
-  MAX_PENROSE_SUBDIVISIONS,
-  MAX_PENROSE_SCALE,
-  MAX_SCALAR,
+  MAX_PENROSE_ITERATIONS,
+  MAX_SCALE,
   MAX_SPECTRE_ITERATIONS,
-  MAX_SPECTRE_SCALE,
+  PENROSE_SCALE_NORMALIZATION,
   P1_SCALE_NORMALIZATION,
   PROJECT_ROOT,
+  SPECTRE_SCALE_NORMALIZATION,
   SRC_DIR,
 } from "./config.js";
 import { ApiError } from "./http.js";
@@ -194,7 +195,11 @@ async function svgToRequestedFormat(svgBuffer, imageFormat) {
 export async function renderEinstein(payload) {
   const imageFormat = coerceFormat(payload, ALLOWED_EINSTEIN_FORMATS, "png");
   const iterations = coerceInt(payload, "iterations", DEFAULT_ITERATIONS, { minimum: 1, maximum: MAX_ITERATIONS });
-  const scalar = coerceInt(payload, "scalar", DEFAULT_SCALAR, { minimum: 1, maximum: MAX_SCALAR });
+  const usesLegacyScalar = payload.scale === undefined && payload.scalar !== undefined;
+  const requestedScale = coerceFloat(payload, "scale", DEFAULT_SCALE, { minimum: 1.0, maximum: MAX_SCALE });
+  const scalar = usesLegacyScalar
+    ? coerceFloat(payload, "scalar", 20.0, { minimum: 0.2, maximum: 200.0 })
+    : requestedScale * EINSTEIN_SCALE_NORMALIZATION;
   const width = coerceInt(payload, "width", DEFAULT_HTTP_WIDTH, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
   const height = coerceInt(payload, "height", DEFAULT_HTTP_HEIGHT, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
   const centerX = coerceFloat(payload, "center_x", 0.0);
@@ -266,7 +271,8 @@ export async function renderSpectre(payload) {
     maximum: MAX_SPECTRE_ITERATIONS,
   });
   const autoIterations = coerceBoolean(payload, "auto_iterations");
-  const scale = coerceFloat(payload, "scale", 40.0, { minimum: 1.0, maximum: MAX_SPECTRE_SCALE });
+  const requestedScale = coerceFloat(payload, "scale", DEFAULT_SCALE, { minimum: 1.0, maximum: MAX_SCALE });
+  const scale = requestedScale * SPECTRE_SCALE_NORMALIZATION;
   const centerX = coerceFloat(payload, "center_x", 0.0);
   const centerY = coerceFloat(payload, "center_y", 0.0);
   const background = String(payload.background || "#ffffff");
@@ -317,11 +323,8 @@ export async function renderSpectre(payload) {
 export async function renderPenrose(payload) {
   const width = coerceInt(payload, "width", DEFAULT_HTTP_WIDTH, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
   const height = coerceInt(payload, "height", DEFAULT_HTTP_HEIGHT, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
-  const subdivisions = coerceInt(payload, "subdivisions", payload.iterations ?? 4, {
-    minimum: 0,
-    maximum: MAX_PENROSE_SUBDIVISIONS,
-  });
-  const scale = coerceFloat(payload, "scale", 320.0, { minimum: 10.0, maximum: MAX_PENROSE_SCALE });
+  const iterations = coerceInt(payload, "iterations", 4, { minimum: 0, maximum: MAX_PENROSE_ITERATIONS });
+  const scale = coerceFloat(payload, "scale", DEFAULT_SCALE, { minimum: 1.0, maximum: MAX_SCALE });
   const centerX = coerceFloat(payload, "center_x", 0.0);
   const centerY = coerceFloat(payload, "center_y", 0.0);
   const background = String(payload.background || "#ffffff");
@@ -337,7 +340,7 @@ export async function renderPenrose(payload) {
     buildLogic = "default";
   }
   const seed = buildLogic === "default" ? "sun" : "star";
-  const rendererScale = tileMode === "p1" ? scale * P1_SCALE_NORMALIZATION : scale;
+  const rendererScale = scale * (tileMode === "p1" ? P1_SCALE_NORMALIZATION : PENROSE_SCALE_NORMALIZATION);
   const imageFormat = coerceFormat(payload, ALLOWED_PENROSE_FORMATS, "svg");
 
   return renderRustSvg({
@@ -353,8 +356,8 @@ export async function renderPenrose(payload) {
       String(width),
       "--height",
       String(height),
-      "--subdivisions",
-      String(subdivisions),
+      "--iterations",
+      String(iterations),
       "--scale",
       String(rendererScale),
       "--center-x",

@@ -20,7 +20,7 @@ export default function EinsteinPage() {
           parameters={
             <SettingsRow>
               <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={1} max={6} />
-              <NumberField values={values} setValues={setValues} name="scalar" label={t("generator.common.scalar")} min={1} max={80} />
+              <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1000} />
             </SettingsRow>
           }
           centerStep="0.1"
@@ -62,7 +62,7 @@ export default function EinsteinPage() {
       payload={() => {
         const payload = {
           iterations: Number(values.iterations),
-          scalar: Number(values.scalar),
+          scale: Number(values.scale),
           width: Number(values.width),
           height: Number(values.height),
           center_x: Number(values.center_x),

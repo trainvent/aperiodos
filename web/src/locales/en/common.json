@@ -159,7 +159,6 @@
 		"common": {
 			"iterations": "Iterations",
 			"level": "Level",
-			"scalar": "Scalar",
 			"scale": "Scale",
 			"width": "Width",
 			"height": "Height",
@@ -199,7 +198,6 @@
 		"penrose": {
 			"title": "Penrose Generator",
 			"description": "Generate Penrose tilings as kite-darts, rhombs, or a derived option that includes the star-heavy pentagonal motif from Penrose's first tiling.",
-			"subdivisions": "Subdivisions",
 			"tiles": "Tiles",
 			"tilesP2": "P2: Kite & Dart",
 			"tilesP3": "P3: Rhombs",

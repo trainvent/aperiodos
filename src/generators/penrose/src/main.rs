@@ -22,13 +22,8 @@ fn parse_args(args: impl Iterator<Item = String>) -> (PathBuf, PenroseSvgConfig)
             "--output" => output = PathBuf::from(next_arg(&mut args, "--output")),
             "--width" => config.width = parse_value(next_arg(&mut args, "--width"), "--width"),
             "--height" => config.height = parse_value(next_arg(&mut args, "--height"), "--height"),
-            "--subdivisions" => {
-                config.subdivisions =
-                    parse_value(next_arg(&mut args, "--subdivisions"), "--subdivisions")
-            }
             "--iterations" => {
-                config.subdivisions =
-                    parse_value(next_arg(&mut args, "--iterations"), "--iterations")
+                config.iterations = parse_value(next_arg(&mut args, "--iterations"), "--iterations")
             }
             "--scale" => config.scale = parse_value(next_arg(&mut args, "--scale"), "--scale"),
             "--center-x" => {
@@ -111,7 +106,7 @@ fn print_help() {
            --output PATH\n\
            --width PX\n\
            --height PX\n\
-           --subdivisions N\n\
+           --iterations N\n\
            --scale WORLD_TO_PIXEL\n\
            --center-x X\n\
            --center-y Y\n\

@@ -23,21 +23,21 @@ struct PointKey(i64, i64);
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 struct EdgeKey(PointKey, PointKey);
 
-pub(super) fn render_tiles(seed: PenroseSeed, subdivisions: usize) -> Vec<RenderTile> {
-    let mut triangles = initial_seed(seed);
-    for _ in 0..subdivisions {
+pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTile> {
+    let mut triangles = initial_seed(seed, PHI.powi(iterations as i32));
+    for _ in 0..iterations {
         triangles = subdivide(&triangles);
     }
     assemble_rhombs(&triangles)
 }
 
-fn initial_seed(seed: PenroseSeed) -> Vec<Triangle> {
+fn initial_seed(seed: PenroseSeed, size: f64) -> Vec<Triangle> {
     let mut triangles = Vec::new();
     match seed {
         PenroseSeed::Sun => {
             for index in 0..10 {
-                let mut b = polar(1.0, (2.0 * index as f64 - 1.0) * PI / 10.0);
-                let mut c = polar(1.0, (2.0 * index as f64 + 1.0) * PI / 10.0);
+                let mut b = polar(size, (2.0 * index as f64 - 1.0) * PI / 10.0);
+                let mut c = polar(size, (2.0 * index as f64 + 1.0) * PI / 10.0);
                 if index % 2 == 0 {
                     std::mem::swap(&mut b, &mut c);
                 }
@@ -49,8 +49,8 @@ fn initial_seed(seed: PenroseSeed) -> Vec<Triangle> {
         }
         PenroseSeed::Star => {
             for index in 0..10 {
-                let mut b = polar(1.0, (2.0 * index as f64 - 1.0) * PI / 10.0);
-                let mut c = polar(1.0, (2.0 * index as f64 + 1.0) * PI / 10.0);
+                let mut b = polar(size, (2.0 * index as f64 - 1.0) * PI / 10.0);
+                let mut c = polar(size, (2.0 * index as f64 + 1.0) * PI / 10.0);
                 if index % 2 == 0 {
                     std::mem::swap(&mut b, &mut c);
                 }
@@ -220,4 +220,36 @@ fn point_key(point: Vec2) -> PointKey {
         (point.x * SCALE).round() as i64,
         (point.y * SCALE).round() as i64,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn distance(left: Vec2, right: Vec2) -> f64 {
+        let delta = right - left;
+        (delta.x * delta.x + delta.y * delta.y).sqrt()
+    }
+
+    fn shortest_boundary_edge(tiles: &[RenderTile]) -> f64 {
+        tiles
+            .iter()
+            .flat_map(|tile| {
+                tile.points
+                    .iter()
+                    .zip(tile.points.iter().cycle().skip(1))
+                    .take(tile.points.len())
+                    .map(|(left, right)| distance(*left, *right))
+            })
+            .min_by(f64::total_cmp)
+            .expect("the P3 patch should contain polygon edges")
+    }
+
+    #[test]
+    fn p3_tile_size_is_independent_of_iterations() {
+        let first = render_tiles(PenroseSeed::Sun, 1);
+        let fourth = render_tiles(PenroseSeed::Sun, 4);
+
+        assert!((shortest_boundary_edge(&first) - shortest_boundary_edge(&fourth)).abs() <= 1e-6);
+    }
 }

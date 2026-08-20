@@ -41,21 +41,21 @@ impl Vertex {
     }
 }
 
-pub(super) fn render_tiles(seed: PenroseSeed, subdivisions: usize) -> Vec<RenderTile> {
-    let inflation = PHI.powi(subdivisions as i32);
+pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTile> {
+    let inflation = PHI.powi(iterations as i32);
     match seed {
         PenroseSeed::Sun => {
             let mut triangles = initial_seed(seed, inflation);
-            for _ in 0..subdivisions {
+            for _ in 0..iterations {
                 triangles = subdivide(&triangles);
             }
             assembled_tiles(&triangles, PenroseTileMode::KiteDart)
         }
         // Cartwheel uses pre-expanded canonical states from the reference construction.
         PenroseSeed::Star => {
-            let effective_subdivisions = subdivisions.min(4);
+            let effective_iterations = iterations.min(4);
             let triangles =
-                initial_cartwheel(effective_subdivisions, PHI.powi(effective_subdivisions as i32));
+                initial_cartwheel(effective_iterations, PHI.powi(effective_iterations as i32));
             let mut tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
             apply_cartwheel_coloring(&mut tiles);
             tiles
@@ -564,7 +564,7 @@ mod tests {
     }
 
     #[test]
-    fn p2_tile_size_is_independent_of_subdivisions() {
+    fn p2_tile_size_is_independent_of_iterations() {
         let first = render_tiles(PenroseSeed::Sun, 1);
         let fourth = render_tiles(PenroseSeed::Sun, 4);
 

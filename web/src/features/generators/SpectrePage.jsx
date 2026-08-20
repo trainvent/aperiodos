@@ -28,7 +28,7 @@ export default function SpectrePage() {
                 max={8}
                 placeholder={t("generator.spectre.autoIterationsValue")}
               />
-              <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={120} />
+              <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1000} />
             </SettingsRow>
           }
           centerStep="0.1"

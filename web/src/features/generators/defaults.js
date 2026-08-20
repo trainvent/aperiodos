@@ -2,7 +2,7 @@ export const DEFAULT_CANVAS_SIZE = 1600;
 
 export const EINSTEIN_DEFAULTS = {
   iterations: 5,
-  scalar: 20,
+  scale: 100,
   width: DEFAULT_CANVAS_SIZE,
   height: DEFAULT_CANVAS_SIZE,
   center_x: 0,
@@ -28,7 +28,7 @@ export const SPECTRE_DEFAULTS = {
   width: DEFAULT_CANVAS_SIZE,
   height: DEFAULT_CANVAS_SIZE,
   iterations: "",
-  scale: 4,
+  scale: 100,
   center_x: 0,
   center_y: 0,
   format: "svg",
@@ -46,8 +46,8 @@ export const SPECTRE_DEFAULTS = {
 export const PENROSE_DEFAULTS = {
   width: DEFAULT_CANVAS_SIZE,
   height: DEFAULT_CANVAS_SIZE,
-  subdivisions: 4,
-  scale: 320,
+  iterations: 4,
+  scale: 100,
   center_x: 0,
   center_y: 0,
   format: "svg",

@@ -11,7 +11,7 @@ export default function PenrosePage() {
   const { t } = useTranslation("common");
   const [values, setValues] = useState(PENROSE_DEFAULTS);
   const previousTileModeRef = useRef(PENROSE_DEFAULTS.tile_mode);
-  const modeScaleDefaults = { "kite-dart": 320, rhombs: 320, p1: 320 };
+  const modeScaleDefaults = { "kite-dart": 100, rhombs: 100, p1: 100 };
   const modeLegacyScales = { "kite-dart": [320], rhombs: [320], p1: [7, 10, 14, 285, 320] };
   const p1PaletteDefaults = ["seagreen", "midnightblue", "sandybrown", "goldenrod"];
   const legacyPaletteDefaults = ["wheat", "midnightblue", "sandybrown", "seagreen"];
@@ -104,8 +104,8 @@ export default function PenrosePage() {
           setValues={setValues}
           parameters={
             <SettingsRow>
-              <NumberField values={values} setValues={setValues} name="subdivisions" label={t("generator.penrose.subdivisions")} min={0} max={10} />
-              <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1200} />
+              <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={0} max={10} />
+              <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1000} />
             </SettingsRow>
           }
           centerStep="0.01"
@@ -148,7 +148,7 @@ export default function PenrosePage() {
       payload={() => ({
         width: Number(values.width),
         height: Number(values.height),
-        subdivisions: Number(values.subdivisions),
+        iterations: Number(values.iterations),
         scale: Number(values.scale),
         center_x: Number(values.center_x),
         center_y: Number(values.center_y),
