@@ -4,7 +4,7 @@ from PIL import ImageColor
 
 from .geometry import Vector
 
-OUTPUT_IMAGE_DIMENSIONS = Vector(800, 800)
+OUTPUT_IMAGE_DIMENSIONS = Vector(1600, 1600)
 SCALAR = 50
 
 

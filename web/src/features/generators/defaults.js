@@ -1,8 +1,10 @@
+export const DEFAULT_CANVAS_SIZE = 1600;
+
 export const EINSTEIN_DEFAULTS = {
   iterations: 5,
   scalar: 20,
-  width: 1600,
-  height: 1600,
+  width: DEFAULT_CANVAS_SIZE,
+  height: DEFAULT_CANVAS_SIZE,
   center_x: 0,
   center_y: 0,
   format: "png",
@@ -23,8 +25,8 @@ export const EINSTEIN_DEFAULTS = {
 };
 
 export const SPECTRE_DEFAULTS = {
-  width: 900,
-  height: 900,
+  width: DEFAULT_CANVAS_SIZE,
+  height: DEFAULT_CANVAS_SIZE,
   level: 5,
   scale: 4,
   center_x: 0,
@@ -42,8 +44,8 @@ export const SPECTRE_DEFAULTS = {
 };
 
 export const PENROSE_DEFAULTS = {
-  width: 1200,
-  height: 1200,
+  width: DEFAULT_CANVAS_SIZE,
+  height: DEFAULT_CANVAS_SIZE,
   iterations: 4,
   scale: 320,
   center_x: 0,

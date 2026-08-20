@@ -4,7 +4,19 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { serverSecret } from "./config.js";
+import {
+  EINSTEIN_DEFAULTS,
+  PENROSE_DEFAULTS,
+  SPECTRE_DEFAULTS,
+} from "../features/generators/defaults.js";
+import { DEFAULT_HTTP_HEIGHT, DEFAULT_HTTP_WIDTH, serverSecret } from "./config.js";
+
+test("all generators use the server canvas defaults", () => {
+  for (const defaults of [EINSTEIN_DEFAULTS, SPECTRE_DEFAULTS, PENROSE_DEFAULTS]) {
+    assert.equal(defaults.width, DEFAULT_HTTP_WIDTH);
+    assert.equal(defaults.height, DEFAULT_HTTP_HEIGHT);
+  }
+});
 
 test("serverSecret reads a mounted file before an environment fallback", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "aperiodos-secret-test-"));

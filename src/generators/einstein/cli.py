@@ -13,8 +13,8 @@ from .seed_to_pattern import seed_to_pattern
 
 DEFAULT_ITERATIONS = 5
 DEFAULT_SCALAR = 20
-DEFAULT_WIDTH = 5000
-DEFAULT_HEIGHT = 5000
+DEFAULT_WIDTH = 1600
+DEFAULT_HEIGHT = 1600
 DEFAULT_OUTPUT = "output/einstein_pattern.jpg"
 
 

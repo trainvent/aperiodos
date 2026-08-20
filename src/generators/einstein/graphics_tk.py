@@ -114,8 +114,8 @@ class EinsteinImage:
 
 def draw_tiles(
     tiles,
-    width=500,
-    height=500,
+    width=1600,
+    height=1600,
     scalar=20,
     center_x=0,
     center_y=0,
