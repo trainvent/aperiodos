@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
@@ -23,7 +24,8 @@ pub enum ShapeMode {
 pub struct SpectreSvgConfig {
     pub width: u32,
     pub height: u32,
-    pub level: usize,
+    pub iterations: usize,
+    pub auto_iterations: bool,
     pub scale: f32,
     pub center_x: f32,
     pub center_y: f32,
@@ -40,7 +42,8 @@ impl Default for SpectreSvgConfig {
         Self {
             width: 1600,
             height: 1600,
-            level: 5,
+            iterations: 5,
+            auto_iterations: false,
             scale: 40.0,
             center_x: 0.0,
             center_y: 0.0,
@@ -77,16 +80,10 @@ pub fn render_svg(config: &SpectreSvgConfig) -> String {
 }
 
 fn render_svg_generated(config: &SpectreSvgConfig, palette: &[String]) -> String {
-    let bbox = viewport_bbox(config);
-    let mut cluster = root_cluster(config.level.max(1), &bbox);
-    cluster.update(&bbox);
+    let (cluster, bbox) = render_cluster(config);
     let spectres: Vec<_> = cluster.spectre_paths_in(bbox).collect();
     let content_bbox = content_bbox(&spectres).unwrap_or(bbox);
-    let content_center = Vec2::new(
-        (content_bbox.min.x + content_bbox.max.x) * 0.5,
-        (content_bbox.min.y + content_bbox.max.y) * 0.5,
-    );
-    let render_scale = fitted_scale(config, &content_bbox);
+    let view_center = render_center(config, &content_bbox, &bbox);
     let color_indices = spectre_color_indices_generated(&spectres, palette.len());
 
     let mut document = String::new();
@@ -102,8 +99,10 @@ fn render_svg_generated(config: &SpectreSvgConfig, palette: &[String]) -> String
     );
 
     for (index, spectre) in spectres.iter().enumerate() {
-        let shape_points =
-            spectre_outline_points(spectre.spectre, content_center, render_scale, config);
+        let shape_points = spectre_outline_points(spectre.spectre, view_center, config);
+        if !points_intersect_canvas(&shape_points, config) {
+            continue;
+        }
         let points = svg_points(&shape_points);
         let fill = &palette[color_indices[index]];
         let _ = writeln!(
@@ -118,16 +117,10 @@ fn render_svg_generated(config: &SpectreSvgConfig, palette: &[String]) -> String
 }
 
 fn render_svg_translation(config: &SpectreSvgConfig, palette: &[String]) -> String {
-    let bbox = viewport_bbox(config);
-    let mut cluster = root_cluster(config.level.max(1), &bbox);
-    cluster.update(&bbox);
+    let (cluster, bbox) = render_cluster(config);
     let spectres: Vec<_> = cluster.spectres_in(bbox).collect();
     let content_bbox = content_bbox_spectres(&spectres).unwrap_or(bbox);
-    let content_center = Vec2::new(
-        (content_bbox.min.x + content_bbox.max.x) * 0.5,
-        (content_bbox.min.y + content_bbox.max.y) * 0.5,
-    );
-    let render_scale = fitted_scale(config, &content_bbox);
+    let view_center = render_center(config, &content_bbox, &bbox);
     let color_indices = spectre_color_indices_translation(&spectres, palette.len());
 
     let mut document = String::new();
@@ -143,7 +136,10 @@ fn render_svg_translation(config: &SpectreSvgConfig, palette: &[String]) -> Stri
     );
 
     for (index, spectre) in spectres.iter().enumerate() {
-        let shape_points = spectre_outline_points(spectre, content_center, render_scale, config);
+        let shape_points = spectre_outline_points(spectre, view_center, config);
+        if !points_intersect_canvas(&shape_points, config) {
+            continue;
+        }
         let points = svg_points(&shape_points);
         let fill = &palette[color_indices[index]];
         let _ = writeln!(
@@ -162,31 +158,65 @@ pub fn write_svg(path: impl AsRef<Path>, config: &SpectreSvgConfig) -> std::io::
     fs::write(path, svg)
 }
 
-fn viewport_bbox(config: &SpectreSvgConfig) -> Aabb {
-    let half_width = config.width as f32 / (2.0 * config.scale);
-    let half_height = config.height as f32 / (2.0 * config.scale);
-    Aabb::new(
-        config.center_x - half_width,
-        config.center_y - half_height,
-        config.center_x + half_width,
-        config.center_y + half_height,
-    )
-}
-
-fn root_cluster(level: usize, bbox: &Aabb) -> SpectreCluster {
-    let mut cluster =
-        Skeleton::with_anchor(Anchor::Anchor1, HexVec::ZERO, Angle::ZERO, level, None)
-            .to_spectre_cluster(bbox);
-
-    while !cluster.bbox().contains_bbox(bbox) {
-        cluster = if cluster.level() % 2 == 0 {
-            SpectreCluster::with_child_a(cluster)
-        } else {
-            SpectreCluster::with_child_f(cluster)
-        };
+fn render_cluster(config: &SpectreSvgConfig) -> (SpectreCluster, Aabb) {
+    let iterations = config.iterations.max(1);
+    if !config.auto_iterations {
+        let cluster =
+            SpectreCluster::with_anchor(Anchor::Anchor1, HexVec::ZERO, Angle::ZERO, iterations);
+        let bbox = cluster.bbox();
+        return (cluster, bbox);
     }
 
-    cluster
+    let (skeleton, bbox) = auto_skeleton(config, iterations);
+    let mut cluster = skeleton.to_spectre_cluster(&bbox);
+    cluster.update(&bbox);
+    (cluster, bbox)
+}
+
+fn auto_skeleton(config: &SpectreSvgConfig, minimum_iterations: usize) -> (Skeleton, Aabb) {
+    // Supertiles have a deeply indented outline. Make the automatic supertile
+    // substantially larger than the viewport so its boundary stays off-canvas.
+    let required_width = config.width as f32 / config.scale * 3.0;
+    let required_height = config.height as f32 / config.scale * 3.0;
+    let mut iterations = minimum_iterations;
+
+    loop {
+        let skeleton =
+            Skeleton::with_anchor(Anchor::Anchor1, HexVec::ZERO, Angle::ZERO, iterations, None);
+        let estimated = skeleton.estimated_bbox();
+        let estimated_width = estimated.max.x - estimated.min.x;
+        let estimated_height = estimated.max.y - estimated.min.y;
+        if estimated_width >= required_width && estimated_height >= required_height {
+            let view_center = Vec2::new(
+                (estimated.min.x + estimated.max.x) * 0.5 + config.center_x,
+                (estimated.min.y + estimated.max.y) * 0.5 + config.center_y,
+            );
+            let half_width = config.width as f32 / (2.0 * config.scale);
+            let half_height = config.height as f32 / (2.0 * config.scale);
+            let bbox = Aabb::new(
+                view_center.x - half_width,
+                view_center.y - half_height,
+                view_center.x + half_width,
+                view_center.y + half_height,
+            );
+            return (skeleton, bbox);
+        }
+        iterations += 1;
+    }
+}
+
+fn render_center(config: &SpectreSvgConfig, content_bbox: &Aabb, selection_bbox: &Aabb) -> Vec2 {
+    if config.auto_iterations {
+        return Vec2::new(
+            (selection_bbox.min.x + selection_bbox.max.x) * 0.5,
+            (selection_bbox.min.y + selection_bbox.max.y) * 0.5,
+        );
+    }
+
+    Vec2::new(
+        (content_bbox.min.x + content_bbox.max.x) * 0.5 + config.center_x,
+        (content_bbox.min.y + content_bbox.max.y) * 0.5 + config.center_y,
+    )
 }
 
 fn content_bbox_from_iter<'a>(spectres: impl Iterator<Item = &'a Spectre>) -> Option<Aabb> {
@@ -287,46 +317,7 @@ fn spectre_color_indices_translation(spectres: &[&Spectre], palette_len: usize) 
         }
     }
 
-    let mut uncolored: Vec<_> = (0..spectres.len())
-        .filter(|&index| colors[index] == usize::MAX)
-        .collect();
-
-    while !uncolored.is_empty() {
-        uncolored.sort_by_key(|&index| {
-            let saturation = adjacency[index]
-                .iter()
-                .filter_map(|&neighbor| {
-                    let color = colors[neighbor];
-                    if color < 3 { Some(color) } else { None }
-                })
-                .fold([false; 3], |mut used, color| {
-                    used[color] = true;
-                    used
-                })
-                .into_iter()
-                .filter(|used| *used)
-                .count();
-            let degree = adjacency[index]
-                .iter()
-                .filter(|&&neighbor| colors[neighbor] != special_color)
-                .count();
-            (
-                std::cmp::Reverse(saturation),
-                std::cmp::Reverse(degree),
-                index,
-            )
-        });
-
-        let index = uncolored.remove(0);
-        let mut used = [false; 3];
-        for &neighbor in &adjacency[index] {
-            let color = colors[neighbor];
-            if color < 3 {
-                used[color] = true;
-            }
-        }
-        colors[index] = (0..3).find(|&color| !used[color]).unwrap_or(index % 3);
-    }
+    color_graph(&adjacency, &mut colors, special_color);
 
     colors
 }
@@ -339,39 +330,65 @@ fn first_order_group_key(path: &[crate::tiles::PathStep]) -> Vec<crate::tiles::P
 }
 
 fn color_group_graph(adjacency: &[Vec<usize>], colors: &mut [usize]) {
-    let mut uncolored: Vec<_> = (0..colors.len()).collect();
+    color_graph(adjacency, colors, usize::MAX);
+}
 
-    while !uncolored.is_empty() {
-        uncolored.sort_by_key(|&index| {
-            let saturation = adjacency[index]
+fn color_graph(adjacency: &[Vec<usize>], colors: &mut [usize], special_color: usize) {
+    let degrees: Vec<_> = adjacency
+        .iter()
+        .map(|neighbors| {
+            neighbors
                 .iter()
-                .filter_map(|&neighbor| {
-                    let color = colors[neighbor];
-                    if color < 3 { Some(color) } else { None }
-                })
-                .fold([false; 3], |mut used, color| {
-                    used[color] = true;
-                    used
-                })
-                .into_iter()
-                .filter(|used| *used)
-                .count();
-            (
-                std::cmp::Reverse(saturation),
-                std::cmp::Reverse(adjacency[index].len()),
-                index,
-            )
-        });
+                .filter(|&&neighbor| colors[neighbor] != special_color)
+                .count()
+        })
+        .collect();
+    let mut neighbor_color_counts = vec![[0usize; 3]; colors.len()];
+    let mut saturation = vec![0usize; colors.len()];
 
-        let index = uncolored.remove(0);
-        let mut used = [false; 3];
-        for &neighbor in &adjacency[index] {
+    for (index, neighbors) in adjacency.iter().enumerate() {
+        for &neighbor in neighbors {
             let color = colors[neighbor];
             if color < 3 {
-                used[color] = true;
+                neighbor_color_counts[index][color] += 1;
             }
         }
-        colors[index] = (0..3).find(|&color| !used[color]).unwrap_or(index % 3);
+        saturation[index] = neighbor_color_counts[index]
+            .iter()
+            .filter(|&&count| count > 0)
+            .count();
+    }
+
+    let mut candidates = BinaryHeap::new();
+    for (index, &color) in colors.iter().enumerate() {
+        if color == usize::MAX {
+            candidates.push((saturation[index], degrees[index], Reverse(index)));
+        }
+    }
+
+    while let Some((entry_saturation, entry_degree, Reverse(index))) = candidates.pop() {
+        if colors[index] != usize::MAX
+            || entry_saturation != saturation[index]
+            || entry_degree != degrees[index]
+        {
+            continue;
+        }
+
+        let color = (0..3)
+            .find(|&candidate| neighbor_color_counts[index][candidate] == 0)
+            .unwrap_or(index % 3);
+        colors[index] = color;
+
+        for &neighbor in &adjacency[index] {
+            if colors[neighbor] != usize::MAX {
+                continue;
+            }
+            if neighbor_color_counts[neighbor][color] == 0 {
+                saturation[neighbor] += 1;
+            }
+            neighbor_color_counts[neighbor][color] += 1;
+            candidates.push((saturation[neighbor], degrees[neighbor], Reverse(neighbor)));
+        }
     }
 }
 
@@ -437,18 +454,9 @@ fn is_special_spectre(spectre: &Spectre) -> bool {
     spectre.rotation().value() % 2 == 1
 }
 
-fn fitted_scale(config: &SpectreSvgConfig, content_bbox: &Aabb) -> f32 {
-    let content_width = (content_bbox.max.x - content_bbox.min.x).max(1.0);
-    let content_height = (content_bbox.max.y - content_bbox.min.y).max(1.0);
-    let width_scale = config.width as f32 / content_width * 0.9;
-    let height_scale = config.height as f32 / content_height * 0.9;
-    config.scale.min(width_scale.min(height_scale))
-}
-
 fn spectre_outline_points(
     spectre: &Spectre,
-    content_center: Vec2,
-    render_scale: f32,
+    view_center: Vec2,
     config: &SpectreSvgConfig,
 ) -> Vec<Vec2> {
     let base_points: Vec<Vec2> = spectre
@@ -457,8 +465,8 @@ fn spectre_outline_points(
         .map(|vertex| {
             let point = vertex.to_vec2();
             Vec2::new(
-                (point.x - content_center.x) * render_scale + config.width as f32 * 0.5,
-                config.height as f32 * 0.5 - (point.y - content_center.y) * render_scale,
+                (point.x - view_center.x) * config.scale + config.width as f32 * 0.5,
+                config.height as f32 * 0.5 - (point.y - view_center.y) * config.scale,
             )
         })
         .collect();
@@ -495,6 +503,24 @@ fn curved_outline_points(base_points: &[Vec2]) -> Vec<Vec2> {
     }
 
     points
+}
+
+fn points_intersect_canvas(points: &[Vec2], config: &SpectreSvgConfig) -> bool {
+    let margin = config.stroke_width.max(0.0);
+    let mut min_x = f32::INFINITY;
+    let mut min_y = f32::INFINITY;
+    let mut max_x = f32::NEG_INFINITY;
+    let mut max_y = f32::NEG_INFINITY;
+    for point in points {
+        min_x = min_x.min(point.x);
+        min_y = min_y.min(point.y);
+        max_x = max_x.max(point.x);
+        max_y = max_y.max(point.y);
+    }
+    max_x >= -margin
+        && min_x <= config.width as f32 + margin
+        && max_y >= -margin
+        && min_y <= config.height as f32 + margin
 }
 
 fn append_curved_edge_points(
@@ -546,4 +572,60 @@ fn _world_to_screen(point: Vec2, bbox: &Aabb, config: &SpectreSvgConfig) -> Vec2
         (point.x - ((bbox.min.x + bbox.max.x) * 0.5)) * config.scale + config.width as f32 * 0.5,
         config.height as f32 * 0.5 - (point.y - ((bbox.min.y + bbox.max.y) * 0.5)) * config.scale,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn generated_tile_count(config: &SpectreSvgConfig) -> usize {
+        let (cluster, bbox) = render_cluster(config);
+        cluster.spectres_in(bbox).count()
+    }
+
+    #[test]
+    fn exact_iterations_control_finite_patch_growth() {
+        let expected = [(1, 9), (2, 71), (3, 559), (4, 4401)];
+        for (iterations, tile_count) in expected {
+            let config = SpectreSvgConfig {
+                iterations,
+                ..SpectreSvgConfig::default()
+            };
+            assert_eq!(generated_tile_count(&config), tile_count);
+        }
+    }
+
+    #[test]
+    fn exact_iterations_are_independent_of_canvas_size() {
+        let small = SpectreSvgConfig {
+            width: 320,
+            height: 240,
+            iterations: 3,
+            ..SpectreSvgConfig::default()
+        };
+        let large = SpectreSvgConfig {
+            width: 1600,
+            height: 1600,
+            ..small.clone()
+        };
+        assert_eq!(generated_tile_count(&small), generated_tile_count(&large));
+    }
+
+    #[test]
+    fn automatic_iterations_expand_for_a_larger_canvas() {
+        let small = SpectreSvgConfig {
+            width: 320,
+            height: 320,
+            iterations: 1,
+            auto_iterations: true,
+            scale: 20.0,
+            ..SpectreSvgConfig::default()
+        };
+        let large = SpectreSvgConfig {
+            width: 1600,
+            height: 1600,
+            ..small.clone()
+        };
+        assert!(generated_tile_count(&large) > generated_tile_count(&small));
+    }
 }

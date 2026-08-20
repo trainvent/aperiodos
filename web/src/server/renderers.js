@@ -20,7 +20,7 @@ import {
   MAX_PENROSE_ITERATIONS,
   MAX_PENROSE_SCALE,
   MAX_SCALAR,
-  MAX_SPECTRE_LEVEL,
+  MAX_SPECTRE_ITERATIONS,
   MAX_SPECTRE_SCALE,
   P1_SCALE_NORMALIZATION,
   PROJECT_ROOT,
@@ -96,6 +96,23 @@ function coerceOneOf(payload, key, fallback, allowed) {
     throw new ApiError(`'${key}' must be one of: ${allowed.join(", ")}.`);
   }
   return value;
+}
+
+function coerceBoolean(payload, key, fallback = false) {
+  const value = payload[key];
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (value === "true" || value === "1") {
+    return true;
+  }
+  if (value === "false" || value === "0") {
+    return false;
+  }
+  throw new ApiError(`'${key}' must be a boolean.`);
 }
 
 async function exists(filePath) {
@@ -244,7 +261,11 @@ export async function renderEinstein(payload) {
 export async function renderSpectre(payload) {
   const width = coerceInt(payload, "width", DEFAULT_HTTP_WIDTH, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
   const height = coerceInt(payload, "height", DEFAULT_HTTP_HEIGHT, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
-  const level = coerceInt(payload, "level", 5, { minimum: 1, maximum: MAX_SPECTRE_LEVEL });
+  const iterations = coerceInt(payload, "iterations", payload.level ?? 5, {
+    minimum: 1,
+    maximum: MAX_SPECTRE_ITERATIONS,
+  });
+  const autoIterations = coerceBoolean(payload, "auto_iterations");
   const scale = coerceFloat(payload, "scale", 40.0, { minimum: 1.0, maximum: MAX_SPECTRE_SCALE });
   const centerX = coerceFloat(payload, "center_x", 0.0);
   const centerY = coerceFloat(payload, "center_y", 0.0);
@@ -269,8 +290,9 @@ export async function renderSpectre(payload) {
       String(width),
       "--height",
       String(height),
-      "--level",
-      String(level),
+      "--iterations",
+      String(iterations),
+      ...(autoIterations ? ["--auto-iterations"] : []),
       "--scale",
       String(scale),
       "--center-x",

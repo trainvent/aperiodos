@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use spectre::{DrawMode, ShapeMode, SpectreSvgConfig, write_svg};
+use spectre::{write_svg, DrawMode, ShapeMode, SpectreSvgConfig};
 
 fn main() {
     let (output, config) = parse_args(env::args().skip(1));
@@ -22,7 +22,11 @@ fn parse_args(args: impl Iterator<Item = String>) -> (PathBuf, SpectreSvgConfig)
             "--output" => output = PathBuf::from(next_arg(&mut args, "--output")),
             "--width" => config.width = parse_value(next_arg(&mut args, "--width"), "--width"),
             "--height" => config.height = parse_value(next_arg(&mut args, "--height"), "--height"),
-            "--level" => config.level = parse_value(next_arg(&mut args, "--level"), "--level"),
+            "--iterations" => {
+                config.iterations = parse_value(next_arg(&mut args, "--iterations"), "--iterations")
+            }
+            "--level" => config.iterations = parse_value(next_arg(&mut args, "--level"), "--level"),
+            "--auto-iterations" => config.auto_iterations = true,
             "--scale" => config.scale = parse_value(next_arg(&mut args, "--scale"), "--scale"),
             "--center-x" => {
                 config.center_x = parse_value(next_arg(&mut args, "--center-x"), "--center-x")
@@ -103,7 +107,8 @@ fn print_help() {
            --output PATH\n\
            --width PX\n\
            --height PX\n\
-           --level N\n\
+           --iterations N\n\
+           --auto-iterations\n\
            --scale WORLD_TO_PIXEL\n\
            --center-x X\n\
            --center-y Y\n\

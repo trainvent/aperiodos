@@ -19,7 +19,15 @@ export default function SpectrePage() {
           setValues={setValues}
           parameters={
             <SettingsRow>
-              <NumberField values={values} setValues={setValues} name="level" label={t("generator.common.level")} min={1} max={8} />
+              <NumberField
+                values={values}
+                setValues={setValues}
+                name="iterations"
+                label={t("generator.common.iterations")}
+                min={1}
+                max={8}
+                placeholder={t("generator.spectre.autoIterationsValue")}
+              />
               <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={120} />
             </SettingsRow>
           }
@@ -58,23 +66,27 @@ export default function SpectrePage() {
           }
         />
       }
-      payload={() => ({
-        width: Number(values.width),
-        height: Number(values.height),
-        level: Number(values.level),
-        scale: Number(values.scale),
-        center_x: Number(values.center_x),
-        center_y: Number(values.center_y),
-        format: values.format,
-        draw_mode: values.draw_mode,
-        shape: values.shape,
-        background: values.background,
-        outline: values.outline,
-        stroke_width: Number(values.stroke_width),
-        palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4]
-          .map((value) => String(value).trim())
-          .filter(Boolean)
-      })}
+      payload={() => {
+        const iterationValue = String(values.iterations).trim();
+        return {
+          width: Number(values.width),
+          height: Number(values.height),
+          iterations: iterationValue ? Number(iterationValue) : 1,
+          auto_iterations: !iterationValue,
+          scale: Number(values.scale),
+          center_x: Number(values.center_x),
+          center_y: Number(values.center_y),
+          format: values.format,
+          draw_mode: values.draw_mode,
+          shape: values.shape,
+          background: values.background,
+          outline: values.outline,
+          stroke_width: Number(values.stroke_width),
+          palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4]
+            .map((value) => String(value).trim())
+            .filter(Boolean)
+        };
+      }}
       endpoint={apiUrl("/api/spectre/render")}
       downloadName={(payload) => `spectre.${payload.format}`}
       previewType={(payload) => {

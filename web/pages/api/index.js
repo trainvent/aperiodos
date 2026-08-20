@@ -58,7 +58,8 @@ export default function handler(req, res) {
     spectre_example_payload: {
       width: DEFAULT_HTTP_WIDTH,
       height: DEFAULT_HTTP_HEIGHT,
-      level: 5,
+      iterations: 5,
+      auto_iterations: false,
       scale: 40,
       center_x: 0,
       center_y: 0,

@@ -26,7 +26,17 @@ const CSS_COLOR_OPTIONS = [
   "violet", "wheat", "white", "whitesmoke", "yellow", "yellowgreen"
 ];
 
-export function NumberField({ values, setValues, name, label, min, max, step, full = false }) {
+export function NumberField({
+  values,
+  setValues,
+  name,
+  label,
+  min,
+  max,
+  step,
+  full = false,
+  placeholder,
+}) {
   return (
     <label className={full ? "full" : ""}>
       <span>{label}</span>
@@ -37,6 +47,7 @@ export function NumberField({ values, setValues, name, label, min, max, step, fu
         max={max}
         step={step}
         value={values[name]}
+        placeholder={placeholder}
         onChange={(event) => setValues((current) => ({ ...current, [name]: event.target.value }))}
       />
     </label>

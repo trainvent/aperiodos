@@ -27,7 +27,7 @@ export const EINSTEIN_DEFAULTS = {
 export const SPECTRE_DEFAULTS = {
   width: DEFAULT_CANVAS_SIZE,
   height: DEFAULT_CANVAS_SIZE,
-  level: 5,
+  iterations: "",
   scale: 4,
   center_x: 0,
   center_y: 0,
