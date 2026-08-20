@@ -21,15 +21,15 @@ struct Frame {
     step: f64,
 }
 
-pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTile> {
-    let iterations = iterations.min(6);
+pub(super) fn render_tiles(seed: PenroseSeed, subdivisions: usize) -> Vec<RenderTile> {
+    let subdivisions = subdivisions.min(6);
     let rules = pentagon_rules();
     let seed_word = match seed {
         PenroseSeed::Sun => "[P][+P][*P][-P][_P][G][+G][*G][-G][_G]",
         PenroseSeed::Star => "[G][+G][*G][-G][_G]",
     };
-    let word = expand_lsystem(seed_word, iterations, &rules);
-    let inflation = (2.0 + 2.0 * cos_deg(72.0)).powi(iterations as i32);
+    let word = expand_lsystem(seed_word, subdivisions, &rules);
+    let inflation = (2.0 + 2.0 * cos_deg(72.0)).powi(subdivisions as i32);
     execute_word(&word, inflation)
 }
 
@@ -50,9 +50,9 @@ fn pentagon_rules() -> HashMap<char, &'static str> {
     ])
 }
 
-fn expand_lsystem(seed: &str, iterations: usize, rules: &HashMap<char, &'static str>) -> String {
+fn expand_lsystem(seed: &str, subdivisions: usize, rules: &HashMap<char, &'static str>) -> String {
     let mut word = seed.to_owned();
-    for _ in 0..iterations {
+    for _ in 0..subdivisions {
         let mut next = String::with_capacity(word.len() * 4);
         for ch in word.chars() {
             if let Some(replacement) = rules.get(&ch) {

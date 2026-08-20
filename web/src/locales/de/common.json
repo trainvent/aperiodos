@@ -199,6 +199,7 @@
 		"penrose": {
 			"title": "Penrose-Generator",
 			"description": "Penrose-Muster als Drachen/Pfeile, Rauten oder eine abgeleitete Option mit sternreichem pentagonalem Motiv erzeugen.",
+			"subdivisions": "Unterteilungen",
 			"tiles": "Kacheln",
 			"tilesP2": "P2: Drachen & Pfeile",
 			"tilesP3": "P3: Rauten",

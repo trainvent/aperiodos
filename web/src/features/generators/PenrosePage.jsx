@@ -104,7 +104,7 @@ export default function PenrosePage() {
           setValues={setValues}
           parameters={
             <SettingsRow>
-              <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={0} max={10} />
+              <NumberField values={values} setValues={setValues} name="subdivisions" label={t("generator.penrose.subdivisions")} min={0} max={10} />
               <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1200} />
             </SettingsRow>
           }
@@ -148,7 +148,7 @@ export default function PenrosePage() {
       payload={() => ({
         width: Number(values.width),
         height: Number(values.height),
-        iterations: Number(values.iterations),
+        subdivisions: Number(values.subdivisions),
         scale: Number(values.scale),
         center_x: Number(values.center_x),
         center_y: Number(values.center_y),

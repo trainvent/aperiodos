@@ -23,9 +23,9 @@ struct PointKey(i64, i64);
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 struct EdgeKey(PointKey, PointKey);
 
-pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTile> {
+pub(super) fn render_tiles(seed: PenroseSeed, subdivisions: usize) -> Vec<RenderTile> {
     let mut triangles = initial_seed(seed);
-    for _ in 0..iterations {
+    for _ in 0..subdivisions {
         triangles = subdivide(&triangles);
     }
     assemble_rhombs(&triangles)

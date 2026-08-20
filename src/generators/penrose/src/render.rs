@@ -27,7 +27,7 @@ pub enum PenroseTileMode {
 pub struct PenroseSvgConfig {
     pub width: u32,
     pub height: u32,
-    pub iterations: usize,
+    pub subdivisions: usize,
     pub scale: f64,
     pub center_x: f64,
     pub center_y: f64,
@@ -44,7 +44,7 @@ impl Default for PenroseSvgConfig {
         Self {
             width: 1600,
             height: 1600,
-            iterations: 7,
+            subdivisions: 7,
             scale: 320.0,
             center_x: 0.0,
             center_y: 0.0,
@@ -72,9 +72,9 @@ pub(super) struct RenderTile {
 pub fn render_svg(config: &PenroseSvgConfig) -> String {
     let palette = normalized_palette(config);
     let tiles = match config.tile_mode {
-        PenroseTileMode::KiteDart => classic_logic::render_tiles(config.seed, config.iterations),
-        PenroseTileMode::Rhombs => rhombs_logic::render_tiles(config.seed, config.iterations),
-        PenroseTileMode::P1 => p1_logic::render_tiles(config.seed, config.iterations),
+        PenroseTileMode::KiteDart => classic_logic::render_tiles(config.seed, config.subdivisions),
+        PenroseTileMode::Rhombs => rhombs_logic::render_tiles(config.seed, config.subdivisions),
+        PenroseTileMode::P1 => p1_logic::render_tiles(config.seed, config.subdivisions),
     };
 
     let mut document = String::new();

@@ -17,7 +17,7 @@ import {
   GENERATORS_DIR,
   MAX_IMAGE_DIMENSION,
   MAX_ITERATIONS,
-  MAX_PENROSE_ITERATIONS,
+  MAX_PENROSE_SUBDIVISIONS,
   MAX_PENROSE_SCALE,
   MAX_SCALAR,
   MAX_SPECTRE_ITERATIONS,
@@ -317,7 +317,10 @@ export async function renderSpectre(payload) {
 export async function renderPenrose(payload) {
   const width = coerceInt(payload, "width", DEFAULT_HTTP_WIDTH, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
   const height = coerceInt(payload, "height", DEFAULT_HTTP_HEIGHT, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
-  const iterations = coerceInt(payload, "iterations", 4, { minimum: 0, maximum: MAX_PENROSE_ITERATIONS });
+  const subdivisions = coerceInt(payload, "subdivisions", payload.iterations ?? 4, {
+    minimum: 0,
+    maximum: MAX_PENROSE_SUBDIVISIONS,
+  });
   const scale = coerceFloat(payload, "scale", 320.0, { minimum: 10.0, maximum: MAX_PENROSE_SCALE });
   const centerX = coerceFloat(payload, "center_x", 0.0);
   const centerY = coerceFloat(payload, "center_y", 0.0);
@@ -350,8 +353,8 @@ export async function renderPenrose(payload) {
       String(width),
       "--height",
       String(height),
-      "--iterations",
-      String(iterations),
+      "--subdivisions",
+      String(subdivisions),
       "--scale",
       String(rendererScale),
       "--center-x",

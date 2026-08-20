@@ -74,7 +74,7 @@ export default function handler(req, res) {
     penrose_example_payload: {
       width: DEFAULT_HTTP_WIDTH,
       height: DEFAULT_HTTP_HEIGHT,
-      iterations: 4,
+      subdivisions: 4,
       scale: 320,
       center_x: 0,
       center_y: 0,

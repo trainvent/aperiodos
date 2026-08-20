@@ -13,7 +13,7 @@ export const MAX_ITERATIONS = 6;
 export const MAX_SCALAR = 80;
 export const MAX_SPECTRE_ITERATIONS = 8;
 export const MAX_SPECTRE_SCALE = 120;
-export const MAX_PENROSE_ITERATIONS = 10;
+export const MAX_PENROSE_SUBDIVISIONS = 10;
 export const MAX_PENROSE_SCALE = 1200;
 export const P1_SCALE_NORMALIZATION = 10.0 / 320.0;
 

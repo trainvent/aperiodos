@@ -41,18 +41,21 @@ impl Vertex {
     }
 }
 
-pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTile> {
+pub(super) fn render_tiles(seed: PenroseSeed, subdivisions: usize) -> Vec<RenderTile> {
+    let inflation = PHI.powi(subdivisions as i32);
     match seed {
         PenroseSeed::Sun => {
-            let mut triangles = initial_seed(seed);
-            for _ in 0..iterations {
+            let mut triangles = initial_seed(seed, inflation);
+            for _ in 0..subdivisions {
                 triangles = subdivide(&triangles);
             }
             assembled_tiles(&triangles, PenroseTileMode::KiteDart)
         }
         // Cartwheel uses pre-expanded canonical states from the reference construction.
         PenroseSeed::Star => {
-            let triangles = initial_cartwheel(iterations.min(4), 1.0);
+            let effective_subdivisions = subdivisions.min(4);
+            let triangles =
+                initial_cartwheel(effective_subdivisions, PHI.powi(effective_subdivisions as i32));
             let mut tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
             apply_cartwheel_coloring(&mut tiles);
             tiles
@@ -167,10 +170,10 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
     tiles
 }
 
-fn initial_seed(seed: PenroseSeed) -> Vec<Triangle> {
+fn initial_seed(seed: PenroseSeed, size: f64) -> Vec<Triangle> {
     match seed {
-        PenroseSeed::Sun => initial_sun(10, 1.0),
-        PenroseSeed::Star => initial_cartwheel(0, 1.0),
+        PenroseSeed::Sun => initial_sun(10, size),
+        PenroseSeed::Star => initial_cartwheel(0, size),
     }
 }
 
@@ -481,6 +484,20 @@ fn point_key(point: Vec2) -> PointKey {
 mod tests {
     use super::*;
 
+    fn shortest_boundary_edge(tiles: &[RenderTile]) -> f64 {
+        tiles
+            .iter()
+            .flat_map(|tile| {
+                tile.points
+                    .iter()
+                    .zip(tile.points.iter().cycle().skip(1))
+                    .take(tile.points.len())
+                    .map(|(left, right)| distance(*left, *right))
+            })
+            .min_by(f64::total_cmp)
+            .expect("the P2 patch should contain polygon edges")
+    }
+
     fn shape_signature(points: &[Vec2]) -> Vec<i64> {
         let mut lengths = points
             .iter()
@@ -498,7 +515,7 @@ mod tests {
 
     #[test]
     fn sun_seed_assembles_into_five_kites() {
-        let triangles = initial_seed(PenroseSeed::Sun);
+        let triangles = initial_seed(PenroseSeed::Sun, 1.0);
         let tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
 
         assert_eq!(tiles.len(), 5);
@@ -513,7 +530,7 @@ mod tests {
 
     #[test]
     fn cartwheel_seed_generates_kites_and_darts() {
-        let triangles = initial_seed(PenroseSeed::Star);
+        let triangles = initial_seed(PenroseSeed::Star, 1.0);
         let tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
 
         assert!(!tiles.is_empty());
@@ -530,7 +547,7 @@ mod tests {
 
     #[test]
     fn subdivided_sun_only_contains_kite_and_dart_shapes() {
-        let mut triangles = initial_seed(PenroseSeed::Sun);
+        let mut triangles = initial_seed(PenroseSeed::Sun, 1.0);
         for _ in 0..3 {
             triangles = subdivide(&triangles);
         }
@@ -544,5 +561,16 @@ mod tests {
         signatures.dedup();
 
         assert_eq!(signatures.len(), 2);
+    }
+
+    #[test]
+    fn p2_tile_size_is_independent_of_subdivisions() {
+        let first = render_tiles(PenroseSeed::Sun, 1);
+        let fourth = render_tiles(PenroseSeed::Sun, 4);
+
+        assert!(approx_eq(
+            shortest_boundary_edge(&first),
+            shortest_boundary_edge(&fourth)
+        ));
     }
 }

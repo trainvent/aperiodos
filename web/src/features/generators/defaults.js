@@ -46,7 +46,7 @@ export const SPECTRE_DEFAULTS = {
 export const PENROSE_DEFAULTS = {
   width: DEFAULT_CANVAS_SIZE,
   height: DEFAULT_CANVAS_SIZE,
-  iterations: 4,
+  subdivisions: 4,
   scale: 320,
   center_x: 0,
   center_y: 0,
