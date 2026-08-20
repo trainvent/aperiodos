@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Link from "next/link";
 
+import { apiUrl } from "../../lib/api";
+
 export default function GeneratorLayout({
   title,
   controls,
@@ -18,7 +20,9 @@ export default function GeneratorLayout({
   const [previewUrl, setPreviewUrl] = useState("");
   const [quotaExhausted, setQuotaExhausted] = useState(false);
   const [creditCode, setCreditCode] = useState("");
+  const [resettingDevQuota, setResettingDevQuota] = useState(false);
   const lastUrlRef = useRef("");
+  const isDevelopment = process.env.NODE_ENV === "development";
 
   useEffect(() => {
     return () => {
@@ -88,6 +92,25 @@ export default function GeneratorLayout({
     setStatus(t("generator.status.reset"));
   }
 
+  async function resetDevQuota() {
+    setResettingDevQuota(true);
+    setStatus(t("generator.status.devQuotaResetting"));
+    try {
+      const response = await fetch(apiUrl("/api/dev/render-quota/reset"), { method: "POST" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || t("generator.status.devQuotaResetFailed"));
+      }
+      setQuotaExhausted(false);
+      setCreditCode("");
+      setStatus(t("generator.status.devQuotaReset"));
+    } catch (error) {
+      setStatus(error.message || t("generator.status.devQuotaResetFailed"));
+    } finally {
+      setResettingDevQuota(false);
+    }
+  }
+
   return (
     <section className="generator-layout">
         <form className="panel controls-panel" onSubmit={handleSubmit}>
@@ -100,6 +123,11 @@ export default function GeneratorLayout({
             <button className="button button-muted" type="button" onClick={reset}>
               {t("generator.layout.reset")}
             </button>
+            {isDevelopment ? (
+              <button className="button button-muted" type="button" onClick={resetDevQuota} disabled={resettingDevQuota}>
+                {t("generator.layout.devQuotaReset")}
+              </button>
+            ) : null}
           </div>
           {quotaExhausted ? (
             <div className="credit-redeem">

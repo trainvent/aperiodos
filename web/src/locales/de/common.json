@@ -135,6 +135,9 @@
 			"completeRemaining": "Render abgeschlossen. Heute verbleiben noch {{count}} Generierung(en).",
 			"dailyLimit": "Du hast deine {{count}} kostenlosen Generierungen für heute verbraucht. Bitte versuche es morgen erneut.",
 			"serviceDailyLimit": "Der Dienst hat sein Generierungslimit für heute erreicht. Bitte versuche es morgen erneut.",
+			"devQuotaResetting": "Lokales Render-Limit wird zurückgesetzt...",
+			"devQuotaReset": "Lokales Render-Limit zurückgesetzt.",
+			"devQuotaResetFailed": "Das lokale Render-Limit konnte nicht zurückgesetzt werden.",
 			"reset": "Einstellungen zurückgesetzt."
 		},
 		"credits": {
@@ -148,6 +151,7 @@
 			"settings": "Einstellungen",
 			"generate": "Rendern",
 			"reset": "Zurücksetzen",
+			"devQuotaReset": "!dev-only-reset",
 			"preview": "Vorschau",
 			"download": "Herunterladen",
 			"placeholder": "Das generierte Bild erscheint hier. Beginnen Sie mit den Standard-Einstellungen oder experimentieren Sie mit einer neuen Palette."

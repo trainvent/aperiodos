@@ -50,12 +50,25 @@ class EinsteinImage:
     def set_scalar(self, scalar):
         self.scalar = scalar
 
-    def draw_polygon(self, vertices, fill="blue", outline="black", outline_width=2):
-        coords = []
+    def project_vertices(self, vertices):
         cx = self.width / 2
         cy = self.height / 2
-        for vec in vertices:
-            coords.append(((vec.x - self.center_x) * self.scalar + cx, (vec.y - self.center_y) * self.scalar + cy))
+        return [
+            ((vec.x - self.center_x) * self.scalar + cx, (vec.y - self.center_y) * self.scalar + cy)
+            for vec in vertices
+        ]
+
+    def intersects_canvas(self, coords, margin=0):
+        xs, ys = zip(*coords)
+        return not (
+            max(xs) < -margin
+            or min(xs) > self.width + margin
+            or max(ys) < -margin
+            or min(ys) > self.height + margin
+        )
+
+    def draw_polygon(self, vertices, fill="blue", outline="black", outline_width=2):
+        coords = self.project_vertices(vertices)
 
         if isinstance(fill, (list, tuple)):
             if len(fill) == 0:
@@ -73,7 +86,18 @@ class EinsteinImage:
 
         if fill_val is None and outline is None:
             return
-        self.draw.polygon(coords, fill=fill_val, outline=outline, width=max(1, round(outline_width)) if outline else 1)
+
+        line_width = max(1, round(outline_width)) if outline else 0
+        if not self.intersects_canvas(coords, margin=line_width):
+            return
+
+        # Pillow's polygon(width > 1) creates several canvas-sized masks for
+        # every polygon. Drawing the fill and stroke separately avoids that
+        # cost while producing the same visible tile boundaries.
+        if fill_val is not None:
+            self.draw.polygon(coords, fill=fill_val)
+        if outline is not None:
+            self.draw.line(coords + [coords[0]], fill=outline, width=line_width, joint="curve")
 
     def save(self, filename):
         try:

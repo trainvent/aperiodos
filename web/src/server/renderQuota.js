@@ -157,6 +157,20 @@ async function readLocalQuotaStore() {
   }
 }
 
+export async function resetLocalRenderQuota() {
+  if (!useLocalQuotaStore()) {
+    throw new ApiError("Local render quota storage is not enabled.", 403);
+  }
+
+  const operation = localQuotaQueue.then(async () => {
+    const storePath = localQuotaStorePath();
+    await fs.mkdir(path.dirname(storePath), { recursive: true });
+    await fs.writeFile(storePath, "{}\n");
+  });
+  localQuotaQueue = operation.catch(() => undefined);
+  return operation;
+}
+
 async function reserveLocalQuota(documentId, globalDocumentId, day, limit, globalLimit, resetAt, creditHash) {
   const operation = localQuotaQueue.then(async () => {
     const store = await readLocalQuotaStore();

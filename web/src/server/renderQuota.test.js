@@ -10,6 +10,7 @@ import {
   nextCombinedQuotaState,
   nextQuotaState,
   quotaWindow,
+  resetLocalRenderQuota,
 } from "./renderQuota.js";
 
 test("extractClientIp ignores spoofable forwarded values before Google's client position", () => {
@@ -108,6 +109,11 @@ test("local quota reservations serialize concurrent requests", async () => {
       (error) => error.statusCode === 429,
     );
     assert.equal(headers.get("X-RateLimit-Scope"), "global");
+
+    await resetLocalRenderQuota();
+    const resetState = await enforceRenderQuota(request, { setHeader() {} }, { now: testNow });
+    assert.equal(resetState.count, 1);
+    assert.equal(resetState.globalCount, 1);
   } finally {
     for (const [key, value] of Object.entries({
       RENDER_QUOTA_STORE: previous.store,

@@ -135,6 +135,9 @@
 			"completeRemaining": "Render complete. {{count}} generation(s) remaining today.",
 			"dailyLimit": "You have used your {{count}} free generations for today. Please try again tomorrow.",
 			"serviceDailyLimit": "The service has reached its generation limit for today. Please try again tomorrow.",
+			"devQuotaResetting": "Resetting the local render quota...",
+			"devQuotaReset": "Local render quota reset.",
+			"devQuotaResetFailed": "Could not reset the local render quota.",
 			"reset": "Settings reset."
 		},
 		"credits": {
@@ -148,6 +151,7 @@
 			"settings": "Settings",
 			"generate": "Generate",
 			"reset": "Reset",
+			"devQuotaReset": "!dev-only-reset",
 			"preview": "Preview",
 			"download": "Download",
 			"placeholder": "Your generated artwork will appear here. Start with the default settings or explore a new palette."

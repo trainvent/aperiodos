@@ -1,5 +1,6 @@
 from .geometry import *
 from PIL import ImageColor
+import heapq
 import sys
 
 to_screen_mat = [1, 0, 0, 0, -1, 0]
@@ -321,17 +322,58 @@ def apply_four_coloring(colorquadruple=DEFAULT_FOUR_COLORS):
 def assign_three_colors(adjacency, color_indices):
     sys.setrecursionlimit(max(10000, len(color_indices) * 2))
 
+    degrees = [
+        sum(1 for neighbor in neighbors if color_indices[neighbor] != 3)
+        for neighbors in adjacency
+    ]
+    neighbor_color_counts = [[0, 0, 0] for _ in adjacency]
+    saturation = [0] * len(adjacency)
+    candidates = [
+        (-saturation[index], -degrees[index], index)
+        for index, color in enumerate(color_indices)
+        if color is None
+    ]
+    heapq.heapify(candidates)
+
+    def candidate_priority(index):
+        return (-saturation[index], -degrees[index], index)
+
+    def select_candidate():
+        while candidates:
+            priority = heapq.heappop(candidates)
+            index = priority[2]
+            if color_indices[index] is None and priority == candidate_priority(index):
+                return index
+        return None
+
+    def update_neighbors(index, color, amount):
+        for neighbor in adjacency[index]:
+            if color_indices[neighbor] is not None:
+                continue
+            previous = neighbor_color_counts[neighbor][color]
+            neighbor_color_counts[neighbor][color] += amount
+            current = neighbor_color_counts[neighbor][color]
+            if previous == 0 and current == 1:
+                saturation[neighbor] += 1
+                heapq.heappush(candidates, candidate_priority(neighbor))
+            elif previous == 1 and current == 0:
+                saturation[neighbor] -= 1
+                heapq.heappush(candidates, candidate_priority(neighbor))
+
     def backtrack():
-        index = select_uncolored_vertex(adjacency, color_indices)
+        index = select_candidate()
         if index is None:
             return True
 
         for color in available_colors(index, adjacency, color_indices):
             color_indices[index] = color
+            update_neighbors(index, color, 1)
             if backtrack():
                 return True
+            update_neighbors(index, color, -1)
             color_indices[index] = None
 
+        heapq.heappush(candidates, candidate_priority(index))
         return False
 
     return backtrack()
