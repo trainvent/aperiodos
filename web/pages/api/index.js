@@ -65,7 +65,7 @@ export default function handler(req, res) {
       center_y: 0,
       format: "svg",
       draw_mode: "translation",
-      shape: "straight",
+      shape: "curved",
       palette: ["#1f6a5d", "#b4552d", "#d8b24c", "#17313b"],
       background: "#ffffff",
       outline: "black",

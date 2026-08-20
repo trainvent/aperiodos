@@ -57,7 +57,7 @@ impl Default for SpectreSvgConfig {
             outline: "black".to_string(),
             stroke_width: 1.2,
             draw_mode: DrawMode::Translation,
-            shape_mode: ShapeMode::Straight,
+            shape_mode: ShapeMode::Curved,
         }
     }
 }
@@ -478,8 +478,9 @@ fn spectre_outline_points(
 }
 
 fn curved_outline_points(base_points: &[Vec2]) -> Vec<Vec2> {
-    const SEGMENTS_PER_EDGE: usize = 6;
-    const BULGE_FACTOR: f32 = 0.22;
+    const SEGMENTS_PER_EDGE: usize = 8;
+    const BULGE_FACTOR: f32 = 0.24;
+    const CURVE_SKEW: f32 = 0.8;
 
     if base_points.len() < 2 {
         return base_points.to_vec();
@@ -492,12 +493,18 @@ fn curved_outline_points(base_points: &[Vec2]) -> Vec<Vec2> {
         let start = base_points[edge_index];
         let end = base_points[(edge_index + 1) % base_points.len()];
         let bulge_sign = if edge_index % 2 == 0 { 1.0 } else { -1.0 };
+        let skew = if edge_index % 2 == 0 {
+            CURVE_SKEW
+        } else {
+            -CURVE_SKEW
+        };
         append_curved_edge_points(
             &mut points,
             start,
             end,
             bulge_sign,
             BULGE_FACTOR,
+            skew,
             SEGMENTS_PER_EDGE,
         );
     }
@@ -529,6 +536,7 @@ fn append_curved_edge_points(
     end: Vec2,
     bulge_sign: f32,
     bulge_factor: f32,
+    skew: f32,
     segments: usize,
 ) {
     let edge = end - start;
@@ -539,14 +547,14 @@ fn append_curved_edge_points(
     }
 
     let outward_normal = Vec2::new(edge.y / edge_length, -edge.x / edge_length);
-    let midpoint = (start + end) * 0.5;
-    let control = midpoint + outward_normal * (edge_length * bulge_factor * bulge_sign);
 
     for step in 1..=segments.max(1) {
         let t = step as f32 / segments.max(1) as f32;
-        let one_minus_t = 1.0 - t;
-        let point =
-            start * (one_minus_t * one_minus_t) + control * (2.0 * one_minus_t * t) + end * (t * t);
+        let base = start + edge * t;
+        let envelope = 4.0 * t * (1.0 - t);
+        let asymmetric_weight = 1.0 + skew * (2.0 * t - 1.0);
+        let offset = edge_length * bulge_factor * bulge_sign * envelope * asymmetric_weight;
+        let point = base + outward_normal * offset;
         output.push(point);
     }
 }
@@ -627,5 +635,43 @@ mod tests {
             ..small.clone()
         };
         assert!(generated_tile_count(&large) > generated_tile_count(&small));
+    }
+
+    #[test]
+    fn curved_edges_are_biased_away_from_the_midpoint() {
+        let mut toward_end = vec![Vec2::new(0.0, 0.0)];
+        append_curved_edge_points(
+            &mut toward_end,
+            Vec2::new(0.0, 0.0),
+            Vec2::new(10.0, 0.0),
+            1.0,
+            0.24,
+            0.8,
+            40,
+        );
+        let peak_index = toward_end
+            .iter()
+            .enumerate()
+            .max_by(|(_, left), (_, right)| left.y.abs().total_cmp(&right.y.abs()))
+            .map(|(index, _)| index)
+            .unwrap();
+
+        assert!(peak_index > 20);
+    }
+
+    #[test]
+    fn reversed_neighbor_edges_share_the_same_curve() {
+        let start = Vec2::new(0.0, 0.0);
+        let end = Vec2::new(10.0, 0.0);
+        let mut forward = vec![start];
+        let mut reverse = vec![end];
+        append_curved_edge_points(&mut forward, start, end, 1.0, 0.24, 0.8, 40);
+        append_curved_edge_points(&mut reverse, end, start, -1.0, 0.24, -0.8, 40);
+        reverse.reverse();
+
+        for (left, right) in forward.iter().zip(&reverse) {
+            assert!((left.x - right.x).abs() <= 1e-5);
+            assert!((left.y - right.y).abs() <= 1e-5);
+        }
     }
 }

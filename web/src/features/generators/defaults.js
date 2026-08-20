@@ -33,7 +33,7 @@ export const SPECTRE_DEFAULTS = {
   center_y: 0,
   format: "svg",
   draw_mode: "translation",
-  shape: "straight",
+  shape: "curved",
   background: "white",
   outline: "black",
   stroke_width: 1,

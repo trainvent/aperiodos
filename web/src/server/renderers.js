@@ -280,7 +280,7 @@ export async function renderSpectre(payload) {
   const strokeWidth = coerceFloat(payload, "stroke_width", 1.2, { minimum: 0.0, maximum: 20.0 });
   const palette = coercePalette(payload);
   const drawMode = coerceOneOf(payload, "draw_mode", "translation", ["generated", "translation"]);
-  const shape = coerceOneOf(payload, "shape", "straight", ["straight", "curved"]);
+  const shape = coerceOneOf(payload, "shape", "curved", ["straight", "curved"]);
   const imageFormat = coerceFormat(payload, ALLOWED_SPECTRE_FORMATS, "svg");
 
   return renderRustSvg({
