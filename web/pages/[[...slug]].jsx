@@ -20,6 +20,10 @@ const ROUTES = {
     title: "Penrose Tiling Generator – Kite, Dart, and Rhomb Patterns | Aperiodos",
     description: "Create Penrose tilings with kites and darts, rhombs, or star-rich patterns and export the result.",
   },
+  "/studio": {
+    title: "Einstein Material Studio – Design Tile Patterns | Aperiodos",
+    description: "Design reusable Einstein tile materials on the native hexagonal lattice, preview rotations and reflections, and export SVG or JSON.",
+  },
   "/sponsors": {
     title: "Sponsors | Aperiodos",
     description: "Meet the people and organizations supporting the free Aperiodos tile generators.",

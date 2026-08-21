@@ -12,7 +12,7 @@ export const EINSTEIN_DEFAULTS = {
   material_mode: "solid",
   pattern_style: "curves",
   pattern_base: "white",
-  pattern_color: "#00b51a",
+  pattern_color: "#00c200",
   seed: "",
   color_h1: "black",
   color_h: "seagreen",

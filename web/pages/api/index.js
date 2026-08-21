@@ -53,7 +53,7 @@ export default function handler(req, res) {
       material_mode: "solid",
       pattern_style: "curves",
       pattern_base: "white",
-      pattern_color: "#00b51a",
+      pattern_color: "#00c200",
       background: "white",
       no_outline: false,
       seed: null,

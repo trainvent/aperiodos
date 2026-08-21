@@ -34,30 +34,24 @@ def _svg_polygon(points, fill, stroke, stroke_width):
 # motif rather than a continuation of a page-wide pattern.
 _CURVES_MOTIF = (
     (
-        0.68,
+        1.32,
         (
-            Vector(-0.2, 0.95),
-            Vector(0.55, 0.92),
-            Vector(0.62, 1.62),
-            Vector(1.2, 1.86),
-            Vector(1.72, 2.08),
-            Vector(2.08, 1.72),
-            Vector(2.62, 1.95),
+            Vector(0, 1.53286),
+            Vector(0.45, 1.52),
+            Vector(1.1, 1.95),
+            Vector(1.6725, 2.49848),
         ),
     ),
     (
-        1.08,
+        1.62,
         (
-            Vector(-1.42, -1.15),
-            Vector(-0.38, -1.62),
-            Vector(0.02, -0.58),
-            Vector(0.58, -0.2),
-            Vector(1.12, 0.18),
-            Vector(1.35, -0.72),
-            Vector(1.82, -0.86),
-            Vector(2.48, -1.08),
-            Vector(2.72, -0.16),
-            Vector(4.18, -0.42),
+            Vector(-1.1575, -1.45925),
+            Vector(-1.15, -1.18),
+            Vector(-0.25, -1.72),
+            Vector(1.17, -1.36),
+            Vector(1.91, 0.29),
+            Vector(3.46, 0.31),
+            Vector(4.429, -0.74305),
         ),
     ),
 )
@@ -120,7 +114,7 @@ def _svg_pattern_tile(tile, project, base_color, curve_color, stroke, stroke_wid
 
 def save_tiles_svg(
     tiles, width, height, scalar, filename, center_x=0, center_y=0, background="white", outline="black", stroke_width=2,
-    material_mode="solid", pattern_base="white", pattern_color="#00b51a"
+    material_mode="solid", pattern_base="white", pattern_color="#00c200"
 ):
     cx = width / 2
     cy = height / 2
@@ -150,7 +144,7 @@ def save_tiles_svg(
 
 def save_seed_tiles_svg(
     tiles, width, height, scalar, offset_coord, filename, center_x=0, center_y=0, background="white", outline="black", stroke_width=2,
-    material_mode="solid", pattern_base="white", pattern_color="#00b51a"
+    material_mode="solid", pattern_base="white", pattern_color="#00c200"
 ):
     stroke = outline if stroke_width > 0 else "none"
 

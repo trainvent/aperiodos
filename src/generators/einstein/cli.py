@@ -36,7 +36,7 @@ def render_pattern(
     stroke_width=2,
     material_mode="solid",
     pattern_base="white",
-    pattern_color="#00b51a",
+    pattern_color="#00c200",
 ):
     reset_generator()
     for _ in range(iterations):
@@ -100,7 +100,7 @@ def build_parser():
     parser.add_argument("--material-mode", choices=("solid", "pattern"), default="solid")
     parser.add_argument("--pattern-style", choices=("curves",), default="curves")
     parser.add_argument("--pattern-base", default="white")
-    parser.add_argument("--pattern-color", default="#00b51a")
+    parser.add_argument("--pattern-color", default="#00c200")
     parser.add_argument("--no-outline", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--seed", type=int, help="Generate a seed-based cropped pattern instead of the full centered render.")
     return parser

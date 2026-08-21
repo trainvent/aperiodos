@@ -1,12 +1,120 @@
 {
 	"nav": {
 		"home": "Home",
+		"studio": "Studio",
 		"codes": "Shop",
 		"sponsors": "Sponsors",
 		"about": "About"
 	},
 	"language": {
 		"label": "Language"
+	},
+	"studio": {
+		"hero": {
+			"pageTitle": "Studio",
+			"eyebrow": "Einstein material designer",
+			"title": "Construct the material.",
+			"lede": "Place three ordered points on the Einstein hat's native hexagonal lattice. Studio turns them into a continuous circular path and carries it correctly through every rotation and reflection."
+		},
+		"controls": {
+			"design": "Tools",
+			"name": "Design name",
+			"baseColor": "Tile color",
+			"curveColor": "Curve color",
+			"snapping": "Point snapping",
+			"snapQuarter": "Quarter lattice",
+			"snapHalf": "Half lattice",
+			"snapGrid": "Full lattice",
+			"snapFree": "Free",
+			"showGrid": "Show hexagonal lattice",
+			"showHandles": "Show editing handles",
+			"bindEndpoints": "Bind endpoints to tile edges"
+		},
+		"paths": {
+			"title": "Bézier paths",
+			"help": "Advanced freeform alternative for shapes that are not circular.",
+			"empty": "No Bézier paths in this design.",
+			"add": "Add path",
+			"newName": "Curve {{count}}",
+			"pathName": "Path name",
+			"width": "Width",
+			"addSegment": "+ segment",
+			"removeSegment": "− segment",
+			"removePath": "Delete path"
+		},
+		"circles": {
+			"title": "Circle layers",
+			"help": "Advanced additive and cut-out layers for filled circular areas.",
+			"add": "Add circle",
+			"empty": "No circle layers yet.",
+			"newName": "Circle {{count}}",
+			"circleName": "Circle name",
+			"operation": "Layer color",
+			"addColor": "Curve color (add)",
+			"cutColor": "Tile color (cut out)",
+			"radius": "Radius",
+			"remove": "Delete circle"
+		},
+		"circularPaths": {
+			"title": "Circular paths",
+			"primary": "Primary tool",
+			"help": "The native construction for the Einstein curve: three ordered centers, one derived radius.",
+			"guide1": "Start center",
+			"guide2": "Handover center",
+			"guide3": "Exit center",
+			"add": "Add circular path",
+			"empty": "No circular paths yet.",
+			"newName": "Circular path {{count}}",
+			"pathName": "Path name",
+			"width": "Width",
+			"side": "Starting arc side",
+			"left": "Left",
+			"right": "Right",
+			"warning": "Points 1–2 and 2–3 are not equally spaced. The path keeps the radius derived from 1–2, so its final point cannot land exactly halfway between 2 and 3.",
+			"remove": "Delete circular path"
+		},
+		"ports": {
+			"start": "start",
+			"end": "end",
+			"bound": "boundary ports bound"
+		},
+		"canvas": {
+			"title": "Live tile",
+			"live": "Live",
+			"help": "Drag the numbered centers. The circular path and its mirrored tiling update immediately.",
+			"aria": "Interactive Einstein tile material editor",
+			"anchor": "Anchor",
+			"control": "Control",
+			"port": "Edge port"
+		},
+		"preview": {
+			"title": "Transformation proof",
+			"help": "The same tile-local material is transformed onto an H cluster. M marks the reflected tile."
+		},
+		"library": {
+			"title": "Design library",
+			"localNote": "This first library stores designs in this browser. Exported JSON uses the versioned format intended for a future shared library.",
+			"builtin": "Built in",
+			"local": "Saved locally",
+			"load": "Load",
+			"delete": "Delete"
+		},
+		"actions": {
+			"save": "Save to library",
+			"reset": "Reset",
+			"exportJson": "Export JSON",
+			"exportSvg": "Export SVG",
+			"import": "Import JSON"
+		},
+		"status": {
+			"saved": "Design saved in this browser.",
+			"loaded": "Design loaded.",
+			"deleted": "Local design deleted.",
+			"reset": "Built-in circular-path design restored.",
+			"imported": "Design imported. Save it to add it to the local library.",
+			"importFailed": "That file is not a valid Aperiodos material design.",
+			"libraryFailed": "The local design library could not be read."
+		}
 	},
 	"home": {
 		"hero": {

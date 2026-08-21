@@ -1,12 +1,120 @@
 {
 	"nav": {
 		"home": "Startseite",
+		"studio": "Studio",
 		"codes": "Shop",
 		"sponsors": "Sponsoren",
 		"about": "Über"
 	},
 	"language": {
 		"label": "Sprache"
+	},
+	"studio": {
+		"hero": {
+			"pageTitle": "Studio",
+			"eyebrow": "Einstein-Materialdesigner",
+			"title": "Konstruiere das Material.",
+			"lede": "Setze drei geordnete Punkte auf das ursprüngliche hexagonale Gitter der Einstein-Kachel. Das Studio formt daraus einen durchgehenden Kreisbogenpfad und überträgt ihn korrekt auf jede Drehung und Spiegelung."
+		},
+		"controls": {
+			"design": "Werkzeuge",
+			"name": "Name des Entwurfs",
+			"baseColor": "Kachelfarbe",
+			"curveColor": "Kurvenfarbe",
+			"snapping": "Punktraster",
+			"snapQuarter": "Viertelgitter",
+			"snapHalf": "Halbes Gitter",
+			"snapGrid": "Ganzes Gitter",
+			"snapFree": "Frei",
+			"showGrid": "Hexagonales Gitter anzeigen",
+			"showHandles": "Bearbeitungsgriffe anzeigen",
+			"bindEndpoints": "Endpunkte an Kachelkanten binden"
+		},
+		"paths": {
+			"title": "Bézier-Pfade",
+			"help": "Fortgeschrittene Freiform-Alternative für nicht kreisförmige Formen.",
+			"empty": "Dieser Entwurf enthält keine Bézier-Pfade.",
+			"add": "Pfad hinzufügen",
+			"newName": "Kurve {{count}}",
+			"pathName": "Pfadname",
+			"width": "Breite",
+			"addSegment": "+ Segment",
+			"removeSegment": "− Segment",
+			"removePath": "Pfad löschen"
+		},
+		"circles": {
+			"title": "Kreisebenen",
+			"help": "Fortgeschrittene additive und ausgeschnittene Ebenen für gefüllte Kreisflächen.",
+			"add": "Kreis hinzufügen",
+			"empty": "Noch keine Kreisebenen.",
+			"newName": "Kreis {{count}}",
+			"circleName": "Kreisname",
+			"operation": "Ebenenfarbe",
+			"addColor": "Kurvenfarbe (hinzufügen)",
+			"cutColor": "Kachelfarbe (ausschneiden)",
+			"radius": "Radius",
+			"remove": "Kreis löschen"
+		},
+		"circularPaths": {
+			"title": "Kreisbogenpfade",
+			"primary": "Hauptwerkzeug",
+			"help": "Die natürliche Konstruktion der Einstein-Kurve: drei geordnete Mittelpunkte und ein abgeleiteter Radius.",
+			"guide1": "Startmittelpunkt",
+			"guide2": "Übergabepunkt",
+			"guide3": "Austrittsmittelpunkt",
+			"add": "Kreisbogenpfad hinzufügen",
+			"empty": "Noch keine Kreisbogenpfade.",
+			"newName": "Kreisbogenpfad {{count}}",
+			"pathName": "Pfadname",
+			"width": "Breite",
+			"side": "Seite des Startbogens",
+			"left": "Links",
+			"right": "Rechts",
+			"warning": "Die Abstände 1–2 und 2–3 sind nicht gleich. Der Pfad behält den aus 1–2 abgeleiteten Radius und kann deshalb nicht exakt in der Mitte zwischen 2 und 3 enden.",
+			"remove": "Kreisbogenpfad löschen"
+		},
+		"ports": {
+			"start": "Start",
+			"end": "Ende",
+			"bound": "Randanschlüsse gebunden"
+		},
+		"canvas": {
+			"title": "Live-Kachel",
+			"live": "Live",
+			"help": "Ziehe die nummerierten Mittelpunkte. Kreisbogenpfad und gespiegelte Kachelung aktualisieren sich sofort.",
+			"aria": "Interaktiver Materialeditor für die Einstein-Kachel",
+			"anchor": "Anker",
+			"control": "Kontrollpunkt",
+			"port": "Randanschluss"
+		},
+		"preview": {
+			"title": "Transformationsprüfung",
+			"help": "Dasselbe kachellokale Material wird auf einen H-Cluster übertragen. M kennzeichnet die gespiegelte Kachel."
+		},
+		"library": {
+			"title": "Designbibliothek",
+			"localNote": "Diese erste Bibliothek speichert Entwürfe in diesem Browser. Exportiertes JSON nutzt bereits das versionierte Format für eine spätere öffentliche Bibliothek.",
+			"builtin": "Integriert",
+			"local": "Lokal gespeichert",
+			"load": "Laden",
+			"delete": "Löschen"
+		},
+		"actions": {
+			"save": "In Bibliothek speichern",
+			"reset": "Zurücksetzen",
+			"exportJson": "JSON exportieren",
+			"exportSvg": "SVG exportieren",
+			"import": "JSON importieren"
+		},
+		"status": {
+			"saved": "Entwurf wurde in diesem Browser gespeichert.",
+			"loaded": "Entwurf geladen.",
+			"deleted": "Lokaler Entwurf gelöscht.",
+			"reset": "Integrierter Kreisbogenpfad wiederhergestellt.",
+			"imported": "Entwurf importiert. Speichere ihn, um ihn zur lokalen Bibliothek hinzuzufügen.",
+			"importFailed": "Diese Datei ist kein gültiger Aperiodos-Materialentwurf.",
+			"libraryFailed": "Die lokale Designbibliothek konnte nicht gelesen werden."
+		}
 	},
 	"home": {
 		"hero": {

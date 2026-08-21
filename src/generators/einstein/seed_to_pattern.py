@@ -60,7 +60,7 @@ def seed_to_pattern(
     stroke_width=2,
     material_mode="solid",
     pattern_base="white",
-    pattern_color="#00b51a",
+    pattern_color="#00c200",
 ):
     try:
         import cv2

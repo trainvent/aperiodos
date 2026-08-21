@@ -10,6 +10,7 @@ import SpectrePage from "./features/generators/SpectrePage";
 import HomePage from "./features/home/HomePage";
 import RenderCreditsPage from "./features/renderCredits/RenderCreditsPage";
 import SponsorsPage from "./features/sponsors/SponsorsPage";
+import StudioPage from "./features/studio/StudioPage";
 
 export default function App() {
   const { t, i18n } = useTranslation("common");
@@ -59,6 +60,7 @@ export default function App() {
             <TopNavLink to="/einstein">Einstein</TopNavLink>
             <TopNavLink to="/spectre">Spectre</TopNavLink>
             <TopNavLink to="/penrose">Penrose</TopNavLink>
+            <TopNavLink to="/studio">{t("nav.studio")}</TopNavLink>
             <TopNavLink to="/generation-codes">
               <span className="shop-nav-label">
                 <svg
@@ -141,6 +143,8 @@ function getPageTitle(path, t) {
       return t("generator.spectre.title");
     case "/penrose":
       return t("generator.penrose.title");
+    case "/studio":
+      return t("studio.hero.pageTitle");
     case "/generation-codes":
       return t("renderCredits.hero.title");
     case "/donate":
@@ -164,6 +168,8 @@ function CurrentPage({ path }) {
       return <SpectrePage />;
     case "/penrose":
       return <PenrosePage />;
+    case "/studio":
+      return <StudioPage />;
     case "/generation-codes":
       return <RenderCreditsPage />;
     case "/about":

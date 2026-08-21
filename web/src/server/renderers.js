@@ -208,7 +208,7 @@ export async function renderEinstein(payload) {
   const materialMode = coerceOneOf(payload, "material_mode", "solid", ["solid", "pattern"]);
   const patternStyle = coerceOneOf(payload, "pattern_style", "curves", ["curves"]);
   const patternBase = String(payload.pattern_base || "white");
-  const patternColor = String(payload.pattern_color || "#00b51a");
+  const patternColor = String(payload.pattern_color || "#00c200");
   const colors = coerceColors(payload);
   const fourColors = coerceFourColors(payload);
   const background = String(payload.background || "white");
