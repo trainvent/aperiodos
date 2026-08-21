@@ -106,9 +106,12 @@ The launcher retrieves `aperiodos-stripe-sandbox-secret-key` and
 `aperiodos-sendgrid-api-key` from Google Secret Manager into mode-`0600`
 temporary files. It generates a fresh Stripe CLI webhook signing secret, starts
 the listener and Next.js together, and deletes all three files when the process
-exits. Secret values are never placed in command-line arguments or environment
-variables; only temporary file paths are passed to the application. The normal
-ignored `.env` files are deliberately skipped for this command.
+exits. The Stripe CLI listener is explicitly authenticated with the same
+sandbox key as the application, so donations and render-credit purchases cannot
+silently use different sandboxes. Secret values are never placed in command-line
+arguments; the Stripe key is exposed to the listener only for startup and only
+temporary file paths are passed to the application. The normal ignored `.env`
+files are deliberately skipped for this command.
 
 The sandbox Price ID is non-secret and has a checked-in default. Secret names,
 versions, sender details, and project can be overridden for one run, for example:

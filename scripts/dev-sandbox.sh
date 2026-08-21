@@ -31,6 +31,7 @@ webhook_secret_file="$secret_directory/stripe-webhook-secret"
 listener_pid=""
 
 cleanup() {
+  unset STRIPE_API_KEY
   if [[ -n "$listener_pid" ]]; then
     kill "$listener_pid" 2>/dev/null || true
   fi
@@ -54,6 +55,16 @@ gcloud secrets versions access "$SENDGRID_API_KEY_VERSION" \
   --out-file="$sendgrid_key_file" >/dev/null
 chmod 600 "$stripe_key_file" "$sendgrid_key_file"
 
+# Pin the CLI listener to the same Stripe sandbox as the application. Without
+# this override, `stripe listen` uses the CLI profile's default sandbox, which
+# can differ from the sandbox selected by the Secret Manager API key.
+STRIPE_API_KEY=""
+IFS= read -r STRIPE_API_KEY < "$stripe_key_file" || true
+if [[ -z "$STRIPE_API_KEY" ]]; then
+  echo "Stripe sandbox key retrieved from Secret Manager is empty." >&2
+  exit 1
+fi
+export STRIPE_API_KEY
 stripe listen --print-secret > "$webhook_secret_file"
 chmod 600 "$webhook_secret_file"
 stripe listen \
@@ -61,6 +72,7 @@ stripe listen \
   --forward-to "http://127.0.0.1:$SANDBOX_PORT/api/stripe/webhook" \
   >/dev/null 2>&1 &
 listener_pid="$!"
+unset STRIPE_API_KEY
 
 echo "Starting Stripe sandbox with SendGrid delivery enabled."
 cd web
