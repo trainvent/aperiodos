@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import AboutPage from "./features/about/AboutPage";
@@ -18,6 +18,11 @@ export default function App() {
   const currentPath = normalizePath(router.asPath);
   const pageTitle = getPageTitle(currentPath, t);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+    window.localStorage.setItem("aperiodos-lang", language);
+  }, [language]);
 
   return (
     <div className="shell">

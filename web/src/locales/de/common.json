@@ -179,7 +179,11 @@
 		},
 		"einstein": {
 			"title": "Einstein-Generator",
-			"description": "Skalierung, Größe und Palette anpassen, dann ein neues Bild im gewünschten Format rendern.",
+			"description": "Erstelle online ein Einstein-Kachelmuster. Passe Skalierung, Leinwand, Farben und Iterationstiefe an und rendere dein aperiodisches Monotil-Design.",
+			"guideTitle": "Über den Generator für aperiodische Einstein-Monotile",
+			"guideBody": "Einstein bedeutet ‚ein Stein‘: eine einzige Kachelform, die die Ebene nur ohne sich wiederholendes Translationsmuster überdecken kann. Mit diesem interaktiven Generator kannst du eine gespiegelte Einstein-Monotil-Konstruktion sowie Kachelfamilien- und Vierfarbpaletten erkunden.",
+			"exportTitle": "Muster für Druck oder Design exportieren",
+			"exportBody": "Wähle SVG für ein skalierbares Vektormuster oder PNG und JPG für ein direkt verwendbares Rasterbild. Lege Leinwandmaße, Hintergrund, Kontur, Strichstärke und Startwert vor dem Generieren fest.",
 			"coloring": "Farbmodus",
 			"coloringFamilies": "Kachel-Familien",
 			"coloringFourColor": "Vier-Farben"

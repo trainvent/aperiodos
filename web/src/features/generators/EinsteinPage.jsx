@@ -11,8 +11,10 @@ export default function EinsteinPage() {
   const { t } = useTranslation("common");
   const [values, setValues] = useState(EINSTEIN_DEFAULTS);
   return (
-    <GeneratorLayout
+    <>
+      <GeneratorLayout
       title={t("generator.einstein.title")}
+      description={t("generator.einstein.description")}
       controls={
         <GeneratorSettingsScaffold
           values={values}
@@ -94,6 +96,13 @@ export default function EinsteinPage() {
       values={values}
       setValues={setValues}
       defaults={EINSTEIN_DEFAULTS}
-    />
+      />
+      <article className="panel generator-guide">
+        <h2>{t("generator.einstein.guideTitle")}</h2>
+        <p>{t("generator.einstein.guideBody")}</p>
+        <h3>{t("generator.einstein.exportTitle")}</h3>
+        <p>{t("generator.einstein.exportBody")}</p>
+      </article>
+    </>
   );
 }

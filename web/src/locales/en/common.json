@@ -179,7 +179,11 @@
 		},
 		"einstein": {
 			"title": "Einstein Generator",
-			"description": "Adjust scale, size, and palette, then render a new image in the format you like.",
+			"description": "Create an Einstein tile pattern online. Adjust the scale, canvas, colors, and iteration depth, then render your aperiodic monotile design.",
+			"guideTitle": "About the Einstein aperiodic monotile generator",
+			"guideBody": "Einstein means ‘one stone’: a single tile shape that can cover the plane only without a repeating translational pattern. This interactive generator lets you explore a reflected Einstein monotile construction and compare tile-family and four-color palettes.",
+			"exportTitle": "Export a pattern for print or design",
+			"exportBody": "Choose SVG for a scalable vector pattern, or PNG and JPG for a ready-to-use raster image. Set the canvas dimensions, background, outline, stroke width, and seed before generating your download.",
 			"coloring": "Coloring",
 			"coloringFamilies": "Tile Families",
 			"coloringFourColor": "Four-Color"
