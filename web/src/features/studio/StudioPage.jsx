@@ -416,52 +416,61 @@ export default function StudioPage() {
       </header>
 
       <div className="panel studio-layout studio-builder-shell">
-        <aside className="studio-controls studio-tool-menu">
-          <div className="studio-panel-heading">
-            <div>
-              <span className="studio-step">01</span>
-              <h2>{t("studio.controls.design")}</h2>
-            </div>
-            <span className="studio-coordinate-badge">u · v · √3</span>
+        <div className="studio-top-toolbar" role="toolbar" aria-label={t("studio.toolbar.aria")}>
+          <div className="studio-toolbar-group studio-toolbar-create">
+            <span className="studio-toolbar-label">{t("studio.toolbar.add")}</span>
+            <button type="button" className="primary" onClick={addCircularPath}><span>⌁</span>{t("studio.circularPaths.title")}</button>
+            <button type="button" onClick={addPath}><span>⌇</span>{t("studio.paths.title")}</button>
+            <button type="button" onClick={addCircle}><span>○</span>{t("studio.circles.title")}</button>
           </div>
-
-          <div className="studio-form-grid">
-            <label className="full">
+          <div className="studio-toolbar-group studio-toolbar-settings">
+            <label className="studio-toolbar-name">
               <span>{t("studio.controls.name")}</span>
               <input value={design.name} onChange={(event) => setDesign((current) => ({ ...current, name: event.target.value }))} />
             </label>
-            <label>
-              <span>{t("studio.controls.baseColor")}</span>
+            <label className="studio-toolbar-color" title={t("studio.controls.baseColor")}>
+              <span>{t("studio.toolbar.tile")}</span>
               <input type="color" value={design.colors.base} onChange={(event) => setDesign((current) => ({ ...current, colors: { ...current.colors, base: event.target.value } }))} />
             </label>
-            <label>
-              <span>{t("studio.controls.curveColor")}</span>
+            <label className="studio-toolbar-color" title={t("studio.controls.curveColor")}>
+              <span>{t("studio.toolbar.material")}</span>
               <input type="color" value={design.colors.ink} onChange={(event) => setDesign((current) => ({ ...current, colors: { ...current.colors, ink: event.target.value } }))} />
             </label>
-            <label className="full">
+            <label className="studio-toolbar-snap">
               <span>{t("studio.controls.snapping")}</span>
               <select value={snapMode} onChange={(event) => setSnapMode(event.target.value)}>
-                <option value="quarter">{t("studio.controls.snapQuarter")}</option>
-                <option value="half">{t("studio.controls.snapHalf")}</option>
-                <option value="grid">{t("studio.controls.snapGrid")}</option>
+                <option value="quarter">¼</option>
+                <option value="half">½</option>
+                <option value="grid">1</option>
                 <option value="free">{t("studio.controls.snapFree")}</option>
               </select>
             </label>
           </div>
+          <details className="studio-view-options studio-toolbar-view">
+            <summary><span>{t("studio.controls.view")}</span><small>2</small></summary>
+            <div className="studio-toggles">
+              <label className="checkbox"><input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} /><span>{t("studio.controls.showGrid")}</span></label>
+              <label className="checkbox"><input type="checkbox" checked={showHandles} onChange={(event) => setShowHandles(event.target.checked)} /><span>{t("studio.controls.showHandles")}</span></label>
+            </div>
+          </details>
+          <div className="studio-toolbar-group studio-toolbar-actions">
+            <button type="button" onClick={saveDesign}>{t("studio.actions.save")}</button>
+            <button type="button" onClick={resetDesign}>{t("studio.actions.reset")}</button>
+          </div>
+        </div>
 
-          <div className="studio-toggles">
-            <label className="checkbox"><input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} /><span>{t("studio.controls.showGrid")}</span></label>
-            <label className="checkbox"><input type="checkbox" checked={showHandles} onChange={(event) => setShowHandles(event.target.checked)} /><span>{t("studio.controls.showHandles")}</span></label>
-            {design.paths.length ? <label className="checkbox"><input type="checkbox" checked={bindEndpoints} onChange={(event) => setBindEndpoints(event.target.checked)} /><span>{t("studio.controls.bindEndpoints")}</span></label> : null}
+        <aside className="studio-controls studio-tool-menu" aria-label={t("studio.controls.objects")}>
+          <div className="studio-panel-heading">
+            <div>
+              <h2>{t("studio.controls.objects")}</h2>
+            </div>
+            <span className="studio-coordinate-badge">u · v · √3</span>
           </div>
 
           <div className="studio-section studio-path-section studio-secondary-section">
             <div className="studio-section-title">
-              <div>
-                <h3>{t("studio.paths.title")}</h3>
-                <small>{t("studio.paths.help")}</small>
-              </div>
-              <button className="studio-icon-button" type="button" onClick={addPath} aria-label={t("studio.paths.add")}>+</button>
+              <h3>{t("studio.paths.title")}</h3>
+              <span className="studio-tree-count">{design.paths.length}</span>
             </div>
             {design.paths.length ? <div className="studio-path-list">
               {design.paths.map((path, index) => (
@@ -471,7 +480,7 @@ export default function StudioPage() {
                   <small>{(path.points.length - 1) / 3}× C</small>
                 </button>
               ))}
-            </div> : <p className="studio-empty-note">{t("studio.paths.empty")}</p>}
+            </div> : null}
             {selectedPath && !selectedCircle && !selectedCircularPath ? (
               <div className="studio-path-editor">
                 <label>
@@ -482,6 +491,7 @@ export default function StudioPage() {
                   <span>{t("studio.paths.width")}: {selectedPath.width.toFixed(2)}</span>
                   <input type="range" min="0.1" max="1.6" step="0.02" value={selectedPath.width} onChange={(event) => updateSelectedPath({ width: Number(event.target.value) })} />
                 </label>
+                <label className="checkbox studio-inline-option"><input type="checkbox" checked={bindEndpoints} onChange={(event) => setBindEndpoints(event.target.checked)} /><span>{t("studio.controls.bindEndpoints")}</span></label>
                 <div className="studio-compact-actions">
                   <button type="button" onClick={addSegment}>{t("studio.paths.addSegment")}</button>
                   <button type="button" onClick={removeSegment} disabled={selectedPath.points.length <= 4}>{t("studio.paths.removeSegment")}</button>
@@ -493,11 +503,8 @@ export default function StudioPage() {
 
           <div className="studio-section studio-circle-section studio-secondary-section">
             <div className="studio-section-title">
-              <div>
-                <h3>{t("studio.circles.title")}</h3>
-                <small>{t("studio.circles.help")}</small>
-              </div>
-              <button className="studio-icon-button" type="button" onClick={addCircle} aria-label={t("studio.circles.add")}>+</button>
+              <h3>{t("studio.circles.title")}</h3>
+              <span className="studio-tree-count">{(design.circles || []).length}</span>
             </div>
             {(design.circles || []).length ? (
               <div className="studio-path-list">
@@ -509,7 +516,7 @@ export default function StudioPage() {
                   </button>
                 ))}
               </div>
-            ) : <p className="studio-empty-note">{t("studio.circles.empty")}</p>}
+            ) : null}
             {selectedCircle ? (
               <div className="studio-path-editor">
                 <label>
@@ -534,17 +541,9 @@ export default function StudioPage() {
 
           <div className="studio-section studio-circular-path-section studio-primary-section">
             <div className="studio-section-title">
-              <div>
-                <div className="studio-primary-heading"><h3>{t("studio.circularPaths.title")}</h3><span className="studio-primary-badge">{t("studio.circularPaths.primary")}</span></div>
-                <small>{t("studio.circularPaths.help")}</small>
-              </div>
-              <button className="studio-icon-button" type="button" onClick={addCircularPath} aria-label={t("studio.circularPaths.add")}>+</button>
+              <h3>{t("studio.circularPaths.title")}</h3>
+              <span className="studio-tree-count">{(design.circularPaths || []).length}</span>
             </div>
-            <ol className="studio-circular-guide">
-              <li><strong>1</strong><span>{t("studio.circularPaths.guide1")}</span></li>
-              <li><strong>2</strong><span>{t("studio.circularPaths.guide2")}</span></li>
-              <li><strong>3</strong><span>{t("studio.circularPaths.guide3")}</span></li>
-            </ol>
             {(design.circularPaths || []).length ? (
               <div className="studio-path-list">
                 {design.circularPaths.map((path) => {
@@ -599,10 +598,6 @@ export default function StudioPage() {
             </ul>
           </div> : null}
 
-          <div className="actions-row">
-            <button className="button" type="button" onClick={saveDesign}>{t("studio.actions.save")}</button>
-            <button className="button button-muted" type="button" onClick={resetDesign}>{t("studio.actions.reset")}</button>
-          </div>
           {status ? <p className="studio-status" role="status">{status}</p> : null}
         </aside>
 
@@ -711,7 +706,7 @@ export default function StudioPage() {
       <section className="studio-lower-grid">
         <div className="panel studio-cluster-panel">
           <div className="studio-panel-heading">
-            <div><span className="studio-step">02</span><h2>{t("studio.preview.title")}</h2></div>
+            <div><h2>{t("studio.preview.title")}</h2></div>
             <p>{t("studio.preview.help")}</p>
           </div>
           <ClusterPreview design={design} />
@@ -719,7 +714,7 @@ export default function StudioPage() {
 
         <div className="panel studio-library-panel">
           <div className="studio-panel-heading">
-            <div><span className="studio-step">03</span><h2>{t("studio.library.title")}</h2></div>
+            <div><h2>{t("studio.library.title")}</h2></div>
             <span className="studio-library-count">{savedDesigns.length + 1}</span>
           </div>
           <p className="studio-library-note">{t("studio.library.localNote")}</p>
