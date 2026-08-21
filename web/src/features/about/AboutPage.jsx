@@ -21,11 +21,15 @@ function createAboutFallback(t) {
         url: "https://cs.uwaterloo.ca/~csk/spectre/"
       },
       {
+        label: t("about.references.aperiodicArticle"),
+        url: "https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/aperiodic-tilings/"
+      },
+      {
         label: t("about.references.einsteinRepo"),
         url: "https://github.com/asmoly/Einstein_Tile_Generator"
       },
       {
-        label: "necocen/spectre",
+        label: t("about.references.spectreRepo"),
         url: "https://github.com/necocen/spectre"
       },
       {
@@ -65,6 +69,10 @@ export default function AboutPage() {
 
   return (
     <section className="about-grid">
+        <article className="panel prose-panel about-intro">
+          <p>{content.summary}</p>
+        </article>
+
         <article className="panel prose-panel">
           <h2>{t("about.sections.references")}</h2>
           <ul className="reference-list">

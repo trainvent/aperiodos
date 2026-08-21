@@ -6,7 +6,6 @@ import { apiUrl } from "../../lib/api";
 
 export default function GeneratorLayout({
   title,
-  description,
   controls,
   payload,
   endpoint,
@@ -113,9 +112,7 @@ export default function GeneratorLayout({
   }
 
   return (
-    <>
-      {description ? <p className="generator-description">{description}</p> : null}
-      <section className="generator-layout">
+    <section className="generator-layout">
         <form className="panel controls-panel" onSubmit={handleSubmit}>
           <h2>{t("generator.layout.settings")}</h2>
           <div className="grid">{controls}</div>
@@ -176,7 +173,6 @@ export default function GeneratorLayout({
             )}
           </div>
         </section>
-      </section>
-    </>
+    </section>
   );
 }

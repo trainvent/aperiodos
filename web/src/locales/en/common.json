@@ -179,11 +179,7 @@
 		},
 		"einstein": {
 			"title": "Einstein Generator",
-			"description": "Create an Einstein tile pattern online. Adjust the scale, canvas, colors, and iteration depth, then render your aperiodic monotile design.",
-			"guideTitle": "About the Einstein aperiodic monotile generator",
-			"guideBody": "Einstein means ‘one stone’: a single tile shape that can cover the plane only without a repeating translational pattern. This interactive generator lets you explore a reflected Einstein monotile construction and compare tile-family and four-color palettes.",
-			"exportTitle": "Export a pattern for print or design",
-			"exportBody": "Choose SVG for a scalable vector pattern, or PNG and JPG for a ready-to-use raster image. Set the canvas dimensions, background, outline, stroke width, and seed before generating your download.",
+			"description": "Adjust scale, size, and palette, then render a new image in the format you like.",
 			"coloring": "Coloring",
 			"coloringFamilies": "Tile Families",
 			"coloringFourColor": "Four-Color"
@@ -214,21 +210,23 @@
 	"about": {
 		"hero": {
 			"title": "About Aperiodos",
-			"summary": "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, and browser experiments. The site currently centers on monotiles, with plans to expand into other aperiodic patterns and Penrose tilings."
+			"summary": "Aperiodos is an experimental Trainvent tool for exploring aperiodic tilings. You can generate, customize, and export Einstein, Spectre, and Penrose patterns directly in the browser."
 		},
 		"references": {
-			"hat": "Hat monotile reference page",
-			"spectre": "Spectre project page",
-			"einsteinRepo": "Earlier Einstein inspiration repo"
+			"hat": "The Hat tile – background and discovery",
+			"spectre": "The Spectre tile – background and reference",
+			"aperiodicArticle": "Two algorithms for randomly generating aperiodic tilings",
+			"einsteinRepo": "Einstein Tile Generator by asmoly",
+			"spectreRepo": "Spectre renderer by necocen"
 		},
 		"sections": {
-			"references": "References",
-			"credits": "Credits and Notes",
-			"technical": "Technical Implementation",
-			"notes": "Project Notes",
-			"creditsBody": "This Trainvent subservice builds on papers, mathematical references, and public open-source experiments to show how these patterns can be rendered and presented.",
-			"technicalBody": "OpenAI helped with technical implementation, architecture planning, refactors, API shaping, and frontend/backend integration.",
-			"notesBody": "The Rust-based Spectre renderer lives in src/generators/spectre. Einstein and Spectre share a visual language in the Trainvent context."
+			"references": "Sources and further reading",
+			"credits": "Mathematical foundations",
+			"technical": "Development",
+			"notes": "Technical structure",
+			"creditsBody": "The generators build on published mathematical research and publicly available open-source projects. The links above document important source material and earlier implementations.",
+			"technicalBody": "OpenAI supported development through software architecture, API design, refactoring, and the integration of the interface with the rendering engines.",
+			"notesBody": "The Einstein generator is implemented in Python, while the Spectre and Penrose renderers are written in Rust. A Next.js application brings all three tools together in a shared browser interface."
 		}
 	}
 }

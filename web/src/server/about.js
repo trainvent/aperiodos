@@ -5,23 +5,27 @@ const REFERENCES = {
       url: "https://next.trainvent.com/",
     },
     {
-      label: "Hat-Monokachel Entdeckungsseite",
+      label: "Die Hat-Kachel – Hintergrund und Entdeckung",
       url: "https://cs.uwaterloo.ca/~csk/hat/",
     },
     {
-      label: "Spectre Informationsseite",
+      label: "Die Spectre-Kachel – Hintergrund und Referenz",
       url: "https://cs.uwaterloo.ca/~csk/spectre/",
     },
     {
-      label: "Einstein-Generator Inspiration",
+      label: "Two algorithms for randomly generating aperiodic tilings",
+      url: "https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/aperiodic-tilings/",
+    },
+    {
+      label: "Einstein Tile Generator von asmoly",
       url: "https://github.com/asmoly/Einstein_Tile_Generator",
     },
     {
-      label: "Spectre-Generator Inspiration",
+      label: "Spectre-Renderer von necocen",
       url: "https://github.com/necocen/spectre",
     },
     {
-      label: "OpenAI wurde ",
+      label: "OpenAI",
       url: "https://openai.com/",
     },
   ],
@@ -31,19 +35,23 @@ const REFERENCES = {
       url: "https://next.trainvent.com/",
     },
     {
-      label: "Hat monotile reference page",
+      label: "The Hat tile – background and discovery",
       url: "https://cs.uwaterloo.ca/~csk/hat/h7h8.html",
     },
     {
-      label: "Spectre project page",
+      label: "The Spectre tile – background and reference",
       url: "https://cs.uwaterloo.ca/~csk/spectre/",
     },
     {
-      label: "Earlier Einstein inspiration repo",
+      label: "Two algorithms for randomly generating aperiodic tilings",
+      url: "https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/aperiodic-tilings/",
+    },
+    {
+      label: "Einstein Tile Generator by asmoly",
       url: "https://github.com/asmoly/Einstein_Tile_Generator",
     },
     {
-      label: "necocen/spectre",
+      label: "Spectre renderer by necocen",
       url: "https://github.com/necocen/spectre",
     },
     {
@@ -57,26 +65,26 @@ const ABOUT_CONTENT_BY_LANGUAGE = {
   de: {
     title: "Über Aperiodos",
     summary:
-      "Aperiodos ist ein Trainvent-Subservice für aperiodische Monokacheln, Bildgenerierung und Browser-Experimente. Die Seite fokussiert derzeit Monokacheln, mit Plänen für weitere aperiodische Muster und Penrose-Muster.",
+      "Aperiodos ist ein experimentelles Werkzeug von Trainvent für aperiodische Kachelungen. Im Browser lassen sich Einstein-, Spectre- und Penrose-Muster erzeugen, anpassen und als Bilddateien exportieren.",
     references: REFERENCES.de,
     credits:
-      "Dieser Trainvent-Subservice baut auf Papers, mathematischen Referenzen und öffentlichen Open-Source-Experimenten auf, um zu zeigen, wie diese Muster gerendert und präsentiert werden können.",
+      "Die Generatoren basieren auf publizierter mathematischer Forschung und öffentlich zugänglichen Open-Source-Projekten. Die verlinkten Quellen dokumentieren wichtige Grundlagen und frühere Implementierungen.",
     technical_realizations:
-      "OpenAI hat bei technischer Realisierung, Architekturplanung, Refactors, API-Formgebung und Frontend/Backend-Integration geholfen.",
+      "OpenAI unterstützte die Entwicklung bei Softwarearchitektur, API-Design, Refactoring sowie bei der Integration von Benutzeroberfläche und Renderern.",
     notes:
-      "Der Rust-basierte Spectre-Renderer liegt in src/generators/spectre. Einstein und Spectre teilen eine visuelle Sprache im Trainvent-Kontext.",
+      "Der Einstein-Generator wird in Python berechnet; die Spectre- und Penrose-Renderer sind in Rust umgesetzt. Eine Next.js-Anwendung führt die drei Werkzeuge in einer gemeinsamen Browseroberfläche zusammen.",
   },
   en: {
     title: "About Aperiodos",
     summary:
-      "Aperiodos is a Trainvent subservice for aperiodic monotiles, image generation, and browser experiments. The site currently centers on monotiles, with plans to expand into other aperiodic patterns and Penrose tilings.",
+      "Aperiodos is an experimental Trainvent tool for exploring aperiodic tilings. You can generate, customize, and export Einstein, Spectre, and Penrose patterns directly in the browser.",
     references: REFERENCES.en,
     credits:
-      "This Trainvent subservice builds on papers, mathematical references, and public open-source experiments to show how these patterns can be rendered and presented.",
+      "The generators build on published mathematical research and publicly available open-source projects. The links above document important source material and earlier implementations.",
     technical_realizations:
-      "OpenAI helped with technical implementation, architecture planning, refactors, API shaping, and frontend/backend integration.",
+      "OpenAI supported development through software architecture, API design, refactoring, and the integration of the interface with the rendering engines.",
     notes:
-      "The Rust-based Spectre renderer lives in src/generators/spectre. Einstein and Spectre share a visual language in the Trainvent context.",
+      "The Einstein generator is implemented in Python, while the Spectre and Penrose renderers are written in Rust. A Next.js application brings all three tools together in a shared browser interface.",
   },
 };
 

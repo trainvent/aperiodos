@@ -179,11 +179,7 @@
 		},
 		"einstein": {
 			"title": "Einstein-Generator",
-			"description": "Erstelle online ein Einstein-Kachelmuster. Passe Skalierung, Leinwand, Farben und Iterationstiefe an und rendere dein aperiodisches Monotil-Design.",
-			"guideTitle": "Über den Generator für aperiodische Einstein-Monotile",
-			"guideBody": "Einstein bedeutet ‚ein Stein‘: eine einzige Kachelform, die die Ebene nur ohne sich wiederholendes Translationsmuster überdecken kann. Mit diesem interaktiven Generator kannst du eine gespiegelte Einstein-Monotil-Konstruktion sowie Kachelfamilien- und Vierfarbpaletten erkunden.",
-			"exportTitle": "Muster für Druck oder Design exportieren",
-			"exportBody": "Wähle SVG für ein skalierbares Vektormuster oder PNG und JPG für ein direkt verwendbares Rasterbild. Lege Leinwandmaße, Hintergrund, Kontur, Strichstärke und Startwert vor dem Generieren fest.",
+			"description": "Skalierung, Größe und Palette anpassen, dann ein neues Bild im gewünschten Format rendern.",
 			"coloring": "Farbmodus",
 			"coloringFamilies": "Kachel-Familien",
 			"coloringFourColor": "Vier-Farben"
@@ -214,21 +210,23 @@
 	"about": {
 		"hero": {
 			"title": "Über Aperiodos",
-			"summary": "Aperiodos ist ein Trainvent-Subservice für aperiodische Monokacheln, Bildgenerierung und Browser-Experimente. Die Seite fokussiert derzeit Monokacheln, mit Plänen für weitere aperiodische Muster und Penrose-Muster."
+			"summary": "Aperiodos ist ein experimentelles Werkzeug von Trainvent für aperiodische Kachelungen. Im Browser lassen sich Einstein-, Spectre- und Penrose-Muster erzeugen, anpassen und als Bilddateien exportieren."
 		},
 		"references": {
-			"hat": "Hat-Monokachel-Referenzseite",
-			"spectre": "Spectre-Projektseite",
-			"einsteinRepo": "Früheres Einstein-Inspirations-Repo"
+			"hat": "Die Hat-Kachel – Hintergrund und Entdeckung",
+			"spectre": "Die Spectre-Kachel – Hintergrund und Referenz",
+			"aperiodicArticle": "Two algorithms for randomly generating aperiodic tilings",
+			"einsteinRepo": "Einstein Tile Generator von asmoly",
+			"spectreRepo": "Spectre-Renderer von necocen"
 		},
 		"sections": {
-			"references": "Referenzen",
-			"credits": "Credits und Hinweise",
-			"technical": "Technische Umsetzung",
-			"notes": "Projekt-Notizen",
-			"creditsBody": "Dieser Trainvent-Subservice baut auf Papers, mathematischen Referenzen und öffentlichen Open-Source-Experimenten auf, um zu zeigen, wie diese Muster gerendert und präsentiert werden können.",
-			"technicalBody": "OpenAI hat bei technischer Realisierung, Architekturplanung, Refactors, API-Formgebung und Frontend/Backend-Integration geholfen.",
-			"notesBody": "Der Rust-basierte Spectre-Renderer liegt in src/generators/spectre. Einstein und Spectre teilen eine visuelle Sprache im Trainvent-Kontext."
+			"references": "Quellen und weiterführende Links",
+			"credits": "Mathematische Grundlagen",
+			"technical": "Entwicklung",
+			"notes": "Technischer Aufbau",
+			"creditsBody": "Die Generatoren basieren auf publizierter mathematischer Forschung und öffentlich zugänglichen Open-Source-Projekten. Die verlinkten Quellen dokumentieren wichtige Grundlagen und frühere Implementierungen.",
+			"technicalBody": "OpenAI unterstützte die Entwicklung bei Softwarearchitektur, API-Design, Refactoring sowie bei der Integration von Benutzeroberfläche und Renderern.",
+			"notesBody": "Der Einstein-Generator wird in Python berechnet; die Spectre- und Penrose-Renderer sind in Rust umgesetzt. Eine Next.js-Anwendung führt die drei Werkzeuge in einer gemeinsamen Browseroberfläche zusammen."
 		}
 	}
 }
