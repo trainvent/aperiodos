@@ -126,6 +126,15 @@
 		}
 	},
 	"generator": {
+		"material": {
+			"label": "Material",
+			"solid": "Einfarbige Kacheln",
+			"pattern": "Kacheln mit Muster",
+			"patternLabel": "Muster",
+			"curves": "Kurven",
+			"tileColor": "Kachelfarbe",
+			"curveColor": "Kurvenfarbe"
+		},
 		"status": {
 			"ready": "Bereit zum Rendern.",
 			"rendering": "Rendering...",

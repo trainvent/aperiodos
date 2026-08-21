@@ -34,6 +34,9 @@ def render_pattern(
     background="white",
     outline="black",
     stroke_width=2,
+    material_mode="solid",
+    pattern_base="white",
+    pattern_color="#00b51a",
 ):
     reset_generator()
     for _ in range(iterations):
@@ -55,6 +58,9 @@ def render_pattern(
         background=background,
         outline=outline,
         stroke_width=stroke_width,
+        material_mode=material_mode,
+        pattern_base=pattern_base,
+        pattern_color=pattern_color,
     )
 
 
@@ -91,6 +97,10 @@ def build_parser():
     parser.add_argument("--background", default="white", help="CSS-style background color.")
     parser.add_argument("--outline", default="black", help="CSS-style outline color.")
     parser.add_argument("--stroke-width", type=float, default=2, help="Outline width in pixels; use 0 for no outline.")
+    parser.add_argument("--material-mode", choices=("solid", "pattern"), default="solid")
+    parser.add_argument("--pattern-style", choices=("curves",), default="curves")
+    parser.add_argument("--pattern-base", default="white")
+    parser.add_argument("--pattern-color", default="#00b51a")
     parser.add_argument("--no-outline", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--seed", type=int, help="Generate a seed-based cropped pattern instead of the full centered render.")
     return parser
@@ -111,6 +121,9 @@ def main(argv=None):
             colors=tuple(args.colors),
             color_mode=args.color_mode,
             four_colors=tuple(args.four_colors),
+            material_mode=args.material_mode,
+            pattern_base=args.pattern_base,
+            pattern_color=args.pattern_color,
         )
     else:
         output = render_pattern(
@@ -129,6 +142,9 @@ def main(argv=None):
             background=args.background,
             outline=args.outline,
             stroke_width=args.stroke_width,
+            material_mode=args.material_mode,
+            pattern_base=args.pattern_base,
+            pattern_color=args.pattern_color,
         )
 
     print(output)

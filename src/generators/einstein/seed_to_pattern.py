@@ -58,6 +58,9 @@ def seed_to_pattern(
     four_colors=DEFAULT_FOUR_COLORS,
     outline="black",
     stroke_width=2,
+    material_mode="solid",
+    pattern_base="white",
+    pattern_color="#00b51a",
 ):
     try:
         import cv2
@@ -113,6 +116,9 @@ def seed_to_pattern(
                     background=background,
                     outline=outline if draw_outline else "none",
                     stroke_width=stroke_width if draw_outline else 0,
+                    material_mode=material_mode,
+                    pattern_base=pattern_base,
+                    pattern_color=pattern_color,
                 )
             else:
                 cv2.imwrite(str(output_path), output_image)

@@ -12,6 +12,7 @@ export default function GeneratorSettingsScaffold({
   parameters,
   centerStep,
   allowSvg = true,
+  allowMaterial = false,
   modes,
   palette
 }) {
@@ -53,6 +54,31 @@ export default function GeneratorSettingsScaffold({
           step="0.1"
         />
       </SettingsRow>
+      {allowMaterial ? (
+        <SettingsRow>
+          <SelectField
+            values={values}
+            setValues={setValues}
+            name="material_mode"
+            label={t("generator.material.label")}
+            options={[
+              { value: "solid", label: t("generator.material.solid") },
+              { value: "pattern", label: t("generator.material.pattern") }
+            ]}
+          />
+          {values.material_mode === "pattern" ? (
+            <SelectField
+              values={values}
+              setValues={setValues}
+              name="pattern_style"
+              label={t("generator.material.patternLabel")}
+              options={[
+                { value: "curves", label: t("generator.material.curves") }
+              ]}
+            />
+          ) : null}
+        </SettingsRow>
+      ) : null}
       {modes}
       <SettingsRow>
         <ColorField
@@ -68,7 +94,24 @@ export default function GeneratorSettingsScaffold({
           label={t("generator.common.outline")}
         />
       </SettingsRow>
-      <div className="swatches full">{palette}</div>
+      <div className="swatches full">
+        {allowMaterial && values.material_mode === "pattern" ? (
+          <>
+            <ColorField
+              values={values}
+              setValues={setValues}
+              name="pattern_base"
+              label={t("generator.material.tileColor")}
+            />
+            <ColorField
+              values={values}
+              setValues={setValues}
+              name="pattern_color"
+              label={t("generator.material.curveColor")}
+            />
+          </>
+        ) : palette}
+      </div>
     </>
   );
 }

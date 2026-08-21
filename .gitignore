@@ -15,6 +15,9 @@ PenroseGenerator/
 *.png
 *.jpg
 !web/public/custom-pattern_1024.png
+!web/public/pattern_inspirations/
+!web/public/pattern_inspirations/*.png
+!web/public/pattern_inspirations/*.jpg
 
 .env
 .env.*

@@ -125,6 +125,9 @@ def draw_tiles(
     background="white",
     outline="black",
     stroke_width=2,
+    material_mode="solid",
+    pattern_base="white",
+    pattern_color="#00b51a",
 ):
     outline = outline if draw_outline and stroke_width > 0 and not is_no_color(outline) else None
     outline_width = stroke_width if outline else 0
@@ -142,6 +145,9 @@ def draw_tiles(
                 background=background,
                 outline=outline or "none",
                 stroke_width=outline_width,
+                material_mode=material_mode,
+                pattern_base=pattern_base,
+                pattern_color=pattern_color,
             )
         else:
             raster_background = "white" if is_no_color(background) else background

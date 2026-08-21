@@ -25,18 +25,21 @@ export default function EinsteinPage() {
             </SettingsRow>
           }
           centerStep="0.1"
+          allowMaterial
           modes={
             <SettingsRow>
-              <SelectField
-                values={values}
-                setValues={setValues}
-                name="color_mode"
-                label={t("generator.einstein.coloring")}
-                options={[
-                  { value: "families", label: t("generator.einstein.coloringFamilies") },
-                  { value: "four_color", label: t("generator.einstein.coloringFourColor") }
-                ]}
-              />
+              {values.material_mode === "solid" ? (
+                <SelectField
+                  values={values}
+                  setValues={setValues}
+                  name="color_mode"
+                  label={t("generator.einstein.coloring")}
+                  options={[
+                    { value: "families", label: t("generator.einstein.coloringFamilies") },
+                    { value: "four_color", label: t("generator.einstein.coloringFourColor") }
+                  ]}
+                />
+              ) : null}
               <TextField values={values} setValues={setValues} name="seed" label={t("generator.common.seed")} placeholder={t("generator.common.optional")} />
             </SettingsRow>
           }
@@ -70,6 +73,10 @@ export default function EinsteinPage() {
           center_y: Number(values.center_y),
           format: values.format,
           color_mode: values.color_mode,
+          material_mode: values.material_mode,
+          pattern_style: values.pattern_style,
+          pattern_base: values.pattern_base,
+          pattern_color: values.pattern_color,
           colors: [values.color_h1, values.color_h, values.color_t, values.color_p, values.color_f],
           four_colors: [values.four_color_1, values.four_color_2, values.four_color_3, values.four_color_4],
           background: values.background,

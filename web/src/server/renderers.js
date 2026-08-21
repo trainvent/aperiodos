@@ -205,6 +205,10 @@ export async function renderEinstein(payload) {
   const centerX = coerceFloat(payload, "center_x", 0.0);
   const centerY = coerceFloat(payload, "center_y", 0.0);
   const colorMode = coerceOneOf(payload, "color_mode", "families", ["families", "four_color"]);
+  const materialMode = coerceOneOf(payload, "material_mode", "solid", ["solid", "pattern"]);
+  const patternStyle = coerceOneOf(payload, "pattern_style", "curves", ["curves"]);
+  const patternBase = String(payload.pattern_base || "white");
+  const patternColor = String(payload.pattern_color || "#00b51a");
   const colors = coerceColors(payload);
   const fourColors = coerceFourColors(payload);
   const background = String(payload.background || "white");
@@ -212,7 +216,8 @@ export async function renderEinstein(payload) {
   const strokeWidth = coerceFloat(payload, "stroke_width", payload.no_outline ? 0 : 2, { minimum: 0.0, maximum: 20.0 });
   const seed = payload.seed;
 
-  return withTempFile(imageFormat, async (outputPath) => {
+  const generatorFormat = materialMode === "pattern" ? "svg" : imageFormat;
+  return withTempFile(generatorFormat, async (outputPath) => {
     const pythonBin = process.env.PYTHON_BIN || "python3";
     const args = [
       "-m",
@@ -243,6 +248,14 @@ export async function renderEinstein(payload) {
       outline,
       "--stroke-width",
       String(strokeWidth),
+      "--material-mode",
+      materialMode,
+      "--pattern-style",
+      patternStyle,
+      "--pattern-base",
+      patternBase,
+      "--pattern-color",
+      patternColor,
     ];
     if (seed !== undefined && seed !== null && String(seed).trim() !== "") {
       args.push("--seed", String(coerceInt(payload, "seed", seed, { minimum: 1 })));
@@ -255,8 +268,9 @@ export async function renderEinstein(payload) {
       },
     });
 
+    const renderedBuffer = await readFile(outputPath);
     return {
-      buffer: await readFile(outputPath),
+      buffer: materialMode === "pattern" ? await svgToRequestedFormat(renderedBuffer, imageFormat) : renderedBuffer,
       contentType: ALLOWED_EINSTEIN_FORMATS[imageFormat],
       filename: `aperiodic-pattern.${imageFormat}`,
     };

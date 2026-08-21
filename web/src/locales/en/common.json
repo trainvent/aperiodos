@@ -126,6 +126,15 @@
 		}
 	},
 	"generator": {
+		"material": {
+			"label": "Material",
+			"solid": "Solid tiles",
+			"pattern": "Patterned tiles",
+			"patternLabel": "Pattern",
+			"curves": "Curves",
+			"tileColor": "Tile color",
+			"curveColor": "Curve color"
+		},
 		"status": {
 			"ready": "Ready to render.",
 			"rendering": "Rendering...",

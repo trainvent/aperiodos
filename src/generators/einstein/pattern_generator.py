@@ -17,7 +17,9 @@ def color_values(color):
 
 
 def draw_polygon(shape, T, fill):
-    vertices_to_draw.append([[], fill])
+    # Keep the tile-local transform so decorative material can be transformed
+    # with the tile (including reflections) instead of overlaid globally.
+    vertices_to_draw.append([[], fill, [*T]])
     for i in range(0, len(shape)):
         tp = mat_vec_mul(T, shape[i])
         vertices_to_draw[len(vertices_to_draw) - 1][0].append(tp)
