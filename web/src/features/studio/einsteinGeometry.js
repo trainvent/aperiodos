@@ -193,7 +193,7 @@ export function createDefaultDesign() {
     circularPaths: [{
       id: "reference-circular-path",
       name: "Einstein circular path",
-      width: 0.7,
+      width: 1.3,
       side: "left",
       points: [{ u: 4, v: -2 }, { u: 0, v: 0 }, { u: -2, v: 4 }],
     }],
@@ -214,6 +214,19 @@ export function createEmptyDesign() {
     circles: [],
     circularPaths: [],
     layerOrder: [],
+  };
+}
+
+export function insertCircularPathTemplate(design, { id, name } = {}) {
+  if (!id || getDesignLayers(design).some((layer) => layer.id === id)) {
+    throw new Error("A template element needs a unique identifier.");
+  }
+  const template = cloneDesign(createDefaultDesign().circularPaths[0]);
+  const circularPath = { ...template, id, name: name || template.name };
+  return {
+    ...design,
+    circularPaths: [...(design.circularPaths || []), circularPath],
+    layerOrder: [...normalizeLayerOrder(design), { kind: "circularPath", id }],
   };
 }
 
@@ -251,6 +264,10 @@ export function getDesignLayers(design) {
   return normalizeLayerOrder(design).map((entry) => ({ ...entry, item: collections[entry.kind].get(entry.id) }));
 }
 
+export function elementMaterialColor(design, element) {
+  return typeof element?.color === "string" && element.color.trim() ? element.color : design.colors.ink;
+}
+
 export function validateDesign(value) {
   if (!value || value.schema !== "aperiodos.material-design" || value.version !== 1) {
     throw new Error("This is not a supported Aperiodos material design.");
@@ -272,6 +289,9 @@ export function validateDesign(value) {
         throw new Error("Path points must use finite lattice coordinates.");
       }
     });
+    if (path.color !== undefined && (typeof path.color !== "string" || !path.color.trim())) {
+      throw new Error("Path colors must be non-empty color values.");
+    }
   });
   circles.forEach((circle) => {
     if (!circle.center || !Number.isFinite(Number(circle.center.u)) || !Number.isFinite(Number(circle.center.v))) {
@@ -285,6 +305,9 @@ export function validateDesign(value) {
     }
     if (circle.handleAngle !== undefined && !Number.isFinite(Number(circle.handleAngle))) {
       throw new Error("Circle handle angles must be finite degrees.");
+    }
+    if (circle.color !== undefined && (typeof circle.color !== "string" || !circle.color.trim())) {
+      throw new Error("Circle colors must be non-empty color values.");
     }
   });
   circularPaths.forEach((path) => {
@@ -302,6 +325,9 @@ export function validateDesign(value) {
         throw new Error("Circular path points must use finite lattice coordinates.");
       }
     });
+    if (path.color !== undefined && (typeof path.color !== "string" || !path.color.trim())) {
+      throw new Error("Circular path colors must be non-empty color values.");
+    }
   });
   if (!Array.isArray(value.circles)) value.circles = circles;
   if (!Array.isArray(value.circularPaths)) value.circularPaths = circularPaths;

@@ -191,8 +191,7 @@ select {
   text-transform: uppercase;
 }
 
-.studio-coordinate-badge,
-.studio-library-count {
+.studio-coordinate-badge {
   display: inline-grid;
   min-width: 34px;
   min-height: 30px;
@@ -656,7 +655,7 @@ select {
   display: flex;
   gap: 18px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 5px;
   color: var(--ink-soft);
   font-size: 0.78rem;
 }
@@ -763,6 +762,20 @@ select {
   border: 1px solid var(--line);
   border-radius: 15px;
   background: rgba(255, 255, 255, 0.58);
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.studio-design-card:hover,
+.studio-design-card:focus-visible {
+  border-color: rgba(35, 118, 229, 0.55);
+  outline: none;
+}
+
+.studio-design-card.selected {
+  border-color: #2376e5;
+  background: rgba(35, 118, 229, 0.06);
+  box-shadow: 0 0 0 2px rgba(35, 118, 229, 0.2);
 }
 
 .studio-mini-design {
@@ -1008,6 +1021,19 @@ select {
   color: #ffc29f;
 }
 
+.studio-toolbar-edge-number > span {
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .studio-toolbar-toggle small {
   margin-top: 2px;
   color: #b8c5ca;
@@ -1067,6 +1093,18 @@ select {
   width: 110px;
   padding: 0;
   accent-color: #d1825a;
+}
+
+.studio-context-color {
+  min-width: 92px !important;
+}
+
+.studio-context-color input[type="color"] {
+  width: 34px;
+  min-width: 34px;
+  height: 30px;
+  padding: 3px;
+  cursor: pointer;
 }
 
 .studio-context-check {
@@ -1319,7 +1357,7 @@ select {
 
 .studio-workbench {
   position: relative;
-  padding: 18px;
+  padding: 18px 18px 26px;
   background: #263a45;
   color: #e5edef;
 }

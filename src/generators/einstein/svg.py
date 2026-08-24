@@ -108,7 +108,7 @@ def _circular_path_points(path, steps_per_turn=72):
     return segments
 
 
-def _studio_motif_elements(pattern, base_color):
+def _studio_motif_elements(pattern, fallback_color):
     elements = []
     collections = {
         "path": {item["id"]: item for item in pattern.get("paths", [])},
@@ -129,24 +129,25 @@ def _studio_motif_elements(pattern, base_color):
 
     for kind, item_id in order:
         item = collections[kind][item_id]
+        item_color = escape(str(item.get("color") or fallback_color))
         if kind == "path":
             points = [_lattice_point(point) for point in item["points"]]
-            elements.append(f'<path d="{_curve_path(points)}" stroke-width="{float(item["width"]):.4f}" />')
+            elements.append(f'<path d="{_curve_path(points)}" stroke="{item_color}" stroke-width="{float(item["width"]):.4f}" />')
         elif kind == "circle":
             center = _lattice_point(item["center"])
-            fill = "currentColor" if item.get("operation") == "ink" else escape(str(base_color))
+            fill = item_color if item.get("operation") == "ink" else "var(--einstein-tile-fill)"
             elements.append(
                 f'<circle cx="{center[0]:.4f}" cy="{center[1]:.4f}" r="{float(item["radius"]):.4f}" fill="{fill}" stroke="none" />'
             )
         else:
             for segment in _circular_path_points(item):
-                elements.append(f'<path d="{_curve_path([segment[0]])} ' + " ".join(f'L {x:.4f} {y:.4f}' for x, y in segment[1:]) + f'" stroke-width="{float(item["width"]):.4f}" />')
+                elements.append(f'<path d="{_curve_path([segment[0]])} ' + " ".join(f'L {x:.4f} {y:.4f}' for x, y in segment[1:]) + f'" stroke="{item_color}" stroke-width="{float(item["width"]):.4f}" />')
     return "".join(elements)
 
 
-def _svg_pattern_defs(studio_pattern=None, base_color="white"):
+def _svg_pattern_defs(studio_pattern=None, fallback_color="#00c200"):
     if studio_pattern:
-        paths = _studio_motif_elements(studio_pattern, base_color)
+        paths = _studio_motif_elements(studio_pattern, fallback_color)
     else:
         paths = "".join(
             f'<path d="{_curve_path([(point.x, point.y) for point in curve])}" stroke-width="{width:.4f}" />'
@@ -174,12 +175,13 @@ def _screen_matrix(transform, project):
     )
 
 
-def _svg_pattern_tile(tile, project, base_color, curve_color, stroke, stroke_width):
+def _svg_pattern_tile(tile, project, curve_color, stroke, stroke_width):
     transform = tile[2]
+    tile_fill = _normalize_svg_color(tile[1])
     matrix = " ".join(f"{value:.6f}" for value in _screen_matrix(transform, project))
     return (
-        f'<g transform="matrix({matrix})">'
-        f'<polygon points="{_HAT_POINTS}" fill="{escape(str(base_color))}" />'
+        f'<g transform="matrix({matrix})" style="--einstein-tile-fill:{escape(str(tile_fill))}">'
+        f'<polygon points="{_HAT_POINTS}" fill="{escape(str(tile_fill))}" />'
         f'<g clip-path="url(#einstein-hat-clip)" stroke="{escape(str(curve_color))}" color="{escape(str(curve_color))}">'
         '<use href="#einstein-curves-motif" />'
         '</g>'
@@ -202,12 +204,13 @@ def save_tiles_svg(
         f'<rect width="100%" height="100%" fill="{escape(str(background))}" />',
     ]
     project = lambda vec: ((vec.x - center_x) * scalar + cx, (vec.y - center_y) * scalar + cy)
+    curve_color = str(studio_pattern.get("colors", {}).get("ink", pattern_color)) if studio_pattern else pattern_color
     if material_mode == "pattern":
-        lines.append(_svg_pattern_defs(studio_pattern, pattern_base))
+        lines.append(_svg_pattern_defs(studio_pattern, curve_color))
     for tile in tiles:
         points = [project(vec) for vec in tile[0]]
         if material_mode == "pattern":
-            lines.append(_svg_pattern_tile(tile, project, pattern_base, pattern_color, stroke, stroke_width))
+            lines.append(_svg_pattern_tile(tile, project, curve_color, stroke, stroke_width))
         else:
             lines.append(_svg_polygon(points, _normalize_svg_color(tile[1]), stroke, stroke_width))
 
@@ -233,12 +236,13 @@ def save_seed_tiles_svg(
         (vec.x - center_x) * scalar - offset_coord.x * width,
         (vec.y - center_y) * scalar + height + offset_coord.y * height,
     )
+    curve_color = str(studio_pattern.get("colors", {}).get("ink", pattern_color)) if studio_pattern else pattern_color
     if material_mode == "pattern":
-        lines.append(_svg_pattern_defs(studio_pattern, pattern_base))
+        lines.append(_svg_pattern_defs(studio_pattern, curve_color))
     for tile in tiles:
         points = [project(vec) for vec in tile[0]]
         if material_mode == "pattern":
-            lines.append(_svg_pattern_tile(tile, project, pattern_base, pattern_color, stroke, stroke_width))
+            lines.append(_svg_pattern_tile(tile, project, curve_color, stroke, stroke_width))
         else:
             lines.append(_svg_polygon(points, _normalize_svg_color(tile[1]), stroke, stroke_width))
 

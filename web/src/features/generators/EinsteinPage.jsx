@@ -34,6 +34,10 @@ export default function EinsteinPage() {
     { value: "builtin:curves", label: t("generator.material.curves") },
     ...studioPatterns.map((pattern) => ({ value: studioPatternValue(pattern.id), label: `${pattern.name} · ${t("generator.material.studio")}` })),
   ], [studioPatterns, t]);
+  const selectedStudioPattern = studioPatterns.find((pattern) => pattern.id === studioPatternId(values.pattern_design));
+  const simplePatternColor = values.material_mode === "pattern"
+    ? selectedStudioPattern?.colors?.base || values.pattern_base
+    : null;
   return (
     <>
       <GeneratorLayout
@@ -53,23 +57,31 @@ export default function EinsteinPage() {
           allowMaterial
           modes={
             <SettingsRow>
-              {values.material_mode === "solid" ? (
-                <SelectField
-                  values={values}
-                  setValues={setValues}
-                  name="color_mode"
-                  label={t("generator.einstein.coloring")}
-                  options={[
-                    { value: "families", label: t("generator.einstein.coloringFamilies") },
-                    { value: "four_color", label: t("generator.einstein.coloringFourColor") }
-                  ]}
-                />
-              ) : null}
+              <SelectField
+                values={values}
+                setValues={setValues}
+                name="color_mode"
+                label={t("generator.einstein.coloring")}
+                options={[
+                  { value: "simple", label: t("generator.einstein.coloringSimple") },
+                  { value: "families", label: t("generator.einstein.coloringFamilies") },
+                  { value: "four_color", label: t("generator.einstein.coloringFourColor") }
+                ]}
+              />
               <TextField values={values} setValues={setValues} name="seed" label={t("generator.common.seed")} placeholder={t("generator.common.optional")} />
             </SettingsRow>
           }
           palette={
-            values.color_mode === "families" ? (
+            values.color_mode === "simple" ? (
+              <ColorField
+                values={simplePatternColor ? { ...values, simple_color: simplePatternColor } : values}
+                setValues={setValues}
+                name="simple_color"
+                label={t("generator.material.tileColor")}
+                full
+                disabled={Boolean(simplePatternColor)}
+              />
+            ) : values.color_mode === "families" ? (
               <>
                 <ColorField values={values} setValues={setValues} name="color_h1" label="H1" />
                 <ColorField values={values} setValues={setValues} name="color_h" label="H" />
@@ -98,6 +110,7 @@ export default function EinsteinPage() {
           center_y: Number(values.center_y),
           format: values.format,
           color_mode: values.color_mode,
+          simple_color: values.simple_color,
           material_mode: values.material_mode,
           pattern_style: values.pattern_style,
           pattern_base: values.pattern_base,
@@ -111,9 +124,8 @@ export default function EinsteinPage() {
         if (String(values.seed).trim()) {
           payload.seed = Number(values.seed);
         }
-        const selectedStudioId = studioPatternId(values.pattern_design);
-        if (selectedStudioId) {
-          payload.studio_pattern = studioPatterns.find((pattern) => pattern.id === selectedStudioId);
+        if (selectedStudioPattern) {
+          payload.studio_pattern = selectedStudioPattern;
         }
         return payload;
       }}

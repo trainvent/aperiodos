@@ -124,6 +124,9 @@ function coerceStudioPattern(payload) {
       if (typeof item.id !== "string" || !item.id.trim() || item.id.length > 200 || elementKeys.has(`${kind}:${item.id}`)) {
         throw new ApiError("'studio_pattern' elements must have unique string identifiers.");
       }
+      if (item.color !== undefined && (typeof item.color !== "string" || !item.color.trim() || item.color.length > 200)) {
+        throw new ApiError("'studio_pattern' element colors must be non-empty color values.");
+      }
       elementKeys.add(`${kind}:${item.id}`);
     }
   }
@@ -270,13 +273,16 @@ export async function renderEinstein(payload) {
   const height = coerceInt(payload, "height", DEFAULT_HTTP_HEIGHT, { minimum: 64, maximum: MAX_IMAGE_DIMENSION });
   const centerX = coerceFloat(payload, "center_x", 0.0);
   const centerY = coerceFloat(payload, "center_y", 0.0);
-  const colorMode = coerceOneOf(payload, "color_mode", "families", ["families", "four_color"]);
+  const colorMode = coerceOneOf(payload, "color_mode", "families", ["simple", "families", "four_color"]);
   const materialMode = coerceOneOf(payload, "material_mode", "solid", ["solid", "pattern"]);
   const patternStyle = coerceOneOf(payload, "pattern_style", "curves", ["curves"]);
   const patternBase = String(payload.pattern_base || "white");
   const patternColor = String(payload.pattern_color || "#00c200");
   const studioPattern = coerceStudioPattern(payload);
-  const colors = coerceColors(payload);
+  const inheritedPatternColor = studioPattern?.colors?.base || patternBase;
+  const colors = colorMode === "simple"
+    ? Array(5).fill(String(materialMode === "pattern" ? inheritedPatternColor : payload.simple_color || "white"))
+    : coerceColors(payload);
   const fourColors = coerceFourColors(payload);
   const background = String(payload.background || "white");
   const outline = String(payload.outline || "black");
@@ -306,7 +312,7 @@ export async function renderEinstein(payload) {
       "--colors",
       ...colors,
       "--color-mode",
-      colorMode,
+      colorMode === "simple" ? "families" : colorMode,
       "--four-colors",
       ...fourColors,
       "--background",

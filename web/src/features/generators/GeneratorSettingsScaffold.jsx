@@ -94,22 +94,7 @@ export default function GeneratorSettingsScaffold({
         />
       </SettingsRow>
       <div className="swatches full">
-        {allowMaterial && values.material_mode === "pattern" ? (
-          <>
-            <ColorField
-              values={values}
-              setValues={setValues}
-              name="pattern_base"
-              label={t("generator.material.tileColor")}
-            />
-            <ColorField
-              values={values}
-              setValues={setValues}
-              name="pattern_color"
-              label={t("generator.material.curveColor")}
-            />
-          </>
-        ) : palette}
+        {palette}
       </div>
     </>
   );

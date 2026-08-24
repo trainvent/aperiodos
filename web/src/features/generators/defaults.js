@@ -9,6 +9,7 @@ export const EINSTEIN_DEFAULTS = {
   center_y: 0,
   format: "png",
   color_mode: "families",
+  simple_color: "white",
   material_mode: "solid",
   pattern_style: "curves",
   pattern_design: "builtin:curves",

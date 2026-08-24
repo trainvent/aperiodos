@@ -69,7 +69,7 @@ export function TextField({ values, setValues, name, label, placeholder, full = 
   );
 }
 
-export function ColorField({ values, setValues, name, label, placeholder, full = false }) {
+export function ColorField({ values, setValues, name, label, placeholder, full = false, disabled = false }) {
   const { t } = useTranslation("common");
   const listId = `color-options-${name}`;
   const colorValue = String(values[name] ?? "").trim();
@@ -111,6 +111,7 @@ export function ColorField({ values, setValues, name, label, placeholder, full =
           name={name}
           type="text"
           list={listId}
+          disabled={disabled}
           placeholder={resolvedPlaceholder}
           value={values[name]}
           onFocus={handleFocus}

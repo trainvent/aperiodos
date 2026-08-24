@@ -7,7 +7,9 @@ import {
   circularPathGeometry,
   createDefaultDesign,
   createEmptyDesign,
+  elementMaterialColor,
   getDesignLayers,
+  insertCircularPathTemplate,
   latticeToCartesian,
   nearestBoundaryPoint,
   snapCircleHandle,
@@ -37,7 +39,7 @@ test("built-in Studio design uses the versioned library format", () => {
   assert.deepEqual(design.circles, []);
   assert.equal(design.circularPaths.length, 1);
   assert.deepEqual(design.circularPaths[0].points, [{ u: 4, v: -2 }, { u: 0, v: 0 }, { u: -2, v: 4 }]);
-  assert.equal(design.circularPaths[0].width, 0.7);
+  assert.equal(design.circularPaths[0].width, 1.3);
   assert.equal(design.circularPaths[0].side, "left");
   assert.deepEqual(design.layerOrder, [{ kind: "circularPath", id: "reference-circular-path" }]);
 });
@@ -49,6 +51,31 @@ test("Studio can start with an empty editable document", () => {
   assert.deepEqual(design.paths, []);
   assert.deepEqual(design.circles, []);
   assert.deepEqual(design.circularPaths, []);
+});
+
+test("Studio elements can override the document color", () => {
+  const design = createDefaultDesign();
+  const element = design.circularPaths[0];
+  assert.equal(elementMaterialColor(design, element), design.colors.ink);
+
+  element.color = "#123456";
+  assert.equal(validateDesign(design).circularPaths[0].color, "#123456");
+  assert.equal(elementMaterialColor(design, element), "#123456");
+});
+
+test("Studio templates append without replacing existing canvas elements", () => {
+  const design = createEmptyDesign();
+  design.circles.push({ id: "existing-circle", name: "Existing", center: { u: 0, v: 0 }, radius: 1, operation: "ink", color: "#123456" });
+  design.layerOrder.push({ kind: "circle", id: "existing-circle" });
+
+  const result = insertCircularPathTemplate(design, { id: "inserted-template", name: "Inserted template" });
+  assert.equal(result.circles[0].id, "existing-circle");
+  assert.equal(result.circles[0].color, "#123456");
+  assert.equal(result.circularPaths[0].id, "inserted-template");
+  assert.deepEqual(result.layerOrder, [
+    { kind: "circle", id: "existing-circle" },
+    { kind: "circularPath", id: "inserted-template" },
+  ]);
 });
 
 test("Studio layer order remains backward compatible and controls the draw stack", () => {

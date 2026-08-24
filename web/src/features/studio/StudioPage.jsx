@@ -8,9 +8,10 @@ import {
   circleHandlePoint,
   circularPathGeometry,
   cloneDesign,
-  createDefaultDesign,
   createEmptyDesign,
+  elementMaterialColor,
   getDesignLayers,
+  insertCircularPathTemplate,
   latticeToCartesian,
   nearestBoundaryPoint,
   normalizeLayerOrder,
@@ -22,11 +23,12 @@ import { readStudioLibrary, writeStudioLibrary } from "./patternLibrary";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
 const H_CLUSTER_TRANSFORMS = [
-  [-0.25, 0.4330127019, 1, 0.4330127019, 0.25, -1.7320508076],
-  [-0.25, 0.4330127019, 4, 0.4330127019, 0.25, -1.7320508076],
-  [-0.25, -0.4330127019, 2.5, -0.4330127019, 0.25, -2.5980762114],
-  [-0.25, 0.4330127019, 2.5, -0.4330127019, -0.25, -0.8660254038],
+  [0.25, 0.4330127019, 1.375, -0.4330127019, 0.25, -2.3815698598],
+  [0.25, 0.4330127019, 2.875, -0.4330127019, 0.25, 0.2165063516],
+  [-0.5, 0, 1.375, 0, -0.5, -0.6495190522],
+  [-0.5, 0, 2.875, 0, 0.5, -1.5155444562],
 ];
+const H_CLUSTER_VIEWBOX = { x: -65.5, y: -86, width: 540, height: 432 };
 
 function toCanvas(point) {
   const cartesian = latticeToCartesian(point);
@@ -120,11 +122,11 @@ function exportSvg(design) {
   const layers = getDesignLayers(design).map(({ kind, item }) => {
     if (kind === "circle") {
       const center = toCanvas(item.center);
-      const fill = item.operation === "ink" ? design.colors.ink : design.colors.base;
+      const fill = item.operation === "ink" ? elementMaterialColor(design, item) : design.colors.base;
       return `<circle cx="${center.x.toFixed(2)}" cy="${center.y.toFixed(2)}" r="${(item.radius * CANVAS.scale).toFixed(2)}" fill="${xmlEscape(fill)}" />`;
     }
     const pathData = kind === "path" ? bezierPath(item.points) : circularPathD(item);
-    return `<path d="${pathData}" fill="none" stroke="${xmlEscape(design.colors.ink)}" stroke-width="${(item.width * CANVAS.scale).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" />`;
+    return `<path d="${pathData}" fill="none" stroke="${xmlEscape(elementMaterialColor(design, item))}" stroke-width="${(item.width * CANVAS.scale).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" />`;
   }).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS.width} ${CANVAS.height}" width="${CANVAS.width}" height="${CANVAS.height}"><title>${xmlEscape(design.name)}</title><defs><clipPath id="tile"><polygon points="${tilePoints}" /></clipPath></defs><rect width="100%" height="100%" fill="white"/><polygon points="${tilePoints}" fill="${xmlEscape(design.colors.base)}"/><g clip-path="url(#tile)">${layers}</g><polygon points="${tilePoints}" fill="none" stroke="#17313b" stroke-width="2" stroke-linejoin="round"/></svg>`;
 }
@@ -138,8 +140,10 @@ export default function StudioPage() {
   const [snapMode, setSnapMode] = useState("half");
   const [showGrid, setShowGrid] = useState(true);
   const [showHandles, setShowHandles] = useState(true);
+  const [showEdgeNumbers, setShowEdgeNumbers] = useState(false);
   const [bindEndpoints, setBindEndpoints] = useState(true);
   const [savedDesigns, setSavedDesigns] = useState([]);
+  const [selectedExportId, setSelectedExportId] = useState(null);
   const [drag, setDrag] = useState(null);
   const [status, setStatus] = useState("");
   const [treeMode, setTreeMode] = useState("categories");
@@ -151,6 +155,7 @@ export default function StudioPage() {
   const selectedPath = !selectedCircle && !selectedCircularPath
     ? design.paths.find((path) => path.id === selectedPathId) || (selectedPathId ? design.paths[0] : null)
     : null;
+  const selectedExportDesign = savedDesigns.find((item) => item.id === selectedExportId) || null;
 
   useEffect(() => {
     try {
@@ -185,7 +190,12 @@ export default function StudioPage() {
 
   function applyTemplate(templateId) {
     if (templateId === "einstein-circular-path") {
-      loadDesign(createDefaultDesign());
+      const id = `template-circular-path-${window.crypto?.randomUUID?.() || Date.now()}`;
+      setDesign((current) => insertCircularPathTemplate(current, {
+        id,
+        name: t("studio.circularPaths.newName", { count: (current.circularPaths || []).length + 1 }),
+      }));
+      selectLayer("circularPath", id);
       setStatus(t("studio.status.templateApplied"));
     }
   }
@@ -415,6 +425,7 @@ export default function StudioPage() {
 
   function deleteDesign(id) {
     persistLibrary(savedDesigns.filter((item) => item.id !== id));
+    if (selectedExportId === id) setSelectedExportId(null);
     if (design.id === id) loadDesign({ ...createEmptyDesign(), name: t("studio.templates.untitled") });
     setStatus(t("studio.status.deleted"));
   }
@@ -435,6 +446,43 @@ export default function StudioPage() {
     event.target.value = "";
   }
 
+  function renderPathControls() {
+    if (!selectedPath) return null;
+    return (
+      <>
+        <label><span>{t("studio.paths.pathName")}</span><input value={selectedPath.name} onChange={(event) => updateSelectedPath({ name: event.target.value })} /></label>
+        {renderElementColorControl(selectedPath, updateSelectedPath)}
+        <label className="studio-context-range"><span>{t("studio.paths.width")} {selectedPath.width.toFixed(2)}</span><input type="range" min="0.1" max="1.6" step="0.02" value={selectedPath.width} onChange={(event) => updateSelectedPath({ width: Number(event.target.value) })} /></label>
+        <label className="studio-context-check"><input type="checkbox" checked={bindEndpoints} onChange={(event) => setBindEndpoints(event.target.checked)} /><span>{t("studio.controls.bindEndpoints")}</span></label>
+        <button type="button" onClick={addSegment}>{t("studio.paths.addSegment")}</button>
+        <button type="button" onClick={removeSegment} disabled={selectedPath.points.length <= 4}>{t("studio.paths.removeSegment")}</button>
+        <button type="button" className="danger" onClick={removePath}>{t("studio.paths.removePath")}</button>
+      </>
+    );
+  }
+
+  function renderCircleControls() {
+    if (!selectedCircle) return null;
+    return (
+      <>
+        <label><span>{t("studio.circles.circleName")}</span><input value={selectedCircle.name} onChange={(event) => updateCircle(selectedCircle.id, { name: event.target.value })} /></label>
+        {renderElementColorControl(selectedCircle, (changes) => updateCircle(selectedCircle.id, changes))}
+        <label><span>{t("studio.circles.operation")}</span><select value={selectedCircle.operation} onChange={(event) => updateCircle(selectedCircle.id, { operation: event.target.value })}><option value="ink">{t("studio.circles.addColor")}</option><option value="base">{t("studio.circles.cutColor")}</option></select></label>
+        <label className="studio-context-range"><span>{t("studio.circles.radius")} {selectedCircle.radius.toFixed(2)}</span><input type="range" min="0.125" max="5" step="0.125" value={selectedCircle.radius} onChange={(event) => updateCircle(selectedCircle.id, { radius: Number(event.target.value) })} /></label>
+        <button type="button" className="danger" onClick={removeCircle}>{t("studio.circles.remove")}</button>
+      </>
+    );
+  }
+
+  function renderElementColorControl(element, update) {
+    return (
+      <label className="studio-context-color">
+        <span>{t("studio.controls.elementColor")}</span>
+        <input type="color" value={elementMaterialColor(design, element)} onChange={(event) => update({ color: event.target.value })} />
+      </label>
+    );
+  }
+
   function renderCircularPathControls() {
     if (!selectedCircularPath) return null;
     const geometry = circularPathGeometry(selectedCircularPath);
@@ -444,6 +492,7 @@ export default function StudioPage() {
           <span>{t("studio.circularPaths.pathName")}</span>
           <input value={selectedCircularPath.name} onChange={(event) => updateCircularPath(selectedCircularPath.id, { name: event.target.value })} />
         </label>
+        {renderElementColorControl(selectedCircularPath, (changes) => updateCircularPath(selectedCircularPath.id, changes))}
         <label className="studio-context-range">
           <span>{t("studio.circularPaths.width")} {selectedCircularPath.width.toFixed(2)}</span>
           <input type="range" min="0.1" max="1.6" step="0.02" value={selectedCircularPath.width} onChange={(event) => updateCircularPath(selectedCircularPath.id, { width: Number(event.target.value) })} />
@@ -512,21 +561,22 @@ export default function StudioPage() {
               <label className="studio-toolbar-snap"><span>{t("studio.controls.snapping")}</span><select value={snapMode} onChange={(event) => setSnapMode(event.target.value)}><option value="quarter">¼</option><option value="half">½</option><option value="grid">1</option><option value="free">{t("studio.controls.snapFree")}</option></select></label>
               <label className="studio-toolbar-toggle"><input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} /><span>#</span><small>{t("studio.toolbar.grid")}</small></label>
               <label className="studio-toolbar-toggle"><input type="checkbox" checked={showHandles} onChange={(event) => setShowHandles(event.target.checked)} /><span>⌖</span><small>{t("studio.toolbar.handles")}</small></label>
+              <label className="studio-toolbar-toggle"><input type="checkbox" checked={showEdgeNumbers} onChange={(event) => setShowEdgeNumbers(event.target.checked)} /><span className="studio-toolbar-edge-number"><span>1</span></span><small>{t("studio.toolbar.edges")}</small></label>
             </div>
           </div>
           <div className="studio-context-bar">
             <span className="studio-context-type">{selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedCircle ? "○" : "◇"}</span>
             <strong>{selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}</strong>
-            {selectedPath ? <><label><span>{t("studio.paths.pathName")}</span><input value={selectedPath.name} onChange={(event) => updateSelectedPath({ name: event.target.value })} /></label><label className="studio-context-range"><span>{t("studio.paths.width")} {selectedPath.width.toFixed(2)}</span><input type="range" min="0.1" max="1.6" step="0.02" value={selectedPath.width} onChange={(event) => updateSelectedPath({ width: Number(event.target.value) })} /></label><label className="studio-context-check"><input type="checkbox" checked={bindEndpoints} onChange={(event) => setBindEndpoints(event.target.checked)} /><span>{t("studio.controls.bindEndpoints")}</span></label><button type="button" onClick={addSegment}>{t("studio.paths.addSegment")}</button><button type="button" onClick={removeSegment} disabled={selectedPath.points.length <= 4}>{t("studio.paths.removeSegment")}</button><button type="button" className="danger" onClick={removePath}>{t("studio.paths.removePath")}</button></> : null}
-            {selectedCircle ? <><label><span>{t("studio.circles.circleName")}</span><input value={selectedCircle.name} onChange={(event) => updateCircle(selectedCircle.id, { name: event.target.value })} /></label><label><span>{t("studio.circles.operation")}</span><select value={selectedCircle.operation} onChange={(event) => updateCircle(selectedCircle.id, { operation: event.target.value })}><option value="ink">{t("studio.circles.addColor")}</option><option value="base">{t("studio.circles.cutColor")}</option></select></label><label className="studio-context-range"><span>{t("studio.circles.radius")} {selectedCircle.radius.toFixed(2)}</span><input type="range" min="0.125" max="5" step="0.125" value={selectedCircle.radius} onChange={(event) => updateCircle(selectedCircle.id, { radius: Number(event.target.value) })} /></label><button type="button" className="danger" onClick={removeCircle}>{t("studio.circles.remove")}</button></> : null}
+            {renderPathControls()}
+            {renderCircleControls()}
             {renderCircularPathControls()}
             {!selectedPath && !selectedCircle && !selectedCircularPath ? <span className="studio-context-help">{t("studio.toolbar.selectHint")}</span> : null}
           </div>
         </div>
 
-        <aside className="studio-controls studio-tool-menu" aria-label={t("studio.toolbar.structure")}>
+        <aside className="studio-controls studio-tool-menu" aria-label={t(treeMode === "categories" ? "studio.layers.categorized" : "studio.layers.layered")}>
           <div className="studio-tree-header">
-            <div><span>{t("studio.toolbar.navigator")}</span><h2>{t("studio.toolbar.structure")}</h2></div>
+            <div><span>{t("studio.toolbar.navigator")}</span><h2>{t(treeMode === "categories" ? "studio.layers.categorized" : "studio.layers.layered")}</h2></div>
             <div className="studio-tree-mode" role="group" aria-label={t("studio.layers.viewMode")}>
               <button type="button" className={treeMode === "categories" ? "active" : ""} onClick={() => setTreeMode("categories")} title={t("studio.layers.categories")}>▦</button>
               <button type="button" className={treeMode === "layers" ? "active" : ""} onClick={() => setTreeMode("layers")} title={t("studio.layers.layers")}>▤</button>
@@ -614,11 +664,11 @@ export default function StudioPage() {
               />
             </g>
             <polygon className="studio-tile-outline" points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} />
-            {HAT_CARTESIAN.map((point, index) => {
+            {showEdgeNumbers ? HAT_CARTESIAN.map((point, index) => {
               const next = HAT_CARTESIAN[(index + 1) % HAT_CARTESIAN.length];
               const label = toCanvas(cartesianToLattice({ x: (point.x + next.x) / 2, y: (point.y + next.y) / 2 }));
               return <g className="studio-edge-label" key={index}><circle cx={label.x} cy={label.y} r="11" /><text x={label.x} y={label.y + 3.5}>{index + 1}</text></g>;
-            })}
+            }) : null}
             {showHandles && selectedPath && !selectedCircle && !selectedCircularPath ? (
               <g className="studio-handles">
                 {Array.from({ length: (selectedPath.points.length - 1) / 3 }, (_, segment) => {
@@ -688,25 +738,36 @@ export default function StudioPage() {
         <div className="panel studio-library-panel">
           <div className="studio-panel-heading">
             <div><h2>{t("studio.library.title")}</h2></div>
-            <span className="studio-library-count">{savedDesigns.length}</span>
           </div>
           <p className="studio-library-note">{t("studio.library.localNote")}</p>
           <div className="studio-library-grid">
             {savedDesigns.map((item) => (
-              <article className="studio-design-card" key={item.id}>
+              <article
+                className={`studio-design-card${selectedExportId === item.id ? " selected" : ""}`}
+                key={item.id}
+                role="button"
+                tabIndex="0"
+                aria-pressed={selectedExportId === item.id}
+                onClick={() => setSelectedExportId(item.id)}
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget || !["Enter", " "].includes(event.key)) return;
+                  event.preventDefault();
+                  setSelectedExportId(item.id);
+                }}
+              >
                 <MiniDesign design={item} />
                 <div><strong>{item.name}</strong><small>{item.id.startsWith("builtin-") ? t("studio.library.builtin") : t("studio.library.local")}</small></div>
                 <div className="studio-card-actions">
-                  <button type="button" onClick={() => loadDesign(item)}>{t("studio.library.load")}</button>
-                  {!item.id.startsWith("builtin-") ? <button type="button" onClick={() => deleteDesign(item.id)}>{t("studio.library.delete")}</button> : null}
+                  <button type="button" onClick={(event) => { event.stopPropagation(); loadDesign(item); }}>{t("studio.library.load")}</button>
+                  {!item.id.startsWith("builtin-") ? <button type="button" onClick={(event) => { event.stopPropagation(); deleteDesign(item.id); }}>{t("studio.library.delete")}</button> : null}
                 </div>
               </article>
             ))}
             {!savedDesigns.length ? <p className="studio-library-empty">{t("studio.library.empty")}</p> : null}
           </div>
           <div className="studio-library-actions">
-            <button className="button button-green small" type="button" onClick={() => downloadBlob(`${safeFilename(design.name)}.json`, JSON.stringify(design, null, 2), "application/json")}>{t("studio.actions.exportJson")}</button>
-            <button className="button button-ink small" type="button" onClick={() => downloadBlob(`${safeFilename(design.name)}.svg`, exportSvg(design), "image/svg+xml")}>{t("studio.actions.exportSvg")}</button>
+            <button className="button button-green small" type="button" disabled={!selectedExportDesign} onClick={() => downloadBlob(`${safeFilename(selectedExportDesign.name)}.json`, JSON.stringify(selectedExportDesign, null, 2), "application/json")}>{t("studio.actions.exportJson")}</button>
+            <button className="button button-ink small" type="button" disabled={!selectedExportDesign} onClick={() => downloadBlob(`${safeFilename(selectedExportDesign.name)}.svg`, exportSvg(selectedExportDesign), "image/svg+xml")}>{t("studio.actions.exportSvg")}</button>
             <button className="button button-muted small" type="button" onClick={() => importRef.current?.click()}>{t("studio.actions.import")}</button>
             <input ref={importRef} className="studio-file-input" type="file" accept="application/json,.json" onChange={handleImport} />
           </div>
@@ -720,7 +781,7 @@ function DesignLayerShapes({ design, mapper, strokeScale, onSelect, selectedPath
   return getDesignLayers(design).map(({ kind, id, item }) => {
     if (kind === "circle") {
       const center = mapper(item.center);
-      return <circle key={`${kind}:${id}`} className="studio-material-circle" cx={center.x} cy={center.y} r={item.radius * strokeScale} fill={item.operation === "ink" ? design.colors.ink : design.colors.base} onPointerDown={onSelect ? () => onSelect(kind, id) : undefined} />;
+      return <circle key={`${kind}:${id}`} className="studio-material-circle" cx={center.x} cy={center.y} r={item.radius * strokeScale} fill={item.operation === "ink" ? elementMaterialColor(design, item) : design.colors.base} onPointerDown={onSelect ? () => onSelect(kind, id) : undefined} />;
     }
     const isSelected = kind === "path" ? id === selectedPathId : id === selectedCircularPathId;
     return (
@@ -729,7 +790,7 @@ function DesignLayerShapes({ design, mapper, strokeScale, onSelect, selectedPath
         className={`studio-material-path${kind === "circularPath" ? " studio-circular-material-path" : ""}${isSelected ? " selected" : ""}`}
         d={kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper)}
         fill="none"
-        stroke={design.colors.ink}
+        stroke={elementMaterialColor(design, item)}
         strokeWidth={item.width * strokeScale}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -741,8 +802,8 @@ function DesignLayerShapes({ design, mapper, strokeScale, onSelect, selectedPath
 
 function ClusterPreview({ design }) {
   return (
-    <svg className="studio-cluster-preview" viewBox="0 -112 540 432" aria-label="Transformed Einstein material preview">
-      <rect x="0" y="-112" width="540" height="432" fill="#fffdf8" />
+    <svg className="studio-cluster-preview" viewBox={`${H_CLUSTER_VIEWBOX.x} ${H_CLUSTER_VIEWBOX.y} ${H_CLUSTER_VIEWBOX.width} ${H_CLUSTER_VIEWBOX.height}`} aria-label="Transformed Einstein material preview">
+      <rect {...H_CLUSTER_VIEWBOX} fill="#fffdf8" />
       <defs>
         {H_CLUSTER_TRANSFORMS.map((transform, index) => <clipPath id={`cluster-clip-${index}`} key={index}><polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice), clusterMapper(transform))} /></clipPath>)}
       </defs>
