@@ -19,7 +19,7 @@ import {
   snapLatticePoint,
   validateDesign,
 } from "./einsteinGeometry";
-import { readStudioLibrary, writeStudioLibrary } from "./patternLibrary";
+import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
 const H_CLUSTER_TRANSFORMS = [
@@ -158,15 +158,20 @@ export default function StudioPage() {
   const selectedExportDesign = savedDesigns.find((item) => item.id === selectedExportId) || null;
 
   useEffect(() => {
+    let current = true;
     try {
-      setSavedDesigns(readStudioLibrary());
+      getStudioLibraryDesigns()
+        .then((library) => { if (current) setSavedDesigns(library); })
+        .catch(() => { if (current) setStatus(t("studio.status.libraryFailed")); });
     } catch {
       setStatus(t("studio.status.libraryFailed"));
     }
+    return () => { current = false; };
   }, [t]);
 
   function persistLibrary(next) {
-    setSavedDesigns(writeStudioLibrary(next));
+    writeStudioLibrary(next);
+    getStudioLibraryDesigns().then(setSavedDesigns).catch(() => setStatus(t("studio.status.libraryFailed")));
   }
 
   function moveLayer(kind, id, direction) {
@@ -408,7 +413,7 @@ export default function StudioPage() {
       createdAt: currentId ? design.createdAt : now,
       updatedAt: now,
     };
-    const next = [...savedDesigns.filter((item) => item.id !== saved.id), saved];
+    const next = [...savedDesigns.filter((item) => !item.id.startsWith("builtin-") && item.id !== saved.id), saved];
     persistLibrary(next);
     setDesign(saved);
     setStatus(t("studio.status.saved"));

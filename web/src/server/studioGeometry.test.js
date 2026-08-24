@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -16,6 +17,7 @@ import {
   snapLatticePoint,
   validateDesign,
 } from "../features/studio/einsteinGeometry.js";
+import { getPublicStudioDesigns } from "../features/studio/patternLibrary.js";
 
 test("Einstein studio lattice coordinates round-trip", () => {
   const lattice = { u: 1.25, v: -0.75 };
@@ -51,6 +53,13 @@ test("Studio can start with an empty editable document", () => {
   assert.deepEqual(design.paths, []);
   assert.deepEqual(design.circles, []);
   assert.deepEqual(design.circularPaths, []);
+});
+
+test("GreenCurves public preset loads from its pattern asset", async () => {
+  const json = JSON.parse(await readFile(new URL("../../public/patterns/einstein/greencurves.json", import.meta.url), "utf8"));
+  const [design] = await getPublicStudioDesigns(async () => ({ ok: true, json: async () => json }));
+  assert.equal(design.id, "builtin-green-curves");
+  assert.deepEqual(design.circularPaths.map((path) => path.width), [0.7, 1.3]);
 });
 
 test("Studio elements can override the document color", () => {

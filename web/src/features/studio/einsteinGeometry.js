@@ -181,27 +181,6 @@ export function bindPathEndpoints(path) {
   return { ...path, points };
 }
 
-export function createDefaultDesign() {
-  return {
-    schema: "aperiodos.material-design",
-    version: 1,
-    id: "builtin-einstein-circular-path",
-    name: "Einstein circular path",
-    tile: "einstein-hat",
-    colors: { base: "#ffffff", ink: "#00c200" },
-    circles: [],
-    circularPaths: [{
-      id: "reference-circular-path",
-      name: "Einstein circular path",
-      width: 1.3,
-      side: "left",
-      points: [{ u: 4, v: -2 }, { u: 0, v: 0 }, { u: -2, v: 4 }],
-    }],
-    paths: [],
-    layerOrder: [{ kind: "circularPath", id: "reference-circular-path" }],
-  };
-}
-
 export function createEmptyDesign() {
   return {
     schema: "aperiodos.material-design",

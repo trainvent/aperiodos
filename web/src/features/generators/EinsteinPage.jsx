@@ -14,9 +14,9 @@ export default function EinsteinPage() {
   const [studioPatterns, setStudioPatterns] = useState([]);
 
   useEffect(() => {
-    function refreshPatterns() {
+    async function refreshPatterns() {
       try {
-        setStudioPatterns(getEinsteinStudioPatterns());
+        setStudioPatterns(await getEinsteinStudioPatterns());
       } catch {
         setStudioPatterns([]);
       }
