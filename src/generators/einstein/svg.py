@@ -1,4 +1,5 @@
 from pathlib import Path
+from math import atan2, ceil, cos, hypot, pi, sin, sqrt
 from xml.sax.saxutils import escape
 
 from .geometry import Vector, hat_outline, mat_vec_mul
@@ -70,11 +71,87 @@ def _curve_path(points):
 _HAT_POINTS = " ".join(f"{point.x:.4f},{point.y:.4f}" for point in hat_outline)
 
 
-def _svg_pattern_defs():
-    paths = "".join(
-        f'<path d="{_curve_path([(point.x, point.y) for point in curve])}" stroke-width="{width:.4f}" />'
-        for width, curve in _CURVES_MOTIF
-    )
+def _lattice_point(point):
+    u = float(point["u"])
+    v = float(point["v"])
+    return (u + v / 2, v * sqrt(3) / 2)
+
+
+def _circular_path_points(path, steps_per_turn=72):
+    point1, point2, point3 = [_lattice_point(point) for point in path["points"]]
+    vector12 = (point2[0] - point1[0], point2[1] - point1[1])
+    vector23 = (point3[0] - point2[0], point3[1] - point2[1])
+    radius = hypot(*vector12) / 2
+    angle12 = atan2(vector12[1], vector12[0])
+    angle23 = atan2(vector23[1], vector23[0])
+    direction = -1 if path.get("side") == "right" else 1
+    full_turn = pi * 2
+
+    def directed_delta(start, end, arc_direction):
+        if arc_direction > 0:
+            return (end - start) % full_turn
+        return -((start - end) % full_turn)
+
+    segments = []
+    arc_specs = [
+        (point1, angle12 + pi, direction * pi),
+        (point2, angle12 + pi, directed_delta(angle12 + pi, angle23, -direction)),
+        (point3, angle23 + pi, direction * pi),
+    ]
+    for arc_index, (center, start, delta) in enumerate(arc_specs):
+        steps = max(2, ceil(abs(delta) / full_turn * steps_per_turn))
+        first_step = 0 if arc_index in (0, 2) else 1
+        segments.append([
+            (center[0] + radius * cos(start + delta * index / steps), center[1] + radius * sin(start + delta * index / steps))
+            for index in range(first_step, steps + 1)
+        ])
+    return segments
+
+
+def _studio_motif_elements(pattern, base_color):
+    elements = []
+    collections = {
+        "path": {item["id"]: item for item in pattern.get("paths", [])},
+        "circle": {item["id"]: item for item in pattern.get("circles", [])},
+        "circularPath": {item["id"]: item for item in pattern.get("circularPaths", [])},
+    }
+    order = []
+    seen = set()
+    for entry in pattern.get("layerOrder", []):
+        key = (entry.get("kind"), entry.get("id"))
+        if key[0] in collections and key[1] in collections[key[0]] and key not in seen:
+            order.append(key)
+            seen.add(key)
+    for kind in ("path", "circle", "circularPath"):
+        for item_id in collections[kind]:
+            if (kind, item_id) not in seen:
+                order.append((kind, item_id))
+
+    for kind, item_id in order:
+        item = collections[kind][item_id]
+        if kind == "path":
+            points = [_lattice_point(point) for point in item["points"]]
+            elements.append(f'<path d="{_curve_path(points)}" stroke-width="{float(item["width"]):.4f}" />')
+        elif kind == "circle":
+            center = _lattice_point(item["center"])
+            fill = "currentColor" if item.get("operation") == "ink" else escape(str(base_color))
+            elements.append(
+                f'<circle cx="{center[0]:.4f}" cy="{center[1]:.4f}" r="{float(item["radius"]):.4f}" fill="{fill}" stroke="none" />'
+            )
+        else:
+            for segment in _circular_path_points(item):
+                elements.append(f'<path d="{_curve_path([segment[0]])} ' + " ".join(f'L {x:.4f} {y:.4f}' for x, y in segment[1:]) + f'" stroke-width="{float(item["width"]):.4f}" />')
+    return "".join(elements)
+
+
+def _svg_pattern_defs(studio_pattern=None, base_color="white"):
+    if studio_pattern:
+        paths = _studio_motif_elements(studio_pattern, base_color)
+    else:
+        paths = "".join(
+            f'<path d="{_curve_path([(point.x, point.y) for point in curve])}" stroke-width="{width:.4f}" />'
+            for width, curve in _CURVES_MOTIF
+        )
     return (
         '<defs>'
         f'<clipPath id="einstein-hat-clip" clipPathUnits="userSpaceOnUse"><polygon points="{_HAT_POINTS}" /></clipPath>'
@@ -103,7 +180,7 @@ def _svg_pattern_tile(tile, project, base_color, curve_color, stroke, stroke_wid
     return (
         f'<g transform="matrix({matrix})">'
         f'<polygon points="{_HAT_POINTS}" fill="{escape(str(base_color))}" />'
-        f'<g clip-path="url(#einstein-hat-clip)" stroke="{escape(str(curve_color))}">'
+        f'<g clip-path="url(#einstein-hat-clip)" stroke="{escape(str(curve_color))}" color="{escape(str(curve_color))}">'
         '<use href="#einstein-curves-motif" />'
         '</g>'
         f'<polygon points="{_HAT_POINTS}" fill="none" stroke="{escape(stroke)}" '
@@ -114,7 +191,7 @@ def _svg_pattern_tile(tile, project, base_color, curve_color, stroke, stroke_wid
 
 def save_tiles_svg(
     tiles, width, height, scalar, filename, center_x=0, center_y=0, background="white", outline="black", stroke_width=2,
-    material_mode="solid", pattern_base="white", pattern_color="#00c200"
+    material_mode="solid", pattern_base="white", pattern_color="#00c200", studio_pattern=None
 ):
     cx = width / 2
     cy = height / 2
@@ -126,7 +203,7 @@ def save_tiles_svg(
     ]
     project = lambda vec: ((vec.x - center_x) * scalar + cx, (vec.y - center_y) * scalar + cy)
     if material_mode == "pattern":
-        lines.append(_svg_pattern_defs())
+        lines.append(_svg_pattern_defs(studio_pattern, pattern_base))
     for tile in tiles:
         points = [project(vec) for vec in tile[0]]
         if material_mode == "pattern":
@@ -144,7 +221,7 @@ def save_tiles_svg(
 
 def save_seed_tiles_svg(
     tiles, width, height, scalar, offset_coord, filename, center_x=0, center_y=0, background="white", outline="black", stroke_width=2,
-    material_mode="solid", pattern_base="white", pattern_color="#00c200"
+    material_mode="solid", pattern_base="white", pattern_color="#00c200", studio_pattern=None
 ):
     stroke = outline if stroke_width > 0 else "none"
 
@@ -157,7 +234,7 @@ def save_seed_tiles_svg(
         (vec.y - center_y) * scalar + height + offset_coord.y * height,
     )
     if material_mode == "pattern":
-        lines.append(_svg_pattern_defs())
+        lines.append(_svg_pattern_defs(studio_pattern, pattern_base))
     for tile in tiles:
         points = [project(vec) for vec in tile[0]]
         if material_mode == "pattern":

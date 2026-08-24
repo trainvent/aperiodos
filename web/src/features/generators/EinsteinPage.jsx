@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ColorField, NumberField, SelectField, TextField } from "../../components/forms/FormFields";
@@ -6,10 +6,34 @@ import { apiUrl } from "../../lib/api";
 import { EINSTEIN_DEFAULTS } from "./defaults";
 import GeneratorLayout from "./GeneratorLayout";
 import GeneratorSettingsScaffold, { SettingsRow } from "./GeneratorSettingsScaffold";
+import { getEinsteinStudioPatterns, STUDIO_LIBRARY_EVENT, studioPatternId, studioPatternValue } from "../studio/patternLibrary";
 
 export default function EinsteinPage() {
   const { t } = useTranslation("common");
   const [values, setValues] = useState(EINSTEIN_DEFAULTS);
+  const [studioPatterns, setStudioPatterns] = useState([]);
+
+  useEffect(() => {
+    function refreshPatterns() {
+      try {
+        setStudioPatterns(getEinsteinStudioPatterns());
+      } catch {
+        setStudioPatterns([]);
+      }
+    }
+    refreshPatterns();
+    window.addEventListener(STUDIO_LIBRARY_EVENT, refreshPatterns);
+    window.addEventListener("storage", refreshPatterns);
+    return () => {
+      window.removeEventListener(STUDIO_LIBRARY_EVENT, refreshPatterns);
+      window.removeEventListener("storage", refreshPatterns);
+    };
+  }, []);
+
+  const patternOptions = useMemo(() => [
+    { value: "builtin:curves", label: t("generator.material.curves") },
+    ...studioPatterns.map((pattern) => ({ value: studioPatternValue(pattern.id), label: `${pattern.name} · ${t("generator.material.studio")}` })),
+  ], [studioPatterns, t]);
   return (
     <>
       <GeneratorLayout
@@ -18,6 +42,7 @@ export default function EinsteinPage() {
         <GeneratorSettingsScaffold
           values={values}
           setValues={setValues}
+          patternOptions={patternOptions}
           parameters={
             <SettingsRow>
               <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={1} max={6} />
@@ -85,6 +110,10 @@ export default function EinsteinPage() {
         };
         if (String(values.seed).trim()) {
           payload.seed = Number(values.seed);
+        }
+        const selectedStudioId = studioPatternId(values.pattern_design);
+        if (selectedStudioId) {
+          payload.studio_pattern = studioPatterns.find((pattern) => pattern.id === selectedStudioId);
         }
         return payload;
       }}

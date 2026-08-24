@@ -16,6 +16,42 @@
 			"title": "Konstruiere das Material.",
 			"lede": "Setze drei geordnete Punkte auf das ursprüngliche hexagonale Gitter der Einstein-Kachel. Das Studio formt daraus einen durchgehenden Kreisbogenpfad und überträgt ihn korrekt auf jede Drehung und Spiegelung."
 		},
+		"toolbar": {
+			"aria": "Studio-Werkzeuge und Objekteinstellungen",
+			"studio": "Aperiodos Studio",
+			"einsteinWorkspace": "Einstein-Material-Arbeitsbereich",
+			"create": "Erstellen",
+			"appearance": "Darstellung",
+			"precision": "Präzision & Ansicht",
+			"tile": "Kachel",
+			"material": "Material",
+			"grid": "Gitter",
+			"handles": "Griffe",
+			"document": "Muster-Dokument",
+			"selectHint": "Wähle links ein Element aus, um seine Einstellungen zu bearbeiten.",
+			"navigator": "Navigator",
+			"structure": "Musterstruktur",
+			"ready": "Arbeitsbereich bereit"
+		},
+		"layers": {
+			"viewMode": "Navigatoransicht",
+			"categories": "Nach Kategorie gruppieren",
+			"layers": "Ebenenstapel anzeigen",
+			"top": "Oberste Ebene",
+			"bottom": "Unterste Ebene",
+			"orderHelp": "Obere Elemente werden zuletzt gezeichnet",
+			"moveUp": "Ebene nach oben",
+			"moveDown": "Ebene nach unten",
+			"path": "Bézier-Pfad",
+			"circle": "Kreis",
+			"circularPath": "Kreisbogenpfad"
+		},
+		"templates": {
+			"title": "Vorlagen",
+			"choose": "Vorlage wählen…",
+			"circularPath": "Einstein-Kreisbogenpfad",
+			"untitled": "Unbenanntes Einstein-Muster"
+		},
 		"controls": {
 			"design": "Werkzeuge",
 			"name": "Name des Entwurfs",
@@ -89,11 +125,15 @@
 		},
 		"preview": {
 			"title": "Transformationsprüfung",
+			"flipped": "gespiegelt",
+			"expand": "Transformationsvorschau vergrößern",
+			"collapse": "Transformationsvorschau verkleinern",
 			"help": "Dasselbe kachellokale Material wird auf einen H-Cluster übertragen. M kennzeichnet die gespiegelte Kachel."
 		},
 		"library": {
 			"title": "Designbibliothek",
-			"localNote": "Diese erste Bibliothek speichert Entwürfe in diesem Browser. Exportiertes JSON nutzt bereits das versionierte Format für eine spätere öffentliche Bibliothek.",
+			"empty": "Noch keine gespeicherten Entwürfe.",
+			"localNote": "Gespeicherte Entwürfe erscheinen sofort im Muster-Menü des Einstein-Generators. Das versionierte Dokumentformat ist bereits für weitere Kachelfamilien vorbereitet.",
 			"builtin": "Integriert",
 			"local": "Lokal gespeichert",
 			"load": "Laden",
@@ -108,9 +148,12 @@
 		},
 		"status": {
 			"saved": "Entwurf wurde in diesem Browser gespeichert.",
+			"elementDeleted": "Element gelöscht. Über Erstellen kannst du ein neues Element hinzufügen.",
+			"emptyDesign": "Füge vor dem Speichern mindestens ein Element hinzu.",
 			"loaded": "Entwurf geladen.",
 			"deleted": "Lokaler Entwurf gelöscht.",
-			"reset": "Integrierter Kreisbogenpfad wiederhergestellt.",
+			"reset": "Leeres Studio-Dokument wiederhergestellt.",
+			"templateApplied": "Kreisbogenpfad-Vorlage angewendet.",
 			"imported": "Entwurf importiert. Speichere ihn, um ihn zur lokalen Bibliothek hinzuzufügen.",
 			"importFailed": "Diese Datei ist kein gültiger Aperiodos-Materialentwurf.",
 			"libraryFailed": "Die lokale Designbibliothek konnte nicht gelesen werden."
@@ -240,6 +283,7 @@
 			"pattern": "Kacheln mit Muster",
 			"patternLabel": "Muster",
 			"curves": "Kurven",
+			"studio": "Studio",
 			"tileColor": "Kachelfarbe",
 			"curveColor": "Kurvenfarbe"
 		},

@@ -61,6 +61,7 @@ def seed_to_pattern(
     material_mode="solid",
     pattern_base="white",
     pattern_color="#00c200",
+    studio_pattern=None,
 ):
     try:
         import cv2
@@ -119,6 +120,7 @@ def seed_to_pattern(
                     material_mode=material_mode,
                     pattern_base=pattern_base,
                     pattern_color=pattern_color,
+                    studio_pattern=studio_pattern,
                 )
             else:
                 cv2.imwrite(str(output_path), output_image)

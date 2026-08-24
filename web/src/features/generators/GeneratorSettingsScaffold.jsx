@@ -13,6 +13,7 @@ export default function GeneratorSettingsScaffold({
   centerStep,
   allowSvg = true,
   allowMaterial = false,
+  patternOptions,
   modes,
   palette
 }) {
@@ -70,11 +71,9 @@ export default function GeneratorSettingsScaffold({
             <SelectField
               values={values}
               setValues={setValues}
-              name="pattern_style"
+              name="pattern_design"
               label={t("generator.material.patternLabel")}
-              options={[
-                { value: "curves", label: t("generator.material.curves") }
-              ]}
+              options={patternOptions || [{ value: "builtin:curves", label: t("generator.material.curves") }]}
             />
           ) : null}
         </SettingsRow>

@@ -99,6 +99,72 @@ function coerceOneOf(payload, key, fallback, allowed) {
   return value;
 }
 
+function coerceStudioPattern(payload) {
+  if (payload.studio_pattern === undefined || payload.studio_pattern === null) return null;
+  const pattern = payload.studio_pattern;
+  const serialized = JSON.stringify(pattern);
+  if (!pattern || typeof pattern !== "object" || Array.isArray(pattern) || serialized.length > 65536) {
+    throw new ApiError("'studio_pattern' must be a Studio pattern document smaller than 64 KB.");
+  }
+  if (pattern.schema !== "aperiodos.material-design" || pattern.version !== 1 || pattern.tile !== "einstein-hat") {
+    throw new ApiError("'studio_pattern' must be a version 1 Einstein material design.");
+  }
+  const paths = Array.isArray(pattern.paths) ? pattern.paths : [];
+  const circles = Array.isArray(pattern.circles) ? pattern.circles : [];
+  const circularPaths = Array.isArray(pattern.circularPaths) ? pattern.circularPaths : [];
+  if (!paths.length && !circles.length && !circularPaths.length) {
+    throw new ApiError("'studio_pattern' must contain at least one material element.");
+  }
+  if (paths.length + circles.length + circularPaths.length > 100) {
+    throw new ApiError("'studio_pattern' contains too many material elements.");
+  }
+  const elementKeys = new Set();
+  for (const [kind, items] of [["path", paths], ["circle", circles], ["circularPath", circularPaths]]) {
+    for (const item of items) {
+      if (typeof item.id !== "string" || !item.id.trim() || item.id.length > 200 || elementKeys.has(`${kind}:${item.id}`)) {
+        throw new ApiError("'studio_pattern' elements must have unique string identifiers.");
+      }
+      elementKeys.add(`${kind}:${item.id}`);
+    }
+  }
+  if (pattern.layerOrder !== undefined) {
+    if (!Array.isArray(pattern.layerOrder) || pattern.layerOrder.length > elementKeys.size) {
+      throw new ApiError("'studio_pattern.layerOrder' must be a valid layer list.");
+    }
+    const ordered = new Set();
+    for (const entry of pattern.layerOrder) {
+      const key = `${entry?.kind}:${entry?.id}`;
+      if (!elementKeys.has(key) || ordered.has(key)) {
+        throw new ApiError("'studio_pattern.layerOrder' contains an unknown or duplicate layer.");
+      }
+      ordered.add(key);
+    }
+  }
+  const finitePoint = (point) => point && Number.isFinite(Number(point.u)) && Number.isFinite(Number(point.v));
+  for (const pathItem of paths) {
+    if (!Array.isArray(pathItem.points) || pathItem.points.length < 4 || pathItem.points.length > 100 || (pathItem.points.length - 1) % 3 !== 0 || !pathItem.points.every(finitePoint)) {
+      throw new ApiError("'studio_pattern' contains an invalid Bézier path.");
+    }
+    if (!Number.isFinite(Number(pathItem.width)) || Number(pathItem.width) <= 0 || Number(pathItem.width) > 20) {
+      throw new ApiError("'studio_pattern' path widths must be between 0 and 20.");
+    }
+  }
+  for (const circle of circles) {
+    if (!finitePoint(circle.center) || !Number.isFinite(Number(circle.radius)) || Number(circle.radius) <= 0 || Number(circle.radius) > 20 || !["ink", "base"].includes(circle.operation)) {
+      throw new ApiError("'studio_pattern' contains an invalid circle.");
+    }
+  }
+  for (const pathItem of circularPaths) {
+    if (!Array.isArray(pathItem.points) || pathItem.points.length !== 3 || !pathItem.points.every(finitePoint) || !["left", "right"].includes(pathItem.side)) {
+      throw new ApiError("'studio_pattern' contains an invalid circular path.");
+    }
+    if (!Number.isFinite(Number(pathItem.width)) || Number(pathItem.width) <= 0 || Number(pathItem.width) > 20) {
+      throw new ApiError("'studio_pattern' circular-path widths must be between 0 and 20.");
+    }
+  }
+  return pattern;
+}
+
 function coerceBoolean(payload, key, fallback = false) {
   const value = payload[key];
   if (value === undefined || value === null) {
@@ -209,6 +275,7 @@ export async function renderEinstein(payload) {
   const patternStyle = coerceOneOf(payload, "pattern_style", "curves", ["curves"]);
   const patternBase = String(payload.pattern_base || "white");
   const patternColor = String(payload.pattern_color || "#00c200");
+  const studioPattern = coerceStudioPattern(payload);
   const colors = coerceColors(payload);
   const fourColors = coerceFourColors(payload);
   const background = String(payload.background || "white");
@@ -256,6 +323,7 @@ export async function renderEinstein(payload) {
       patternBase,
       "--pattern-color",
       patternColor,
+      ...(studioPattern ? ["--studio-pattern", JSON.stringify(studioPattern)] : []),
     ];
     if (seed !== undefined && seed !== null && String(seed).trim() !== "") {
       args.push("--seed", String(coerceInt(payload, "seed", seed, { minimum: 1 })));

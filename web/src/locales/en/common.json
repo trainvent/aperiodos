@@ -16,6 +16,42 @@
 			"title": "Construct the material.",
 			"lede": "Place three ordered points on the Einstein hat's native hexagonal lattice. Studio turns them into a continuous circular path and carries it correctly through every rotation and reflection."
 		},
+		"toolbar": {
+			"aria": "Studio tools and object settings",
+			"studio": "Aperiodos Studio",
+			"einsteinWorkspace": "Einstein material workspace",
+			"create": "Create",
+			"appearance": "Appearance",
+			"precision": "Precision & view",
+			"tile": "Tile",
+			"material": "Material",
+			"grid": "Grid",
+			"handles": "Handles",
+			"document": "Pattern document",
+			"selectHint": "Select an element in the navigator to edit its settings.",
+			"navigator": "Navigator",
+			"structure": "Pattern structure",
+			"ready": "Workspace ready"
+		},
+		"layers": {
+			"viewMode": "Navigator view",
+			"categories": "Group by category",
+			"layers": "Show layer stack",
+			"top": "Top layer",
+			"bottom": "Bottom layer",
+			"orderHelp": "Upper items draw last",
+			"moveUp": "Move layer up",
+			"moveDown": "Move layer down",
+			"path": "Bézier path",
+			"circle": "Circle",
+			"circularPath": "Circular path"
+		},
+		"templates": {
+			"title": "Templates",
+			"choose": "Choose template…",
+			"circularPath": "Einstein circular path",
+			"untitled": "Untitled Einstein pattern"
+		},
 		"controls": {
 			"design": "Tools",
 			"name": "Design name",
@@ -89,11 +125,15 @@
 		},
 		"preview": {
 			"title": "Transformation proof",
+			"flipped": "flipped",
+			"expand": "Expand transformation preview",
+			"collapse": "Collapse transformation preview",
 			"help": "The same tile-local material is transformed onto an H cluster. M marks the reflected tile."
 		},
 		"library": {
 			"title": "Design library",
-			"localNote": "This first library stores designs in this browser. Exported JSON uses the versioned format intended for a future shared library.",
+			"empty": "No saved designs yet.",
+			"localNote": "Saved designs are available immediately in the Einstein Generator's Pattern menu. The versioned document format is ready for other tile families to join later.",
 			"builtin": "Built in",
 			"local": "Saved locally",
 			"load": "Load",
@@ -108,9 +148,12 @@
 		},
 		"status": {
 			"saved": "Design saved in this browser.",
+			"elementDeleted": "Element deleted. You can add a new element from the Create ribbon.",
+			"emptyDesign": "Add at least one element before saving this design.",
 			"loaded": "Design loaded.",
 			"deleted": "Local design deleted.",
-			"reset": "Built-in circular-path design restored.",
+			"reset": "Blank Studio document restored.",
+			"templateApplied": "Circular-path template applied.",
 			"imported": "Design imported. Save it to add it to the local library.",
 			"importFailed": "That file is not a valid Aperiodos material design.",
 			"libraryFailed": "The local design library could not be read."
@@ -240,6 +283,7 @@
 			"pattern": "Patterned tiles",
 			"patternLabel": "Pattern",
 			"curves": "Curves",
+			"studio": "Studio",
 			"tileColor": "Tile color",
 			"curveColor": "Curve color"
 		},

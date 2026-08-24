@@ -1,4 +1,5 @@
 import argparse
+import json
 
 from .graphics_tk import draw_tiles
 from .pattern_generator import (
@@ -37,6 +38,7 @@ def render_pattern(
     material_mode="solid",
     pattern_base="white",
     pattern_color="#00c200",
+    studio_pattern=None,
 ):
     reset_generator()
     for _ in range(iterations):
@@ -61,6 +63,7 @@ def render_pattern(
         material_mode=material_mode,
         pattern_base=pattern_base,
         pattern_color=pattern_color,
+        studio_pattern=studio_pattern,
     )
 
 
@@ -101,6 +104,7 @@ def build_parser():
     parser.add_argument("--pattern-style", choices=("curves",), default="curves")
     parser.add_argument("--pattern-base", default="white")
     parser.add_argument("--pattern-color", default="#00c200")
+    parser.add_argument("--studio-pattern", type=json.loads, help="Versioned Aperiodos Studio material document.")
     parser.add_argument("--no-outline", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--seed", type=int, help="Generate a seed-based cropped pattern instead of the full centered render.")
     return parser
@@ -124,6 +128,7 @@ def main(argv=None):
             material_mode=args.material_mode,
             pattern_base=args.pattern_base,
             pattern_color=args.pattern_color,
+            studio_pattern=args.studio_pattern,
         )
     else:
         output = render_pattern(
@@ -145,6 +150,7 @@ def main(argv=None):
             material_mode=args.material_mode,
             pattern_base=args.pattern_base,
             pattern_color=args.pattern_color,
+            studio_pattern=args.studio_pattern,
         )
 
     print(output)

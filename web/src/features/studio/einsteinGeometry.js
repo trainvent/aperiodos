@@ -198,7 +198,57 @@ export function createDefaultDesign() {
       points: [{ u: 4, v: -2 }, { u: 0, v: 0 }, { u: -2, v: 4 }],
     }],
     paths: [],
+    layerOrder: [{ kind: "circularPath", id: "reference-circular-path" }],
   };
+}
+
+export function createEmptyDesign() {
+  return {
+    schema: "aperiodos.material-design",
+    version: 1,
+    id: "builtin-empty-einstein-pattern",
+    name: "Untitled Einstein pattern",
+    tile: "einstein-hat",
+    colors: { base: "#ffffff", ink: "#00c200" },
+    paths: [],
+    circles: [],
+    circularPaths: [],
+    layerOrder: [],
+  };
+}
+
+export function normalizeLayerOrder(design) {
+  const collections = {
+    path: design.paths || [],
+    circle: design.circles || [],
+    circularPath: design.circularPaths || [],
+  };
+  const available = new Set(Object.entries(collections).flatMap(([kind, items]) => items.map((item) => `${kind}:${item.id}`)));
+  const seen = new Set();
+  const order = [];
+  (Array.isArray(design.layerOrder) ? design.layerOrder : []).forEach((entry) => {
+    const key = `${entry?.kind}:${entry?.id}`;
+    if (available.has(key) && !seen.has(key)) {
+      order.push({ kind: entry.kind, id: entry.id });
+      seen.add(key);
+    }
+  });
+  ["path", "circle", "circularPath"].forEach((kind) => {
+    collections[kind].forEach((item) => {
+      const key = `${kind}:${item.id}`;
+      if (!seen.has(key)) order.push({ kind, id: item.id });
+    });
+  });
+  return order;
+}
+
+export function getDesignLayers(design) {
+  const collections = {
+    path: new Map((design.paths || []).map((item) => [item.id, item])),
+    circle: new Map((design.circles || []).map((item) => [item.id, item])),
+    circularPath: new Map((design.circularPaths || []).map((item) => [item.id, item])),
+  };
+  return normalizeLayerOrder(design).map((entry) => ({ ...entry, item: collections[entry.kind].get(entry.id) }));
 }
 
 export function validateDesign(value) {
@@ -255,6 +305,7 @@ export function validateDesign(value) {
   });
   if (!Array.isArray(value.circles)) value.circles = circles;
   if (!Array.isArray(value.circularPaths)) value.circularPaths = circularPaths;
+  value.layerOrder = normalizeLayerOrder(value);
   return value;
 }
 

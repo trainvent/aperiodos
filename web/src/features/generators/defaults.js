@@ -11,6 +11,7 @@ export const EINSTEIN_DEFAULTS = {
   color_mode: "families",
   material_mode: "solid",
   pattern_style: "curves",
+  pattern_design: "builtin:curves",
   pattern_base: "white",
   pattern_color: "#00c200",
   seed: "",

@@ -6,6 +6,8 @@ import {
   circleHandlePoint,
   circularPathGeometry,
   createDefaultDesign,
+  createEmptyDesign,
+  getDesignLayers,
   latticeToCartesian,
   nearestBoundaryPoint,
   snapCircleHandle,
@@ -37,6 +39,30 @@ test("built-in Studio design uses the versioned library format", () => {
   assert.deepEqual(design.circularPaths[0].points, [{ u: 4, v: -2 }, { u: 0, v: 0 }, { u: -2, v: 4 }]);
   assert.equal(design.circularPaths[0].width, 0.7);
   assert.equal(design.circularPaths[0].side, "left");
+  assert.deepEqual(design.layerOrder, [{ kind: "circularPath", id: "reference-circular-path" }]);
+});
+
+test("Studio can start with an empty editable document", () => {
+  const design = createEmptyDesign();
+  assert.equal(design.schema, "aperiodos.material-design");
+  assert.deepEqual(getDesignLayers(design), []);
+  assert.deepEqual(design.paths, []);
+  assert.deepEqual(design.circles, []);
+  assert.deepEqual(design.circularPaths, []);
+});
+
+test("Studio layer order remains backward compatible and controls the draw stack", () => {
+  const design = createDefaultDesign();
+  design.circles = [{ id: "disc", name: "Disc", center: { u: 0, v: 0 }, radius: 1, operation: "ink" }];
+  delete design.layerOrder;
+  const legacy = validateDesign(design);
+  assert.deepEqual(getDesignLayers(legacy).map(({ kind }) => kind), ["circle", "circularPath"]);
+
+  legacy.layerOrder = [
+    { kind: "circularPath", id: "reference-circular-path" },
+    { kind: "circle", id: "disc" },
+  ];
+  assert.deepEqual(getDesignLayers(legacy).map(({ kind }) => kind), ["circularPath", "circle"]);
 });
 
 test("anchors can snap before binding to a tile edge", () => {
