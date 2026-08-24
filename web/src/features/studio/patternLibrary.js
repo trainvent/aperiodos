@@ -1,4 +1,4 @@
-import { cloneDesign, createDefaultDesign, validateDesign } from "./einsteinGeometry.js";
+import { cloneDesign, validateDesign } from "./einsteinGeometry.js";
 
 export const STUDIO_LIBRARY_KEY = "aperiodos-studio-designs-v1";
 export const STUDIO_LIBRARY_EVENT = "aperiodos:studio-library-changed";
@@ -35,7 +35,7 @@ export async function getStudioLibraryDesigns(storage = globalThis.window?.local
 }
 
 export async function getEinsteinStudioPatterns(storage = globalThis.window?.localStorage, fetcher = globalThis.fetch) {
-  return [createDefaultDesign(), ...await getStudioLibraryDesigns(storage, fetcher)];
+  return getStudioLibraryDesigns(storage, fetcher);
 }
 
 export function studioPatternValue(id) {

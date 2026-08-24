@@ -200,8 +200,13 @@ export function insertCircularPathTemplate(design, { id, name } = {}) {
   if (!id || getDesignLayers(design).some((layer) => layer.id === id)) {
     throw new Error("A template element needs a unique identifier.");
   }
-  const template = cloneDesign(createDefaultDesign().circularPaths[0]);
-  const circularPath = { ...template, id, name: name || template.name };
+  const circularPath = {
+    id,
+    name: name || "Circular path",
+    width: 1.3,
+    side: "left",
+    points: [{ u: 4, v: -2 }, { u: 0, v: 0 }, { u: -2, v: 4 }],
+  };
   return {
     ...design,
     circularPaths: [...(design.circularPaths || []), circularPath],

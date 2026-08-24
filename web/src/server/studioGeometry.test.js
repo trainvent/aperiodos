@@ -6,7 +6,6 @@ import {
   cartesianToLattice,
   circleHandlePoint,
   circularPathGeometry,
-  createDefaultDesign,
   createEmptyDesign,
   elementMaterialColor,
   getDesignLayers,
@@ -18,6 +17,19 @@ import {
   validateDesign,
 } from "../features/studio/einsteinGeometry.js";
 import { getPublicStudioDesigns } from "../features/studio/patternLibrary.js";
+
+function createDesignWithCircularPath() {
+  const design = createEmptyDesign();
+  design.circularPaths = [{
+    id: "test-circular-path",
+    name: "Test circular path",
+    width: 1.3,
+    side: "left",
+    points: [{ u: 4, v: -2 }, { u: 0, v: 0 }, { u: -2, v: 4 }],
+  }];
+  design.layerOrder = [{ kind: "circularPath", id: "test-circular-path" }];
+  return design;
+}
 
 test("Einstein studio lattice coordinates round-trip", () => {
   const lattice = { u: 1.25, v: -0.75 };
@@ -31,19 +43,6 @@ test("Einstein studio endpoints bind to numbered tile edges", () => {
   assert.ok(port.edge >= 0 && port.edge < 13);
   assert.ok(port.t >= 0 && port.t <= 1);
   assert.ok(port.distance >= 0);
-});
-
-test("built-in Studio design uses the versioned library format", () => {
-  const design = validateDesign(createDefaultDesign());
-  assert.equal(design.schema, "aperiodos.material-design");
-  assert.equal(design.tile, "einstein-hat");
-  assert.equal(design.paths.length, 0);
-  assert.deepEqual(design.circles, []);
-  assert.equal(design.circularPaths.length, 1);
-  assert.deepEqual(design.circularPaths[0].points, [{ u: 4, v: -2 }, { u: 0, v: 0 }, { u: -2, v: 4 }]);
-  assert.equal(design.circularPaths[0].width, 1.3);
-  assert.equal(design.circularPaths[0].side, "left");
-  assert.deepEqual(design.layerOrder, [{ kind: "circularPath", id: "reference-circular-path" }]);
 });
 
 test("Studio can start with an empty editable document", () => {
@@ -63,7 +62,7 @@ test("GreenCurves public preset loads from its pattern asset", async () => {
 });
 
 test("Studio elements can override the document color", () => {
-  const design = createDefaultDesign();
+  const design = createDesignWithCircularPath();
   const element = design.circularPaths[0];
   assert.equal(elementMaterialColor(design, element), design.colors.ink);
 
@@ -88,14 +87,14 @@ test("Studio templates append without replacing existing canvas elements", () =>
 });
 
 test("Studio layer order remains backward compatible and controls the draw stack", () => {
-  const design = createDefaultDesign();
+  const design = createDesignWithCircularPath();
   design.circles = [{ id: "disc", name: "Disc", center: { u: 0, v: 0 }, radius: 1, operation: "ink" }];
   delete design.layerOrder;
   const legacy = validateDesign(design);
   assert.deepEqual(getDesignLayers(legacy).map(({ kind }) => kind), ["circle", "circularPath"]);
 
   legacy.layerOrder = [
-    { kind: "circularPath", id: "reference-circular-path" },
+    { kind: "circularPath", id: "test-circular-path" },
     { kind: "circle", id: "disc" },
   ];
   assert.deepEqual(getDesignLayers(legacy).map(({ kind }) => kind), ["circularPath", "circle"]);
@@ -110,8 +109,7 @@ test("anchors can snap before binding to a tile edge", () => {
 });
 
 test("Studio accepts circle-only material designs", () => {
-  const design = createDefaultDesign();
-  design.paths = [];
+  const design = createEmptyDesign();
   design.circles = [{ id: "disc", name: "Disc", center: { u: 0.5, v: 1 }, radius: 1.25, operation: "ink" }];
   assert.equal(validateDesign(design).circles[0].radius, 1.25);
 });
@@ -183,8 +181,7 @@ test("circular paths warn but remain drawable when center spacing differs", () =
 });
 
 test("Studio accepts circular-path-only material designs", () => {
-  const design = createDefaultDesign();
-  design.paths = [];
+  const design = createEmptyDesign();
   design.circularPaths = [{
     id: "arc-chain",
     name: "Arc chain",
