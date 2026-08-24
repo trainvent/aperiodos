@@ -60,7 +60,16 @@ export default function App() {
             <TopNavLink to="/einstein">Einstein</TopNavLink>
             <TopNavLink to="/spectre">Spectre</TopNavLink>
             <TopNavLink to="/penrose">Penrose</TopNavLink>
-            <TopNavLink to="/studio">{t("nav.studio")}</TopNavLink>
+            <TopNavLink to="/studio">
+              <span className="studio-nav-label">
+                <svg className="studio-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m14.2 4.1 5.7 5.7-8.7 8.7-4.5.9.9-4.5 6.6-6.6Z" />
+                  <path d="m12.5 5.8 5.7 5.7M7.6 14.9l3.5 3.5" />
+                  <path d="M5.2 18.8c-1.3.4-2.1 1.2-2.1 2.1 0 .6.6 1 1.5 1 1.7 0 2.8-1.1 3.1-2.4" />
+                </svg>
+                {t("nav.studio")}
+              </span>
+            </TopNavLink>
             <TopNavLink to="/generation-codes">
               <span className="shop-nav-label">
                 <svg

@@ -20,6 +20,8 @@ import {
   validateDesign,
 } from "./einsteinGeometry";
 import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
+import SpectreStudioPage from "./SpectreStudioPage";
+import StudioFamilySwitch from "./StudioFamilySwitch";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
 const H_CLUSTER_TRANSFORMS = [
@@ -132,6 +134,11 @@ function exportSvg(design) {
 }
 
 export default function StudioPage() {
+  const [family, setFamily] = useState("einstein");
+  return family === "spectre" ? <SpectreStudioPage onFamilyChange={setFamily} /> : <EinsteinStudioPage onFamilyChange={setFamily} />;
+}
+
+function EinsteinStudioPage({ onFamilyChange }) {
   const { t } = useTranslation("common");
   const [design, setDesign] = useState(() => ({ ...createEmptyDesign(), name: t("studio.templates.untitled") }));
   const [selectedPathId, setSelectedPathId] = useState(null);
@@ -530,6 +537,7 @@ export default function StudioPage() {
               <span className="studio-product-mark">A</span>
               <div><strong>{t("studio.toolbar.studio")}</strong><small>{t("studio.toolbar.einsteinWorkspace")}</small></div>
             </div>
+            <StudioFamilySwitch family="einstein" onChange={onFamilyChange} />
             <label className="studio-toolbar-name">
               <span>{t("studio.controls.name")}</span>
               <input value={design.name} onChange={(event) => setDesign((current) => ({ ...current, name: event.target.value }))} />
@@ -568,14 +576,6 @@ export default function StudioPage() {
               <label className="studio-toolbar-toggle"><input type="checkbox" checked={showHandles} onChange={(event) => setShowHandles(event.target.checked)} /><span>⌖</span><small>{t("studio.toolbar.handles")}</small></label>
               <label className="studio-toolbar-toggle"><input type="checkbox" checked={showEdgeNumbers} onChange={(event) => setShowEdgeNumbers(event.target.checked)} /><span className="studio-toolbar-edge-number"><span>1</span></span><small>{t("studio.toolbar.edges")}</small></label>
             </div>
-          </div>
-          <div className="studio-context-bar">
-            <span className="studio-context-type">{selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedCircle ? "○" : "◇"}</span>
-            <strong>{selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}</strong>
-            {renderPathControls()}
-            {renderCircleControls()}
-            {renderCircularPathControls()}
-            {!selectedPath && !selectedCircle && !selectedCircularPath ? <span className="studio-context-help">{t("studio.toolbar.selectHint")}</span> : null}
           </div>
         </div>
 
@@ -632,15 +632,16 @@ export default function StudioPage() {
         </aside>
 
         <main className="studio-workbench">
-          <svg
-            className="studio-canvas"
-            viewBox={`0 0 ${CANVAS.width} ${CANVAS.height}`}
-            role="img"
-            aria-label={t("studio.canvas.aria")}
-            onPointerMove={handlePointerMove}
-            onPointerUp={stopDragging}
-            onPointerCancel={stopDragging}
-          >
+          <div className="studio-canvas-surface">
+            <svg
+              className="studio-canvas"
+              viewBox={`0 0 ${CANVAS.width} ${CANVAS.height}`}
+              role="img"
+              aria-label={t("studio.canvas.aria")}
+              onPointerMove={handlePointerMove}
+              onPointerUp={stopDragging}
+              onPointerCancel={stopDragging}
+            >
             <defs><clipPath id="studio-hat-clip"><polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} /></clipPath></defs>
             <rect width={CANVAS.width} height={CANVAS.height} className="studio-canvas-bg" />
             {showGrid ? (
@@ -716,7 +717,8 @@ export default function StudioPage() {
                 })}
               </g>
             ) : null}
-          </svg>
+            </svg>
+          </div>
           <div
             className={`studio-transform-dock${transformExpanded ? " expanded" : ""}`}
             onPointerDown={(event) => {
@@ -737,6 +739,14 @@ export default function StudioPage() {
             <span><i className="legend-port" />{t("studio.canvas.port")}</span>
           </div>
         </main>
+        <aside className="studio-context-bar" aria-label={t("studio.toolbar.document")}>
+          <span className="studio-context-type">{selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedCircle ? "○" : "◇"}</span>
+          <strong>{selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}</strong>
+          {renderPathControls()}
+          {renderCircleControls()}
+          {renderCircularPathControls()}
+          {!selectedPath && !selectedCircle && !selectedCircularPath ? <span className="studio-context-help">{t("studio.toolbar.selectHint")}</span> : null}
+        </aside>
       </div>
 
       <section className="studio-lower-grid">
