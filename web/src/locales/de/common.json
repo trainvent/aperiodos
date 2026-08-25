@@ -61,7 +61,10 @@
 			"baseColor": "Kachelfarbe",
 			"curveColor": "Kurvenfarbe",
 			"elementColor": "Farbe",
-			"snapping": "Punktraster",
+			"snapping": "Raster",
+			"gridMode": "Gitterart",
+			"gridConstruction": "Konstruktion",
+			"gridCartesian": "Kartesisch",
 			"snapQuarter": "Viertelgitter",
 			"snapHalf": "Halbes Gitter",
 			"snapGrid": "Ganzes Gitter",
@@ -161,6 +164,14 @@
 			"imported": "Entwurf importiert. Speichere ihn, um ihn zur lokalen Bibliothek hinzuzufügen.",
 			"importFailed": "Diese Datei ist kein gültiger Aperiodos-Materialentwurf.",
 			"libraryFailed": "Die lokale Designbibliothek konnte nicht gelesen werden."
+		},
+		"spectre": {
+			"untitled": "Unbenanntes Spectre-Muster",
+			"shapeHelp": "Form der Spectre-Kachel. Die Konstruktionslinien verlängern ihre geraden Grundkanten; bei einer Rundung über null wölben sich die Kurven zwischen denselben Eckpunkten.",
+			"roundness": "Rundung",
+			"weight": "Parabolisches Gewicht",
+			"invert": "Biegung umkehren",
+			"libraryNote": "Gespeicherte Spectre-Entwürfe behalten den vollständigen Material-Ebenenstapel und die Kachelkrümmung. Wähle einen Entwurf für JSON- und SVG-Export."
 		}
 	},
 	"home": {

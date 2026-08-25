@@ -16,7 +16,9 @@ import {
   snapLatticePoint,
   validateDesign,
 } from "../features/studio/einsteinGeometry.js";
-import { getPublicStudioDesigns } from "../features/studio/patternLibrary.js";
+import { getEinsteinStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns } from "../features/studio/patternLibrary.js";
+import { SPECTRE_POINTS, spectreEdgeControl, spectrePath } from "../features/studio/spectreGeometry.js";
+import { cartesianGridLines, geometryAdapterFor } from "../features/studio/studioGeometryAdapters.js";
 
 function createDesignWithCircularPath() {
   const design = createEmptyDesign();
@@ -52,6 +54,113 @@ test("Studio can start with an empty editable document", () => {
   assert.deepEqual(design.paths, []);
   assert.deepEqual(design.circles, []);
   assert.deepEqual(design.circularPaths, []);
+});
+
+test("Spectre uses the shared material document with persistent curvature", () => {
+  const design = createEmptyDesign("spectre");
+  design.paths = [{
+    id: "spectre-curve",
+    name: "Curve 1",
+    width: 0.7,
+    points: [{ u: 0, v: 0 }, { u: 0.5, v: 0 }, { u: 1, v: 0 }, { u: 1.5, v: 0 }],
+  }];
+  const validated = validateDesign(design);
+  assert.equal(validated.tile, "spectre");
+  assert.deepEqual(validated.tileShape, { roundness: 0.18, weight: 0.5, lean: 1 });
+});
+
+test("Spectre outline supports the shared editor coordinate mapper", () => {
+  const path = spectrePath(SPECTRE_POINTS, 0.2, 1, 0.5, ([x, y]) => ({ x: x * 10, y: y * 10 }));
+  assert.match(path, /^M 0\.0000 0\.0000 Q /);
+  assert.match(path, /10\.0000 0\.0000/);
+  assert.match(path, / Z$/);
+});
+
+test("Spectre adapter exposes an edge-aligned construction canvas", () => {
+  const adapter = geometryAdapterFor("spectre");
+  assert.ok(adapter.gridLines.length >= 12);
+  SPECTRE_POINTS.forEach(([x, y], index) => {
+    const startVertex = { x, y };
+    const [endX, endY] = SPECTRE_POINTS[(index + 1) % SPECTRE_POINTS.length];
+    const endVertex = { x: endX, y: endY };
+    assert.ok(adapter.gridLines.some(([start, end]) => {
+      const a = latticeToCartesian(start);
+      const b = latticeToCartesian(end);
+      const crossStart = (b.x - a.x) * (startVertex.y - a.y) - (b.y - a.y) * (startVertex.x - a.x);
+      const crossEnd = (b.x - a.x) * (endVertex.y - a.y) - (b.y - a.y) * (endVertex.x - a.x);
+      return Math.abs(crossStart) < 1e-6 && Math.abs(crossEnd) < 1e-6;
+    }));
+  });
+});
+
+test("Studio Cartesian grid is regular, fine-grained, and anchored at the tile origin", () => {
+  const lines = cartesianGridLines(-0.25, 0.25).map(([start, end]) => [latticeToCartesian(start), latticeToCartesian(end)]);
+  assert.equal(lines.length, 10);
+  assert.ok(lines.some(([start, end]) => start.x === 0 && end.x === 0));
+  assert.ok(lines.some(([start, end]) => start.y === 0 && end.y === 0));
+  const verticalCoordinates = lines
+    .filter(([start, end]) => Math.abs(start.x - end.x) < 1e-9)
+    .map(([start]) => Math.round(start.x * 8) / 8);
+  assert.deepEqual(verticalCoordinates, [-0.25, -0.125, 0, 0.125, 0.25]);
+});
+
+test("Spectre preview uses edge-matched rotations without reflections", () => {
+  const adapter = geometryAdapterFor("spectre");
+  assert.equal(adapter.previewReflectX, true);
+  assert.equal(adapter.previewRotation, 150);
+  const central = adapter.points;
+  let sharedEdgeCount = 0;
+  adapter.previewTransforms.slice(1).forEach(([a, b, x, c, d, y]) => {
+    assert.ok(Math.abs(a * d - b * c - 1) < 1e-9);
+    const transformed = adapter.points.map((point) => ({
+      x: a * point.x + b * point.y + x,
+      y: c * point.x + d * point.y + y,
+    }));
+    const sharedVertices = central.filter((point) => transformed.some((candidate) => (
+      Math.hypot(candidate.x - point.x, candidate.y - point.y) < 1e-9
+    )));
+    assert.equal(sharedVertices.length, 5);
+    sharedEdgeCount += central.filter((point, index) => {
+      const next = central[(index + 1) % central.length];
+      return transformed.some((candidate, candidateIndex) => {
+        const candidateNext = transformed[(candidateIndex + 1) % transformed.length];
+        const forward = Math.hypot(candidate.x - point.x, candidate.y - point.y) < 1e-9
+          && Math.hypot(candidateNext.x - next.x, candidateNext.y - next.y) < 1e-9;
+        const reverse = Math.hypot(candidate.x - next.x, candidate.y - next.y) < 1e-9
+          && Math.hypot(candidateNext.x - point.x, candidateNext.y - point.y) < 1e-9;
+        return forward || reverse;
+      });
+    }).length;
+  });
+  assert.equal(sharedEdgeCount, 12);
+});
+
+test("Spectre preview neighbors share curved edges at every parabolic weight", () => {
+  const adapter = geometryAdapterFor("spectre");
+  const close = (left, right) => Math.hypot(left[0] - right[0], left[1] - right[1]) < 1e-9;
+  const transformPoint = ([x, y], [a, b, tx, c, d, ty]) => [a * x + b * y + tx, c * x + d * y + ty];
+  adapter.previewTransforms.slice(1).forEach((transform) => {
+    SPECTRE_POINTS.forEach((start, centralIndex) => {
+      const end = SPECTRE_POINTS[(centralIndex + 1) % SPECTRE_POINTS.length];
+      SPECTRE_POINTS.forEach((neighborStart, neighborIndex) => {
+        const neighborEnd = SPECTRE_POINTS[(neighborIndex + 1) % SPECTRE_POINTS.length];
+        if (!close(start, transformPoint(neighborEnd, transform)) || !close(end, transformPoint(neighborStart, transform))) return;
+        const centralControl = spectreEdgeControl(start, end, centralIndex, 0.31, 1, 0.68);
+        const neighborControl = transformPoint(spectreEdgeControl(neighborStart, neighborEnd, neighborIndex, 0.31, 1, 0.68), transform);
+        assert.ok(close(centralControl, neighborControl));
+      });
+    });
+  });
+});
+
+test("Studio pattern consumers receive only their geometry family", async () => {
+  const spectre = createEmptyDesign("spectre");
+  spectre.id = "saved-spectre";
+  spectre.paths = [{ id: "curve", width: 1, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }, { u: 2, v: 0 }, { u: 3, v: 0 }] }];
+  const storage = { getItem: () => JSON.stringify([spectre]) };
+  const fetcher = async () => ({ ok: false });
+  assert.deepEqual(await getEinsteinStudioPatterns(storage, fetcher), []);
+  assert.equal((await getSpectreStudioPatterns(storage, fetcher))[0].tile, "spectre");
 });
 
 test("GreenCurves public preset loads from its pattern asset", async () => {

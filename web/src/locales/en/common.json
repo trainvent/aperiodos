@@ -61,7 +61,10 @@
 			"baseColor": "Tile color",
 			"curveColor": "Curve color",
 			"elementColor": "Color",
-			"snapping": "Point snapping",
+			"snapping": "Snap",
+			"gridMode": "Grid type",
+			"gridConstruction": "Construction",
+			"gridCartesian": "Cartesian",
 			"snapQuarter": "Quarter lattice",
 			"snapHalf": "Half lattice",
 			"snapGrid": "Full lattice",
@@ -161,6 +164,14 @@
 			"imported": "Design imported. Save it to add it to the local library.",
 			"importFailed": "That file is not a valid Aperiodos material design.",
 			"libraryFailed": "The local design library could not be read."
+		},
+		"spectre": {
+			"untitled": "Untitled Spectre pattern",
+			"shapeHelp": "Spectre tile shape. The construction guides extend its straight-edge baseline; with roundness above zero, the curved edges bow between the same vertices.",
+			"roundness": "Roundness",
+			"weight": "Parabolic weight",
+			"invert": "Invert bend",
+			"libraryNote": "Saved Spectre designs keep the complete material layer stack and tile curvature. Select a design below to enable JSON and SVG export."
 		}
 	},
 	"home": {

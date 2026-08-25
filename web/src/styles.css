@@ -574,6 +574,10 @@ select {
   stroke-width: 1;
 }
 
+.studio-spectre-grid line {
+  stroke: rgba(32, 79, 122, 0.18);
+}
+
 .studio-lattice circle {
   fill: rgba(32, 79, 122, 0.28);
 }
@@ -935,44 +939,6 @@ select {
   height: 34px;
 }
 
-.studio-workspace-tabs,
-.studio-pattern-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.studio-workspace-tabs button,
-.studio-pattern-actions button,
-.studio-pattern-layer {
-  border: 1px solid #52646d;
-  border-radius: 4px;
-  background: #17313b;
-  color: #dbe6e8;
-  cursor: pointer;
-}
-
-.studio-workspace-tabs button {
-  padding: 7px 10px;
-}
-
-.studio-workspace-tabs button.active,
-.studio-pattern-layer.active {
-  border-color: #d1825a;
-  background: #385360;
-  color: #fff;
-}
-
-.studio-pattern-actions button {
-  flex: 1;
-  padding: 7px 4px;
-  font-size: 0.68rem;
-}
-
-.studio-pattern-layer {
-  padding: 7px 8px;
-  text-align: left;
-}
-
 .studio-toolbar-group {
   display: flex;
   position: relative;
@@ -1049,6 +1015,31 @@ select {
 
 .studio-toolbar-snap select {
   width: 66px;
+}
+
+.studio-toolbar-grid-mode select {
+  width: 108px;
+}
+
+.studio-toolbar-grid-block {
+  position: relative;
+}
+
+.studio-toolbar-grid-controls {
+  display: flex;
+  box-sizing: border-box;
+  height: 34px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  border: 1px solid rgba(159, 176, 184, 0.28);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.studio-toolbar-grid-controls .studio-toolbar-snap {
+  padding-left: 5px;
+  border-left: 1px solid rgba(159, 176, 184, 0.28);
 }
 
 .studio-toolbar-toggle {
@@ -1568,22 +1559,6 @@ select {
   box-shadow: none;
 }
 
-.spectre-studio-shell {
-  grid-template-columns: minmax(0, 1fr) 248px !important;
-}
-
-.spectre-studio-shell .studio-workbench {
-  grid-column: 1;
-}
-
-.spectre-studio-shell .studio-context-bar {
-  grid-column: 2;
-}
-
-.spectre-editor-canvas {
-  background: #fffdf8;
-}
-
 @media (max-width: 1120px) {
   .studio-lower-grid {
     grid-template-columns: 1fr;
@@ -1591,10 +1566,6 @@ select {
 
   .studio-layout.studio-builder-shell {
     grid-template-columns: 238px minmax(0, 1fr) 220px;
-  }
-
-  .spectre-studio-shell {
-    grid-template-columns: minmax(0, 1fr) 220px !important;
   }
 
   .studio-toolbar-ribbon {

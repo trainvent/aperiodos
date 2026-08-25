@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  HAT_CARTESIAN,
-  bindPathEndpoints,
   cartesianToLattice,
   circleHandlePoint,
   circularPathGeometry,
@@ -13,16 +11,14 @@ import {
   getDesignLayers,
   insertCircularPathTemplate,
   latticeToCartesian,
-  nearestBoundaryPoint,
   normalizeLayerOrder,
   snapCircleHandle,
-  snapLatticePoint,
   validateDesign,
 } from "./einsteinGeometry";
 import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
-import SpectreStudioPage from "./SpectreStudioPage";
 import StudioFamilySwitch from "./StudioFamilySwitch";
 import MaterialLayerShapes from "./MaterialLayerShapes";
+import { geometryAdapterFor } from "./studioGeometryAdapters";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
 const H_CLUSTER_TRANSFORMS = [
@@ -46,6 +42,34 @@ function fromCanvas(point) {
     x: (CANVAS.width - point.x - CANVAS.originX) / CANVAS.scale,
     y: (point.y + CANVAS.originY - CANVAS.height) / CANVAS.scale,
   });
+}
+
+function canvasOffsetFor(geometry) {
+  if (!geometry.centerCanvas) return { x: 0, y: 0 };
+  const points = geometry.points.map((point) => toCanvas(cartesianToLattice(point)));
+  const bounds = points.reduce((result, point) => ({
+    minX: Math.min(result.minX, point.x),
+    maxX: Math.max(result.maxX, point.x),
+    minY: Math.min(result.minY, point.y),
+    maxY: Math.max(result.maxY, point.y),
+  }), { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
+  return {
+    x: CANVAS.width / 2 - (bounds.minX + bounds.maxX) / 2,
+    y: CANVAS.height / 2 - (bounds.minY + bounds.maxY) / 2,
+  };
+}
+
+function canvasMapperFor(geometry) {
+  const offset = canvasOffsetFor(geometry);
+  return (point) => {
+    const mapped = toCanvas(point);
+    return { x: mapped.x + offset.x, y: mapped.y + offset.y };
+  };
+}
+
+function fromGeometryCanvas(point, geometry) {
+  const offset = canvasOffsetFor(geometry);
+  return fromCanvas({ x: point.x - offset.x, y: point.y - offset.y });
 }
 
 function pointsAttribute(points, mapper = toCanvas) {
@@ -103,6 +127,48 @@ function clusterMapper(transform) {
   };
 }
 
+function fittedClusterMappers(transforms, geometry) {
+  const previewAngle = (geometry.previewRotation || 0) * Math.PI / 180;
+  const previewCos = Math.cos(previewAngle);
+  const previewSin = Math.sin(previewAngle);
+  const project = (point) => {
+    const reflected = geometry.previewReflectX ? { ...point, x: -point.x } : point;
+    return {
+      x: previewCos * reflected.x - previewSin * reflected.y,
+      y: previewSin * reflected.x + previewCos * reflected.y,
+    };
+  };
+  const transformedPoints = transforms.flatMap((transform) => geometry.points.map((point) => (
+    project(transformCartesian(cartesianToLattice(point), transform))
+  )));
+  const bounds = transformedPoints.reduce((result, point) => ({
+    minX: Math.min(result.minX, point.x),
+    maxX: Math.max(result.maxX, point.x),
+    minY: Math.min(result.minY, point.y),
+    maxY: Math.max(result.maxY, point.y),
+  }), { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
+  const padding = 18;
+  const scale = Math.min(
+    (H_CLUSTER_VIEWBOX.width - padding * 2) / (bounds.maxX - bounds.minX),
+    (H_CLUSTER_VIEWBOX.height - padding * 2) / (bounds.maxY - bounds.minY),
+  );
+  const contentWidth = (bounds.maxX - bounds.minX) * scale;
+  const contentHeight = (bounds.maxY - bounds.minY) * scale;
+  const startX = H_CLUSTER_VIEWBOX.x + (H_CLUSTER_VIEWBOX.width - contentWidth) / 2;
+  const startY = H_CLUSTER_VIEWBOX.y + (H_CLUSTER_VIEWBOX.height - contentHeight) / 2;
+  return transforms.map((transform) => {
+    const mapper = (point) => {
+      const transformed = project(transformCartesian(point, transform));
+      return {
+        x: startX + (transformed.x - bounds.minX) * scale,
+        y: startY + (transformed.y - bounds.minY) * scale,
+      };
+    };
+    mapper.scale = scale;
+    return mapper;
+  });
+}
+
 function xmlEscape(value) {
   return String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
@@ -120,33 +186,41 @@ function safeFilename(name) {
   return String(name || "material-design").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "material-design";
 }
 
-function exportSvg(design) {
-  const tilePoints = pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice));
+function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectre" ? "spectre" : "einstein")) {
+  const mapper = canvasMapperFor(geometry);
+  const tilePoints = pointsAttribute(geometry.points.map(cartesianToLattice));
+  const tileShape = geometry.outlineD
+    ? `<path d="${geometry.outlineD(design, mapper)}"`
+    : `<polygon points="${tilePoints}"`;
   const layers = getDesignLayers(design).map(({ kind, item }) => {
     if (kind === "circle") {
-      const center = toCanvas(item.center);
+      const center = mapper(item.center);
       const fill = item.operation === "ink" ? elementMaterialColor(design, item) : design.colors.base;
       return `<circle cx="${center.x.toFixed(2)}" cy="${center.y.toFixed(2)}" r="${(item.radius * CANVAS.scale).toFixed(2)}" fill="${xmlEscape(fill)}" />`;
     }
-    const pathData = kind === "path" ? bezierPath(item.points) : circularPathD(item);
+    const pathData = kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper);
     return `<path d="${pathData}" fill="none" stroke="${xmlEscape(elementMaterialColor(design, item))}" stroke-width="${(item.width * CANVAS.scale).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" />`;
   }).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS.width} ${CANVAS.height}" width="${CANVAS.width}" height="${CANVAS.height}"><title>${xmlEscape(design.name)}</title><defs><clipPath id="tile"><polygon points="${tilePoints}" /></clipPath></defs><rect width="100%" height="100%" fill="white"/><polygon points="${tilePoints}" fill="${xmlEscape(design.colors.base)}"/><g clip-path="url(#tile)">${layers}</g><polygon points="${tilePoints}" fill="none" stroke="#17313b" stroke-width="2" stroke-linejoin="round"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS.width} ${CANVAS.height}" width="${CANVAS.width}" height="${CANVAS.height}"><title>${xmlEscape(design.name)}</title><defs><clipPath id="tile">${tileShape} /></clipPath></defs><rect width="100%" height="100%" fill="white"/>${tileShape} fill="${xmlEscape(design.colors.base)}"/><g clip-path="url(#tile)">${layers}</g>${tileShape} fill="none" stroke="#17313b" stroke-width="2" stroke-linejoin="round"/></svg>`;
 }
 
 export default function StudioPage() {
   const [family, setFamily] = useState("einstein");
-  return family === "spectre" ? <SpectreStudioPage onFamilyChange={setFamily} /> : <EinsteinStudioPage onFamilyChange={setFamily} />;
+  return <MaterialStudioEditor key={family} family={family} onFamilyChange={setFamily} />;
 }
 
-function EinsteinStudioPage({ onFamilyChange }) {
+function MaterialStudioEditor({ family, onFamilyChange }) {
   const { t } = useTranslation("common");
-  const [design, setDesign] = useState(() => ({ ...createEmptyDesign(), name: t("studio.templates.untitled") }));
+  const geometry = useMemo(() => geometryAdapterFor(family), [family]);
+  const mapToCanvas = useMemo(() => canvasMapperFor(geometry), [geometry]);
+  const emptyDesign = () => ({ ...createEmptyDesign(geometry.tile), name: family === "spectre" ? t("studio.spectre.untitled") : t("studio.templates.untitled") });
+  const [design, setDesign] = useState(emptyDesign);
   const [selectedPathId, setSelectedPathId] = useState(null);
   const [selectedCircleId, setSelectedCircleId] = useState(null);
   const [selectedCircularPathId, setSelectedCircularPathId] = useState(null);
   const [snapMode, setSnapMode] = useState("half");
   const [showGrid, setShowGrid] = useState(true);
+  const [gridMode, setGridMode] = useState(family === "spectre" ? "cartesian" : "construction");
   const [showHandles, setShowHandles] = useState(true);
   const [showEdgeNumbers, setShowEdgeNumbers] = useState(false);
   const [bindEndpoints, setBindEndpoints] = useState(true);
@@ -157,13 +231,16 @@ function EinsteinStudioPage({ onFamilyChange }) {
   const [treeMode, setTreeMode] = useState("categories");
   const [transformExpanded, setTransformExpanded] = useState(false);
   const importRef = useRef(null);
-  const grid = useMemo(latticeLines, []);
+  const grid = useMemo(() => gridMode === "cartesian"
+    ? geometry.cartesianGridLines
+    : geometry.gridLines || latticeLines(), [geometry, gridMode]);
   const selectedCircle = (design.circles || []).find((circle) => circle.id === selectedCircleId);
   const selectedCircularPath = (design.circularPaths || []).find((path) => path.id === selectedCircularPathId);
   const selectedPath = !selectedCircle && !selectedCircularPath
     ? design.paths.find((path) => path.id === selectedPathId) || (selectedPathId ? design.paths[0] : null)
     : null;
-  const selectedExportDesign = savedDesigns.find((item) => item.id === selectedExportId) || null;
+  const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile);
+  const selectedExportDesign = familyDesigns.find((item) => item.id === selectedExportId) || null;
 
   useEffect(() => {
     let current = true;
@@ -248,10 +325,10 @@ function EinsteinStudioPage({ onFamilyChange }) {
 
   function handlePointerMove(event) {
     if (!drag || event.pointerId !== drag.pointerId) return;
-    let point = fromCanvas(pointerPosition(event));
+    let point = fromGeometryCanvas(pointerPosition(event), geometry);
     const snapStep = snapMode === "grid" ? 1 : snapMode === "half" ? 0.5 : snapMode === "quarter" ? 0.25 : 0;
     if (drag.kind === "circle-center") {
-      updateCircle(drag.circleId, { center: snapLatticePoint(point, snapStep) });
+      updateCircle(drag.circleId, { center: geometry.snapPoint(point, snapStep) });
       return;
     }
     if (drag.kind === "circle-radius") {
@@ -263,15 +340,15 @@ function EinsteinStudioPage({ onFamilyChange }) {
     }
     if (drag.kind === "circular-path") {
       const circularPath = (design.circularPaths || []).find((candidate) => candidate.id === drag.pathId);
-      const points = circularPath.points.map((existing, index) => index === drag.pointIndex ? snapLatticePoint(point, snapStep) : existing);
+      const points = circularPath.points.map((existing, index) => index === drag.pointIndex ? geometry.snapPoint(point, snapStep) : existing);
       updateCircularPath(drag.pathId, { points });
       return;
     }
     const path = design.paths.find((candidate) => candidate.id === drag.pathId);
     const isEndpoint = drag.pointIndex === 0 || drag.pointIndex === path.points.length - 1;
-    point = snapLatticePoint(point, snapStep);
+    point = geometry.snapPoint(point, snapStep);
     if (bindEndpoints && isEndpoint) {
-      point = nearestBoundaryPoint(point).point;
+      point = geometry.nearestBoundary(point).point;
     }
     updatePoint(drag.pathId, drag.pointIndex, point);
   }
@@ -316,7 +393,7 @@ function EinsteinStudioPage({ onFamilyChange }) {
 
   function addPath() {
     const id = `curve-${Date.now()}`;
-    const path = bindPathEndpoints({
+    const draft = {
       id,
       name: t("studio.paths.newName", { count: design.paths.length + 1 }),
       width: 0.7,
@@ -326,7 +403,11 @@ function EinsteinStudioPage({ onFamilyChange }) {
         { u: 1.5, v: 0 },
         { u: 2.5, v: -1 },
       ],
-    });
+    };
+    const points = [...draft.points];
+    points[0] = geometry.nearestBoundary(points[0]).point;
+    points[points.length - 1] = geometry.nearestBoundary(points[points.length - 1]).point;
+    const path = { ...draft, points };
     setDesign((current) => ({ ...current, paths: [...current.paths, path] }));
     setSelectedPathId(id);
     setSelectedCircleId(null);
@@ -390,7 +471,7 @@ function EinsteinStudioPage({ onFamilyChange }) {
     const next = [
       { u: anchor.u + (anchor.u - previous.u), v: anchor.v + (anchor.v - previous.v) },
       { u: anchor.u + 0.75, v: anchor.v + 0.25 },
-      nearestBoundaryPoint({ u: anchor.u + 1.5, v: anchor.v + 0.5 }).point,
+      geometry.nearestBoundary({ u: anchor.u + 1.5, v: anchor.v + 0.5 }).point,
     ];
     updateSelectedPath({ points: [...points, ...next] });
   }
@@ -439,12 +520,12 @@ function EinsteinStudioPage({ onFamilyChange }) {
   function deleteDesign(id) {
     persistLibrary(savedDesigns.filter((item) => item.id !== id));
     if (selectedExportId === id) setSelectedExportId(null);
-    if (design.id === id) loadDesign({ ...createEmptyDesign(), name: t("studio.templates.untitled") });
+    if (design.id === id) loadDesign(emptyDesign());
     setStatus(t("studio.status.deleted"));
   }
 
   function resetDesign() {
-    loadDesign({ ...createEmptyDesign(), name: t("studio.templates.untitled") });
+    loadDesign(emptyDesign());
     setStatus(t("studio.status.reset"));
   }
 
@@ -453,6 +534,7 @@ function EinsteinStudioPage({ onFamilyChange }) {
     if (!file) return;
     file.text().then((text) => {
       const imported = validateDesign(JSON.parse(text));
+      if (imported.tile !== geometry.tile) throw new Error("The imported design belongs to another tile family.");
       loadDesign({ ...cloneDesign(imported), id: `imported-${Date.now()}` });
       setStatus(t("studio.status.imported"));
     }).catch(() => setStatus(t("studio.status.importFailed")));
@@ -523,9 +605,26 @@ function EinsteinStudioPage({ onFamilyChange }) {
     );
   }
 
+  function renderSpectreShapeControls() {
+    if (family !== "spectre" || selectedPath || selectedCircle || selectedCircularPath) return null;
+    const shape = design.tileShape || { roundness: 0.18, weight: 0.5, lean: 1 };
+    const updateShape = (changes) => setDesign((current) => ({
+      ...current,
+      tileShape: { ...current.tileShape, ...changes },
+    }));
+    return (
+      <>
+        <span className="studio-context-help">{t("studio.spectre.shapeHelp")}</span>
+        <label className="studio-context-range"><span>{t("studio.spectre.roundness")} {shape.roundness.toFixed(2)}</span><input type="range" min="0" max="1" step="0.01" value={shape.roundness} onChange={(event) => updateShape({ roundness: Number(event.target.value) })} /></label>
+        <label className="studio-context-range"><span>{t("studio.spectre.weight")} {shape.weight.toFixed(2)}</span><input type="range" min="0.15" max="0.85" step="0.01" value={shape.weight} onChange={(event) => updateShape({ weight: Number(event.target.value) })} /></label>
+        <label className="studio-bend-switch"><span>{t("studio.spectre.invert")}</span><input type="checkbox" checked={shape.lean > 0} onChange={(event) => updateShape({ lean: event.target.checked ? 1 : -1 })} /><b aria-hidden="true">{shape.lean > 0 ? "↻" : "↺"}</b></label>
+      </>
+    );
+  }
+
   const ports = design.paths.flatMap((path) => [
-    { path, side: t("studio.ports.start"), port: nearestBoundaryPoint(path.points[0]) },
-    { path, side: t("studio.ports.end"), port: nearestBoundaryPoint(path.points[path.points.length - 1]) },
+    { path, side: t("studio.ports.start"), port: geometry.nearestBoundary(path.points[0]) },
+    { path, side: t("studio.ports.end"), port: geometry.nearestBoundary(path.points[path.points.length - 1]) },
   ]);
   const boundCount = ports.filter(({ port }) => port.distance < 0.0001).length;
 
@@ -534,7 +633,7 @@ function EinsteinStudioPage({ onFamilyChange }) {
       <div className="panel studio-layout studio-builder-shell">
         <div className="studio-top-toolbar" role="toolbar" aria-label={t("studio.toolbar.aria")}>
           <div className="studio-toolbar-row studio-toolbar-main">
-            <StudioFamilySwitch family="einstein" onChange={onFamilyChange} />
+            <StudioFamilySwitch family={family} onChange={onFamilyChange} />
             <label className="studio-toolbar-name">
               <span>{t("studio.controls.name")}</span>
               <input value={design.name} onChange={(event) => setDesign((current) => ({ ...current, name: event.target.value }))} />
@@ -568,10 +667,15 @@ function EinsteinStudioPage({ onFamilyChange }) {
             </div>
             <div className="studio-toolbar-group studio-toolbar-settings">
               <span className="studio-toolbar-label">{t("studio.toolbar.precision")}</span>
-              <label className="studio-toolbar-snap"><span>{t("studio.controls.snapping")}</span><select value={snapMode} onChange={(event) => setSnapMode(event.target.value)}><option value="quarter">¼</option><option value="half">½</option><option value="grid">1</option><option value="free">{t("studio.controls.snapFree")}</option></select></label>
-              <label className="studio-toolbar-toggle"><input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} /><span>#</span><small>{t("studio.toolbar.grid")}</small></label>
-              <label className="studio-toolbar-toggle"><input type="checkbox" checked={showHandles} onChange={(event) => setShowHandles(event.target.checked)} /><span>⌖</span><small>{t("studio.toolbar.handles")}</small></label>
-              <label className="studio-toolbar-toggle"><input type="checkbox" checked={showEdgeNumbers} onChange={(event) => setShowEdgeNumbers(event.target.checked)} /><span className="studio-toolbar-edge-number"><span>1</span></span><small>{t("studio.toolbar.edges")}</small></label>
+              <div className="studio-toolbar-grid-block">
+                <div className="studio-toolbar-grid-controls">
+                  <label className="studio-toolbar-toggle"><input type="checkbox" aria-label={t("studio.toolbar.grid")} checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} /><span>#</span></label>
+                  <label className="studio-toolbar-grid-mode"><select aria-label={t("studio.controls.gridMode")} value={gridMode} onChange={(event) => setGridMode(event.target.value)}><option value="construction">{t("studio.controls.gridConstruction")}</option><option value="cartesian">{t("studio.controls.gridCartesian")}</option></select></label>
+                  <label className="studio-toolbar-snap"><select aria-label={t("studio.controls.snapping")} value={snapMode} onChange={(event) => setSnapMode(event.target.value)}><option value="quarter">¼</option><option value="half">½</option><option value="grid">1</option><option value="free">{t("studio.controls.snapFree")}</option></select></label>
+                </div>
+              </div>
+              <label className="studio-toolbar-toggle"><input type="checkbox" aria-label={t("studio.toolbar.handles")} checked={showHandles} onChange={(event) => setShowHandles(event.target.checked)} /><span>⌖</span></label>
+              <label className="studio-toolbar-toggle"><input type="checkbox" aria-label={t("studio.toolbar.edges")} checked={showEdgeNumbers} onChange={(event) => setShowEdgeNumbers(event.target.checked)} /><span className="studio-toolbar-edge-number"><span>1</span></span></label>
             </div>
           </div>
         </div>
@@ -585,7 +689,7 @@ function EinsteinStudioPage({ onFamilyChange }) {
             </div>
           </div>
           <div className="studio-tree" role="tree">
-            <button type="button" className={`studio-tree-root${!selectedPath && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={() => { setSelectedPathId(null); setSelectedCircleId(null); setSelectedCircularPathId(null); }}><span>◇</span><strong>{design.name}</strong><small>Einstein</small></button>
+            <button type="button" className={`studio-tree-root${!selectedPath && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={() => { setSelectedPathId(null); setSelectedCircleId(null); setSelectedCircularPathId(null); }}><span>◇</span><strong>{design.name}</strong><small>{geometry.label}</small></button>
             {treeMode === "categories" ? (
               <>
                 <details open>
@@ -639,60 +743,63 @@ function EinsteinStudioPage({ onFamilyChange }) {
               onPointerUp={stopDragging}
               onPointerCancel={stopDragging}
             >
-            <defs><clipPath id="studio-hat-clip"><polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} /></clipPath></defs>
+            <defs><clipPath id="studio-tile-clip"><TileShape design={design} geometry={geometry} /></clipPath></defs>
             <rect width={CANVAS.width} height={CANVAS.height} className="studio-canvas-bg" />
             {showGrid ? (
-              <g className="studio-lattice">
+              <g className={`studio-lattice studio-${family}-grid studio-grid-${gridMode}`}>
                 {grid.map(([start, end], index) => {
-                  const a = toCanvas(start);
-                  const b = toCanvas(end);
+                  const a = mapToCanvas(start);
+                  const b = mapToCanvas(end);
                   return <line key={index} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
                 })}
-                {Array.from({ length: 15 }, (_, uIndex) => Array.from({ length: 14 }, (_, vIndex) => {
-                  const point = toCanvas({ u: uIndex - 6, v: vIndex - 6 });
+                {family === "einstein" ? Array.from({ length: 15 }, (_, uIndex) => Array.from({ length: 14 }, (_, vIndex) => {
+                  const point = mapToCanvas({ u: uIndex - 6, v: vIndex - 6 });
                   return <circle key={`${uIndex}-${vIndex}`} cx={point.x} cy={point.y} r="2.1" />;
-                }))}
+                })) : geometry.points.map((point, index) => {
+                  const screen = mapToCanvas(cartesianToLattice(point));
+                  return <circle key={`spectre-${index}`} cx={screen.x} cy={screen.y} r="2.1" />;
+                })}
               </g>
             ) : null}
-            <polygon className="studio-tile-fill" points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} style={{ fill: design.colors.base }} />
-            <g clipPath="url(#studio-hat-clip)">
+            <TileShape design={design} geometry={geometry} className="studio-tile-fill" style={{ fill: design.colors.base }} />
+            <g clipPath="url(#studio-tile-clip)">
               <MaterialLayerShapes
                 layers={getDesignLayers(design)}
-                mapPoint={toCanvas}
+                mapPoint={mapToCanvas}
                 colorFor={(item) => elementMaterialColor(design, item)}
                 baseColor={design.colors.base}
-                renderPath={(kind, item) => kind === "path" ? bezierPath(item.points) : circularPathD(item)}
+                renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapToCanvas) : circularPathD(item, mapToCanvas)}
                 strokeScale={CANVAS.scale}
                 onSelect={selectLayer}
                 selectedIds={{ path: selectedPathId, circularPath: selectedCircularPathId }}
               />
             </g>
-            <polygon className="studio-tile-outline" points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} />
-            {showEdgeNumbers ? HAT_CARTESIAN.map((point, index) => {
-              const next = HAT_CARTESIAN[(index + 1) % HAT_CARTESIAN.length];
-              const label = toCanvas(cartesianToLattice({ x: (point.x + next.x) / 2, y: (point.y + next.y) / 2 }));
+            <TileShape design={design} geometry={geometry} className="studio-tile-outline" />
+            {showEdgeNumbers ? geometry.points.map((point, index) => {
+              const next = geometry.points[(index + 1) % geometry.points.length];
+              const label = mapToCanvas(cartesianToLattice({ x: (point.x + next.x) / 2, y: (point.y + next.y) / 2 }));
               return <g className="studio-edge-label" key={index}><circle cx={label.x} cy={label.y} r="11" /><text x={label.x} y={label.y + 3.5}>{index + 1}</text></g>;
             }) : null}
             {showHandles && selectedPath && !selectedCircle && !selectedCircularPath ? (
               <g className="studio-handles">
                 {Array.from({ length: (selectedPath.points.length - 1) / 3 }, (_, segment) => {
                   const index = segment * 3;
-                  const anchorA = toCanvas(selectedPath.points[index]);
-                  const controlA = toCanvas(selectedPath.points[index + 1]);
-                  const controlB = toCanvas(selectedPath.points[index + 2]);
-                  const anchorB = toCanvas(selectedPath.points[index + 3]);
+                  const anchorA = mapToCanvas(selectedPath.points[index]);
+                  const controlA = mapToCanvas(selectedPath.points[index + 1]);
+                  const controlB = mapToCanvas(selectedPath.points[index + 2]);
+                  const anchorB = mapToCanvas(selectedPath.points[index + 3]);
                   return <g key={segment}><line x1={anchorA.x} y1={anchorA.y} x2={controlA.x} y2={controlA.y} /><line x1={controlB.x} y1={controlB.y} x2={anchorB.x} y2={anchorB.y} /></g>;
                 })}
                 {selectedPath.points.map((point, index) => {
-                  const screen = toCanvas(point);
+                  const screen = mapToCanvas(point);
                   const anchor = index % 3 === 0;
                   return <circle key={index} className={anchor ? "anchor" : "control"} cx={screen.x} cy={screen.y} r={anchor ? 8 : 6} onPointerDown={(event) => beginDragging(event, selectedPath.id, index)} />;
                 })}
               </g>
             ) : null}
             {showHandles && selectedCircle ? (() => {
-              const center = toCanvas(selectedCircle.center);
-              const radiusHandle = toCanvas(circleHandlePoint(selectedCircle));
+              const center = mapToCanvas(selectedCircle.center);
+              const radiusHandle = mapToCanvas(circleHandlePoint(selectedCircle));
               return (
                 <g className="studio-handles studio-circle-handles">
                   <line x1={center.x} y1={center.y} x2={radiusHandle.x} y2={radiusHandle.y} />
@@ -703,9 +810,9 @@ function EinsteinStudioPage({ onFamilyChange }) {
             })() : null}
             {showHandles && selectedCircularPath ? (
               <g className="studio-handles studio-circular-path-handles">
-                <polyline points={pointsAttribute(selectedCircularPath.points)} />
+                <polyline points={pointsAttribute(selectedCircularPath.points, mapToCanvas)} />
                 {selectedCircularPath.points.map((point, index) => {
-                  const screen = toCanvas(point);
+                  const screen = mapToCanvas(point);
                   return (
                     <g key={index}>
                       <circle className="anchor" cx={screen.x} cy={screen.y} r="9" onPointerDown={(event) => beginCircularPathDragging(event, selectedCircularPath.id, index)} />
@@ -727,8 +834,8 @@ function EinsteinStudioPage({ onFamilyChange }) {
               <button type="button" className="studio-transform-toggle" onClick={() => setTransformExpanded((current) => !current)} aria-expanded={transformExpanded} aria-label={t(transformExpanded ? "studio.preview.collapse" : "studio.preview.expand")}>
                 <span aria-hidden="true">{transformExpanded ? "↙" : "↗"}</span>
               </button>
-              <ClusterPreview design={design} />
-              <span className="studio-flip-key"><b>M</b>: {t("studio.preview.flipped")}</span>
+              <ClusterPreview design={design} geometry={geometry} />
+              {family === "einstein" ? <span className="studio-flip-key"><b>M</b>: {t("studio.preview.flipped")}</span> : null}
             </section>
           </div>
           <div className="studio-canvas-legend">
@@ -743,7 +850,8 @@ function EinsteinStudioPage({ onFamilyChange }) {
           {renderPathControls()}
           {renderCircleControls()}
           {renderCircularPathControls()}
-          {!selectedPath && !selectedCircle && !selectedCircularPath ? <span className="studio-context-help">{t("studio.toolbar.selectHint")}</span> : null}
+          {renderSpectreShapeControls()}
+          {family !== "spectre" && !selectedPath && !selectedCircle && !selectedCircularPath ? <span className="studio-context-help">{t("studio.toolbar.selectHint")}</span> : null}
         </aside>
       </div>
 
@@ -752,9 +860,9 @@ function EinsteinStudioPage({ onFamilyChange }) {
           <div className="studio-panel-heading">
             <div><h2>{t("studio.library.title")}</h2></div>
           </div>
-          <p className="studio-library-note">{t("studio.library.localNote")}</p>
+          <p className="studio-library-note">{t(family === "spectre" ? "studio.spectre.libraryNote" : "studio.library.localNote")}</p>
           <div className="studio-library-grid">
-            {savedDesigns.map((item) => (
+            {familyDesigns.map((item) => (
               <article
                 className={`studio-design-card${selectedExportId === item.id ? " selected" : ""}`}
                 key={item.id}
@@ -768,7 +876,7 @@ function EinsteinStudioPage({ onFamilyChange }) {
                   setSelectedExportId(item.id);
                 }}
               >
-                <MiniDesign design={item} />
+                <MiniDesign design={item} geometry={geometry} />
                 <div><strong>{item.name}</strong><small>{item.id.startsWith("builtin-") ? t("studio.library.builtin") : t("studio.library.local")}</small></div>
                 <div className="studio-card-actions">
                   <button type="button" onClick={(event) => { event.stopPropagation(); loadDesign(item); }}>{t("studio.library.load")}</button>
@@ -776,11 +884,11 @@ function EinsteinStudioPage({ onFamilyChange }) {
                 </div>
               </article>
             ))}
-            {!savedDesigns.length ? <p className="studio-library-empty">{t("studio.library.empty")}</p> : null}
+            {!familyDesigns.length ? <p className="studio-library-empty">{t("studio.library.empty")}</p> : null}
           </div>
           <div className="studio-library-actions">
             <button className="button button-green small" type="button" disabled={!selectedExportDesign} onClick={() => downloadBlob(`${safeFilename(selectedExportDesign.name)}.json`, JSON.stringify(selectedExportDesign, null, 2), "application/json")}>{t("studio.actions.exportJson")}</button>
-            <button className="button button-ink small" type="button" disabled={!selectedExportDesign} onClick={() => downloadBlob(`${safeFilename(selectedExportDesign.name)}.svg`, exportSvg(selectedExportDesign), "image/svg+xml")}>{t("studio.actions.exportSvg")}</button>
+            <button className="button button-ink small" type="button" disabled={!selectedExportDesign} onClick={() => downloadBlob(`${safeFilename(selectedExportDesign.name)}.svg`, exportSvg(selectedExportDesign, geometry), "image/svg+xml")}>{t("studio.actions.exportSvg")}</button>
             <button className="button button-muted small" type="button" onClick={() => importRef.current?.click()}>{t("studio.actions.import")}</button>
             <input ref={importRef} className="studio-file-input" type="file" accept="application/json,.json" onChange={handleImport} />
           </div>
@@ -790,24 +898,34 @@ function EinsteinStudioPage({ onFamilyChange }) {
   );
 }
 
-function ClusterPreview({ design }) {
+function TileShape({ design, geometry, mapper, ...props }) {
+  const resolvedMapper = mapper || canvasMapperFor(geometry);
+  if (geometry.outlineD) return <path d={geometry.outlineD(design, resolvedMapper)} {...props} />;
+  return <polygon points={pointsAttribute(geometry.points.map(cartesianToLattice), resolvedMapper)} {...props} />;
+}
+
+function ClusterPreview({ design, geometry }) {
+  const transforms = geometry.previewTransforms || H_CLUSTER_TRANSFORMS;
+  const fittedMappers = geometry.previewTransforms ? fittedClusterMappers(transforms, geometry) : null;
+  const previewDesign = geometry.previewDesign ? geometry.previewDesign(design) : design;
   return (
-    <svg className="studio-cluster-preview" viewBox={`${H_CLUSTER_VIEWBOX.x} ${H_CLUSTER_VIEWBOX.y} ${H_CLUSTER_VIEWBOX.width} ${H_CLUSTER_VIEWBOX.height}`} aria-label="Transformed Einstein material preview">
+    <svg className="studio-cluster-preview" viewBox={`${H_CLUSTER_VIEWBOX.x} ${H_CLUSTER_VIEWBOX.y} ${H_CLUSTER_VIEWBOX.width} ${H_CLUSTER_VIEWBOX.height}`} aria-label={`Transformed ${geometry.label} material preview`}>
       <rect {...H_CLUSTER_VIEWBOX} fill="#fffdf8" />
       <defs>
-        {H_CLUSTER_TRANSFORMS.map((transform, index) => <clipPath id={`cluster-clip-${index}`} key={index}><polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice), clusterMapper(transform))} /></clipPath>)}
+        {transforms.map((transform, index) => <clipPath id={`cluster-clip-${index}`} key={index}><TileShape design={previewDesign} geometry={geometry} mapper={fittedMappers?.[index] || clusterMapper(transform)} /></clipPath>)}
       </defs>
-      {H_CLUSTER_TRANSFORMS.map((transform, index) => {
-        const mapper = clusterMapper(transform);
+      {transforms.map((transform, index) => {
+        const mapper = fittedMappers?.[index] || clusterMapper(transform);
         const determinant = transform[0] * transform[4] - transform[1] * transform[3];
+        const tileBase = geometry.previewFill ? geometry.previewFill(index, design) : design.colors.base;
         return (
           <g key={index}>
-            <polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice), mapper)} fill={design.colors.base} />
+            <TileShape design={previewDesign} geometry={geometry} mapper={mapper} fill={tileBase} />
             <g clipPath={`url(#cluster-clip-${index})`}>
-              <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={Math.sqrt(Math.abs(determinant)) * 78} />
+              <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={tileBase} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={mapper.scale || Math.sqrt(Math.abs(determinant)) * 78} />
             </g>
-            <polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice), mapper)} fill="none" stroke="#17313b" strokeWidth="1.5" strokeLinejoin="round" />
-            {determinant > 0 ? <text className="studio-mirror-label" x={mapper({ u: 1.5, v: 0 }).x} y={mapper({ u: 1.5, v: 0 }).y}>M</text> : null}
+            <TileShape design={previewDesign} geometry={geometry} mapper={mapper} fill="none" stroke={geometry.previewStroke || "#17313b"} strokeWidth={geometry.previewStroke ? "3" : "1.5"} strokeLinejoin="round" />
+            {geometry.family === "einstein" && determinant > 0 ? <text className="studio-mirror-label" x={mapper({ u: 1.5, v: 0 }).x} y={mapper({ u: 1.5, v: 0 }).y}>M</text> : null}
           </g>
         );
       })}
@@ -815,15 +933,16 @@ function ClusterPreview({ design }) {
   );
 }
 
-function MiniDesign({ design }) {
+function MiniDesign({ design, geometry }) {
+  const mapper = canvasMapperFor(geometry);
   return (
     <svg className="studio-mini-design" viewBox={`0 0 ${CANVAS.width} ${CANVAS.height}`} aria-hidden="true">
-      <defs><clipPath id={`mini-${design.id}`}><polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} /></clipPath></defs>
-      <polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} fill={design.colors.base} />
+      <defs><clipPath id={`mini-${design.id}`}><TileShape design={design} geometry={geometry} /></clipPath></defs>
+      <TileShape design={design} geometry={geometry} fill={design.colors.base} />
       <g clipPath={`url(#mini-${design.id})`}>
-        <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={toCanvas} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points) : circularPathD(item)} strokeScale={CANVAS.scale} />
+        <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={CANVAS.scale} />
       </g>
-      <polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} fill="none" stroke="#17313b" strokeWidth="4" strokeLinejoin="round" />
+      <TileShape design={design} geometry={geometry} fill="none" stroke="#17313b" strokeWidth="4" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -181,13 +181,15 @@ export function bindPathEndpoints(path) {
   return { ...path, points };
 }
 
-export function createEmptyDesign() {
+export function createEmptyDesign(tile = "einstein-hat") {
+  const spectre = tile === "spectre";
   return {
     schema: "aperiodos.material-design",
     version: 1,
-    id: "builtin-empty-einstein-pattern",
-    name: "Untitled Einstein pattern",
-    tile: "einstein-hat",
+    id: `builtin-empty-${spectre ? "spectre" : "einstein"}-pattern`,
+    name: `Untitled ${spectre ? "Spectre" : "Einstein"} pattern`,
+    tile,
+    ...(spectre ? { tileShape: { roundness: 0.18, weight: 0.5, lean: 1 } } : {}),
     colors: { base: "#ffffff", ink: "#00c200" },
     paths: [],
     circles: [],
@@ -258,8 +260,14 @@ export function validateDesign(value) {
   }
   const circles = Array.isArray(value.circles) ? value.circles : [];
   const circularPaths = Array.isArray(value.circularPaths) ? value.circularPaths : [];
-  if (value.tile !== "einstein-hat" || !Array.isArray(value.paths) || (!value.paths.length && !circles.length && !circularPaths.length)) {
-    throw new Error("The design must contain Einstein tile material geometry.");
+  if (!['einstein-hat', 'spectre'].includes(value.tile) || !Array.isArray(value.paths) || (!value.paths.length && !circles.length && !circularPaths.length)) {
+    throw new Error("The design must contain supported tile material geometry.");
+  }
+  if (value.tile === "spectre") {
+    const shape = value.tileShape || {};
+    if (![shape.roundness, shape.weight, shape.lean].every((item) => Number.isFinite(Number(item)))) {
+      throw new Error("Spectre designs need finite tile curvature settings.");
+    }
   }
   value.paths.forEach((path) => {
     if (!Array.isArray(path.points) || path.points.length < 4 || (path.points.length - 1) % 3 !== 0) {

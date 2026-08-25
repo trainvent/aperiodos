@@ -35,7 +35,11 @@ export async function getStudioLibraryDesigns(storage = globalThis.window?.local
 }
 
 export async function getEinsteinStudioPatterns(storage = globalThis.window?.localStorage, fetcher = globalThis.fetch) {
-  return getStudioLibraryDesigns(storage, fetcher);
+  return (await getStudioLibraryDesigns(storage, fetcher)).filter((design) => design.tile === "einstein-hat");
+}
+
+export async function getSpectreStudioPatterns(storage = globalThis.window?.localStorage, fetcher = globalThis.fetch) {
+  return (await getStudioLibraryDesigns(storage, fetcher)).filter((design) => design.tile === "spectre");
 }
 
 export function studioPatternValue(id) {
