@@ -46,6 +46,7 @@
 			"moveUp": "Ebene nach oben",
 			"moveDown": "Ebene nach unten",
 			"path": "Bézier-Pfad",
+			"line": "Linie",
 			"circle": "Kreis",
 			"circularPath": "Kreisbogenpfad"
 		},
@@ -84,6 +85,13 @@
 			"addSegment": "+ Segment",
 			"removeSegment": "− Segment",
 			"removePath": "Pfad löschen"
+		},
+		"lines": {
+			"title": "Linien",
+			"newName": "Linie {{count}}",
+			"lineName": "Linienname",
+			"width": "Breite",
+			"remove": "Linie löschen"
 		},
 		"circles": {
 			"title": "Kreisebenen",

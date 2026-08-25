@@ -112,6 +112,7 @@ def _studio_motif_elements(pattern, fallback_color):
     elements = []
     collections = {
         "path": {item["id"]: item for item in pattern.get("paths", [])},
+        "line": {item["id"]: item for item in pattern.get("lines", [])},
         "circle": {item["id"]: item for item in pattern.get("circles", [])},
         "circularPath": {item["id"]: item for item in pattern.get("circularPaths", [])},
     }
@@ -122,7 +123,7 @@ def _studio_motif_elements(pattern, fallback_color):
         if key[0] in collections and key[1] in collections[key[0]] and key not in seen:
             order.append(key)
             seen.add(key)
-    for kind in ("path", "circle", "circularPath"):
+    for kind in ("path", "line", "circle", "circularPath"):
         for item_id in collections[kind]:
             if (kind, item_id) not in seen:
                 order.append((kind, item_id))
@@ -133,6 +134,9 @@ def _studio_motif_elements(pattern, fallback_color):
         if kind == "path":
             points = [_lattice_point(point) for point in item["points"]]
             elements.append(f'<path d="{_curve_path(points)}" stroke="{item_color}" stroke-width="{float(item["width"]):.4f}" />')
+        elif kind == "line":
+            points = [_lattice_point(point) for point in item["points"]]
+            elements.append(f'<path d="M {points[0][0]:.4f} {points[0][1]:.4f} L {points[1][0]:.4f} {points[1][1]:.4f}" stroke="{item_color}" stroke-width="{float(item["width"]):.4f}" />')
         elif kind == "circle":
             center = _lattice_point(item["center"])
             fill = item_color if item.get("operation") == "ink" else "var(--einstein-tile-fill)"

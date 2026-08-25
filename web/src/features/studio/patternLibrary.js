@@ -2,7 +2,10 @@ import { cloneDesign, validateDesign } from "./einsteinGeometry.js";
 
 export const STUDIO_LIBRARY_KEY = "aperiodos-studio-designs-v1";
 export const STUDIO_LIBRARY_EVENT = "aperiodos:studio-library-changed";
-export const PUBLIC_STUDIO_PATTERN_ASSETS = ["/patterns/einstein/greencurves.json"];
+export const PUBLIC_STUDIO_PATTERN_ASSETS = [
+  "/patterns/einstein/greencurves.json",
+  "/patterns/spectre/hexagonalization.json",
+];
 
 export function readStudioLibrary(storage = globalThis.window?.localStorage) {
   if (!storage) return [];

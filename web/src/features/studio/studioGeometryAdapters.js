@@ -8,8 +8,9 @@ import {
 import { SPECTRE_POINTS, spectrePath } from "./spectreGeometry.js";
 
 const SPECTRE_CARTESIAN = SPECTRE_POINTS.map(([x, y]) => ({ x, y }));
+export const CARTESIAN_GRID_STEP = 0.125;
 
-export function cartesianGridLines(min = -10, max = 10, step = 0.125) {
+export function cartesianGridLines(min = -10, max = 10, step = CARTESIAN_GRID_STEP) {
   const lines = [];
   for (let value = min; value <= max + 1e-9; value += step) {
     const coordinate = Math.round(value / step) * step;
@@ -23,6 +24,15 @@ export function cartesianGridLines(min = -10, max = 10, step = 0.125) {
     ]);
   }
   return lines;
+}
+
+export function snapCartesianPoint(point, step = CARTESIAN_GRID_STEP) {
+  if (!step) return point;
+  const cartesian = latticeToCartesian(point);
+  return cartesianToLattice({
+    x: Math.round(cartesian.x / step) * step,
+    y: Math.round(cartesian.y / step) * step,
+  });
 }
 
 function spectrePreviewTransforms() {

@@ -1152,6 +1152,26 @@ select {
   accent-color: #d1825a;
 }
 
+.studio-context-range-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.studio-context-range-label input[type="number"] {
+  box-sizing: border-box;
+  width: 58px;
+  min-width: 58px;
+  padding: 3px 5px;
+  border: 1px solid #52646d;
+  border-radius: 4px;
+  background: #13232c;
+  color: #edf4f5;
+  font: inherit;
+  text-align: right;
+}
+
 .studio-context-color {
   min-width: 0 !important;
   align-items: center !important;

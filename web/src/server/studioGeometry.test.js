@@ -18,7 +18,7 @@ import {
 } from "../features/studio/einsteinGeometry.js";
 import { getEinsteinStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns } from "../features/studio/patternLibrary.js";
 import { SPECTRE_POINTS, spectreEdgeControl, spectrePath } from "../features/studio/spectreGeometry.js";
-import { cartesianGridLines, geometryAdapterFor } from "../features/studio/studioGeometryAdapters.js";
+import { cartesianGridLines, geometryAdapterFor, snapCartesianPoint } from "../features/studio/studioGeometryAdapters.js";
 
 function createDesignWithCircularPath() {
   const design = createEmptyDesign();
@@ -52,8 +52,25 @@ test("Studio can start with an empty editable document", () => {
   assert.equal(design.schema, "aperiodos.material-design");
   assert.deepEqual(getDesignLayers(design), []);
   assert.deepEqual(design.paths, []);
+  assert.deepEqual(design.lines, []);
   assert.deepEqual(design.circles, []);
   assert.deepEqual(design.circularPaths, []);
+});
+
+test("Studio validates straight lines as first-class material layers", () => {
+  const design = createEmptyDesign();
+  design.lines = [{
+    id: "straight-line",
+    name: "Line 1",
+    width: 0.7,
+    color: "#123456",
+    points: [{ u: 0, v: 0 }, { u: 2, v: 1 }],
+  }];
+  design.layerOrder = [{ kind: "line", id: "straight-line" }];
+  const validated = validateDesign(design);
+  assert.equal(validated.lines[0].points.length, 2);
+  assert.equal(getDesignLayers(validated)[0].kind, "line");
+  assert.equal(getDesignLayers(validated)[0].item.color, "#123456");
 });
 
 test("Spectre uses the shared material document with persistent curvature", () => {
@@ -102,6 +119,12 @@ test("Studio Cartesian grid is regular, fine-grained, and anchored at the tile o
     .filter(([start, end]) => Math.abs(start.x - end.x) < 1e-9)
     .map(([start]) => Math.round(start.x * 8) / 8);
   assert.deepEqual(verticalCoordinates, [-0.25, -0.125, 0, 0.125, 0.25]);
+});
+
+test("Cartesian snapping lands exactly on visible mesh intersections", () => {
+  const snapped = latticeToCartesian(snapCartesianPoint(cartesianToLattice({ x: 0.192, y: -0.311 })));
+  assert.ok(Math.abs(snapped.x - 0.25) < 1e-9);
+  assert.ok(Math.abs(snapped.y + 0.25) < 1e-9);
 });
 
 test("Spectre preview uses edge-matched rotations without reflections", () => {
@@ -163,11 +186,18 @@ test("Studio pattern consumers receive only their geometry family", async () => 
   assert.equal((await getSpectreStudioPatterns(storage, fetcher))[0].tile, "spectre");
 });
 
-test("GreenCurves public preset loads from its pattern asset", async () => {
-  const json = JSON.parse(await readFile(new URL("../../public/patterns/einstein/greencurves.json", import.meta.url), "utf8"));
-  const [design] = await getPublicStudioDesigns(async () => ({ ok: true, json: async () => json }));
-  assert.equal(design.id, "builtin-green-curves");
-  assert.deepEqual(design.circularPaths.map((path) => path.width), [0.7, 1.3]);
+test("Public Studio presets load from their pattern assets", async () => {
+  const assets = await Promise.all([
+    readFile(new URL("../../public/patterns/einstein/greencurves.json", import.meta.url), "utf8"),
+    readFile(new URL("../../public/patterns/spectre/hexagonalization.json", import.meta.url), "utf8"),
+  ]);
+  let index = 0;
+  const designs = await getPublicStudioDesigns(async () => ({ ok: true, json: async () => JSON.parse(assets[index++]) }));
+  const greenCurves = designs.find((design) => design.id === "builtin-green-curves");
+  const hexagonalization = designs.find((design) => design.id === "builtin-spectre-hexagonalization");
+  assert.deepEqual(greenCurves.circularPaths.map((path) => path.width), [0.7, 1.3]);
+  assert.equal(hexagonalization.tile, "spectre");
+  assert.equal(hexagonalization.lines.length, 7);
 });
 
 test("Studio elements can override the document color", () => {

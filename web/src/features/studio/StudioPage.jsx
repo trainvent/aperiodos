@@ -18,7 +18,7 @@ import {
 import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
 import StudioFamilySwitch from "./StudioFamilySwitch";
 import MaterialLayerShapes from "./MaterialLayerShapes";
-import { geometryAdapterFor } from "./studioGeometryAdapters";
+import { geometryAdapterFor, snapCartesianPoint } from "./studioGeometryAdapters";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
 const H_CLUSTER_TRANSFORMS = [
@@ -90,6 +90,12 @@ function bezierPath(points, mapper = toCanvas) {
     }
   }
   return commands.join(" ");
+}
+
+function linePath(points, mapper = toCanvas) {
+  if (points.length !== 2) return "";
+  const [start, end] = points.map(mapper);
+  return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} L ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
 }
 
 function circularPathD(path, mapper = toCanvas) {
@@ -198,7 +204,7 @@ function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectr
       const fill = item.operation === "ink" ? elementMaterialColor(design, item) : design.colors.base;
       return `<circle cx="${center.x.toFixed(2)}" cy="${center.y.toFixed(2)}" r="${(item.radius * CANVAS.scale).toFixed(2)}" fill="${xmlEscape(fill)}" />`;
     }
-    const pathData = kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper);
+    const pathData = kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper);
     return `<path d="${pathData}" fill="none" stroke="${xmlEscape(elementMaterialColor(design, item))}" stroke-width="${(item.width * CANVAS.scale).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" />`;
   }).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS.width} ${CANVAS.height}" width="${CANVAS.width}" height="${CANVAS.height}"><title>${xmlEscape(design.name)}</title><defs><clipPath id="tile">${tileShape} /></clipPath></defs><rect width="100%" height="100%" fill="white"/>${tileShape} fill="${xmlEscape(design.colors.base)}"/><g clip-path="url(#tile)">${layers}</g>${tileShape} fill="none" stroke="#17313b" stroke-width="2" stroke-linejoin="round"/></svg>`;
@@ -207,19 +213,24 @@ function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectr
 export default function StudioPage() {
   const [family, setFamily] = useState("einstein");
   const [drafts, setDrafts] = useState({});
+  const [lineWidths, setLineWidths] = useState({ einstein: 0.7, spectre: 0.7 });
   const cacheDraft = useCallback((draftFamily, design) => {
     setDrafts((current) => current[draftFamily] === design ? current : { ...current, [draftFamily]: design });
   }, []);
-  return <MaterialStudioEditor key={family} family={family} onFamilyChange={setFamily} cachedDesign={drafts[family]} onDraftChange={cacheDraft} />;
+  const cacheLineWidth = useCallback((draftFamily, width) => {
+    setLineWidths((current) => current[draftFamily] === width ? current : { ...current, [draftFamily]: width });
+  }, []);
+  return <MaterialStudioEditor key={family} family={family} onFamilyChange={setFamily} cachedDesign={drafts[family]} onDraftChange={cacheDraft} cachedLineWidth={lineWidths[family]} onLineWidthChange={cacheLineWidth} />;
 }
 
-function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftChange }) {
+function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftChange, cachedLineWidth, onLineWidthChange }) {
   const { t } = useTranslation("common");
   const geometry = useMemo(() => geometryAdapterFor(family), [family]);
   const mapToCanvas = useMemo(() => canvasMapperFor(geometry), [geometry]);
   const emptyDesign = () => ({ ...createEmptyDesign(geometry.tile), name: family === "spectre" ? t("studio.spectre.untitled") : t("studio.templates.untitled") });
   const [design, setDesign] = useState(() => cachedDesign ? cloneDesign(cachedDesign) : emptyDesign());
   const [selectedPathId, setSelectedPathId] = useState(null);
+  const [selectedLineId, setSelectedLineId] = useState(null);
   const [selectedCircleId, setSelectedCircleId] = useState(null);
   const [selectedCircularPathId, setSelectedCircularPathId] = useState(null);
   const [snapMode, setSnapMode] = useState("half");
@@ -240,7 +251,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     : geometry.gridLines || latticeLines(), [geometry, gridMode]);
   const selectedCircle = (design.circles || []).find((circle) => circle.id === selectedCircleId);
   const selectedCircularPath = (design.circularPaths || []).find((path) => path.id === selectedCircularPathId);
-  const selectedPath = !selectedCircle && !selectedCircularPath
+  const selectedLine = (design.lines || []).find((line) => line.id === selectedLineId);
+  const selectedPath = !selectedLine && !selectedCircle && !selectedCircularPath
     ? design.paths.find((path) => path.id === selectedPathId) || (selectedPathId ? design.paths[0] : null)
     : null;
   const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile);
@@ -281,6 +293,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 
   function selectLayer(kind, id) {
     setSelectedPathId(kind === "path" ? id : null);
+    setSelectedLineId(kind === "line" ? id : null);
     setSelectedCircleId(kind === "circle" ? id : null);
     setSelectedCircularPathId(kind === "circularPath" ? id : null);
     setDrag(null);
@@ -316,6 +329,13 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     }));
   }
 
+  function updateLine(lineId, changes) {
+    setDesign((current) => ({
+      ...current,
+      lines: (current.lines || []).map((line) => line.id === lineId ? { ...line, ...changes } : line),
+    }));
+  }
+
   function updateCircularPath(pathId, changes) {
     setDesign((current) => ({
       ...current,
@@ -331,12 +351,17 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     };
   }
 
+  function snapEditorPoint(point, step) {
+    if (!step) return point;
+    return gridMode === "cartesian" ? snapCartesianPoint(point) : geometry.snapPoint(point, step);
+  }
+
   function handlePointerMove(event) {
     if (!drag || event.pointerId !== drag.pointerId) return;
     let point = fromGeometryCanvas(pointerPosition(event), geometry);
     const snapStep = snapMode === "grid" ? 1 : snapMode === "half" ? 0.5 : snapMode === "quarter" ? 0.25 : 0;
     if (drag.kind === "circle-center") {
-      updateCircle(drag.circleId, { center: geometry.snapPoint(point, snapStep) });
+      updateCircle(drag.circleId, { center: snapEditorPoint(point, snapStep) });
       return;
     }
     if (drag.kind === "circle-radius") {
@@ -348,13 +373,21 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     }
     if (drag.kind === "circular-path") {
       const circularPath = (design.circularPaths || []).find((candidate) => candidate.id === drag.pathId);
-      const points = circularPath.points.map((existing, index) => index === drag.pointIndex ? geometry.snapPoint(point, snapStep) : existing);
+      const points = circularPath.points.map((existing, index) => index === drag.pointIndex ? snapEditorPoint(point, snapStep) : existing);
       updateCircularPath(drag.pathId, { points });
+      return;
+    }
+    if (drag.kind === "line") {
+      const line = (design.lines || []).find((candidate) => candidate.id === drag.lineId);
+      point = snapEditorPoint(point, snapStep);
+      if (bindEndpoints && gridMode !== "cartesian") point = geometry.nearestBoundary(point).point;
+      const points = line.points.map((existing, index) => index === drag.pointIndex ? point : existing);
+      updateLine(drag.lineId, { points });
       return;
     }
     const path = design.paths.find((candidate) => candidate.id === drag.pathId);
     const isEndpoint = drag.pointIndex === 0 || drag.pointIndex === path.points.length - 1;
-    point = geometry.snapPoint(point, snapStep);
+    point = snapEditorPoint(point, snapStep);
     if (bindEndpoints && isEndpoint) {
       point = geometry.nearestBoundary(point).point;
     }
@@ -369,15 +402,27 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     event.preventDefault();
     event.currentTarget.ownerSVGElement.setPointerCapture(event.pointerId);
     setSelectedPathId(pathId);
+    setSelectedLineId(null);
     setSelectedCircleId(null);
     setSelectedCircularPathId(null);
     setDrag({ kind: "path", pathId, pointIndex, pointerId: event.pointerId });
+  }
+
+  function beginLineDragging(event, lineId, pointIndex) {
+    event.preventDefault();
+    event.currentTarget.ownerSVGElement.setPointerCapture(event.pointerId);
+    setSelectedPathId(null);
+    setSelectedLineId(lineId);
+    setSelectedCircleId(null);
+    setSelectedCircularPathId(null);
+    setDrag({ kind: "line", lineId, pointIndex, pointerId: event.pointerId });
   }
 
   function beginCircleDragging(event, kind, circleId) {
     event.preventDefault();
     event.currentTarget.ownerSVGElement.setPointerCapture(event.pointerId);
     setSelectedPathId(null);
+    setSelectedLineId(null);
     setSelectedCircleId(circleId);
     setSelectedCircularPathId(null);
     setDrag({ kind, circleId, pointerId: event.pointerId });
@@ -387,6 +432,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     event.preventDefault();
     event.currentTarget.ownerSVGElement.setPointerCapture(event.pointerId);
     setSelectedPathId(null);
+    setSelectedLineId(null);
     setSelectedCircleId(null);
     setSelectedCircularPathId(pathId);
     setDrag({ kind: "circular-path", pathId, pointIndex, pointerId: event.pointerId });
@@ -418,8 +464,25 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     const path = { ...draft, points };
     setDesign((current) => ({ ...current, paths: [...current.paths, path] }));
     setSelectedPathId(id);
+    setSelectedLineId(null);
     setSelectedCircleId(null);
     setSelectedCircularPathId(null);
+  }
+
+  function addLine() {
+    const id = `line-${Date.now()}`;
+    const points = [
+      geometry.nearestBoundary({ u: -0.5, v: 1 }).point,
+      geometry.nearestBoundary({ u: 2.5, v: -1 }).point,
+    ];
+    const line = {
+      id,
+      name: t("studio.lines.newName", { count: (design.lines || []).length + 1 }),
+      width: cachedLineWidth,
+      points,
+    };
+    setDesign((current) => ({ ...current, lines: [...(current.lines || []), line] }));
+    selectLayer("line", id);
   }
 
   function addCircle() {
@@ -434,6 +497,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     };
     setDesign((current) => ({ ...current, circles: [...(current.circles || []), circle] }));
     setSelectedPathId(null);
+    setSelectedLineId(null);
     setSelectedCircleId(id);
     setSelectedCircularPathId(null);
   }
@@ -456,6 +520,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     };
     setDesign((current) => ({ ...current, circularPaths: [...(current.circularPaths || []), circularPath] }));
     setSelectedPathId(null);
+    setSelectedLineId(null);
     setSelectedCircleId(null);
     setSelectedCircularPathId(id);
   }
@@ -497,8 +562,15 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     setStatus(t("studio.status.elementDeleted"));
   }
 
+  function removeLine() {
+    if (!selectedLine) return;
+    setDesign((current) => ({ ...current, lines: (current.lines || []).filter((line) => line.id !== selectedLine.id) }));
+    setSelectedLineId(null);
+    setStatus(t("studio.status.elementDeleted"));
+  }
+
   function saveDesign() {
-    if (!design.paths.length && !(design.circles || []).length && !(design.circularPaths || []).length) {
+    if (!design.paths.length && !(design.lines || []).length && !(design.circles || []).length && !(design.circularPaths || []).length) {
       setStatus(t("studio.status.emptyDesign"));
       return;
     }
@@ -520,8 +592,9 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     const loaded = cloneDesign(nextDesign);
     setDesign(loaded);
     setSelectedPathId(loaded.paths[0]?.id || null);
+    setSelectedLineId(loaded.paths.length ? null : loaded.lines?.[0]?.id || null);
     setSelectedCircleId(null);
-    setSelectedCircularPathId(loaded.paths.length ? null : loaded.circularPaths?.[0]?.id || null);
+    setSelectedCircularPathId(loaded.paths.length || loaded.lines?.length ? null : loaded.circularPaths?.[0]?.id || null);
     setStatus(t("studio.status.loaded"));
   }
 
@@ -577,6 +650,25 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     );
   }
 
+  function renderLineControls() {
+    if (!selectedLine) return null;
+    const updateWidth = (value) => {
+      if (!Number.isFinite(value)) return;
+      const width = Math.max(0.1, Math.min(1.6, value));
+      updateLine(selectedLine.id, { width });
+      onLineWidthChange(family, width);
+    };
+    return (
+      <>
+        <label><span>{t("studio.lines.lineName")}</span><input value={selectedLine.name} onChange={(event) => updateLine(selectedLine.id, { name: event.target.value })} /></label>
+        {renderElementColorControl(selectedLine, (changes) => updateLine(selectedLine.id, changes))}
+        <label className="studio-context-range"><span className="studio-context-range-label"><span>{t("studio.lines.width")}</span><input type="number" aria-label={t("studio.lines.width")} min="0.1" max="1.6" step="0.02" value={selectedLine.width.toFixed(2)} onChange={(event) => updateWidth(Number(event.target.value))} /></span><input type="range" min="0.1" max="1.6" step="0.02" value={selectedLine.width} onChange={(event) => updateWidth(Number(event.target.value))} /></label>
+        <label className="studio-context-check"><input type="checkbox" checked={bindEndpoints} onChange={(event) => setBindEndpoints(event.target.checked)} /><span>{t("studio.controls.bindEndpoints")}</span></label>
+        <button type="button" className="danger" onClick={removeLine}>{t("studio.lines.remove")}</button>
+      </>
+    );
+  }
+
   function renderElementColorControl(element, update) {
     return (
       <label className="studio-context-color">
@@ -614,7 +706,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   }
 
   function renderSpectreShapeControls() {
-    if (family !== "spectre" || selectedPath || selectedCircle || selectedCircularPath) return null;
+    if (family !== "spectre" || selectedPath || selectedLine || selectedCircle || selectedCircularPath) return null;
     const shape = design.tileShape || { roundness: 0.18, weight: 0.5, lean: 1 };
     const updateShape = (changes) => setDesign((current) => ({
       ...current,
@@ -630,7 +722,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     );
   }
 
-  const ports = design.paths.flatMap((path) => [
+  const ports = [...design.paths, ...(design.lines || [])].flatMap((path) => [
     { path, side: t("studio.ports.start"), port: geometry.nearestBoundary(path.points[0]) },
     { path, side: t("studio.ports.end"), port: geometry.nearestBoundary(path.points[path.points.length - 1]) },
   ]);
@@ -657,6 +749,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
               <button type="button" onClick={addCircularPath}><span>⌁</span>{t("studio.circularPaths.title")}</button>
               <button type="button" onClick={addPath}><span>⌇</span>{t("studio.paths.title")}</button>
               <button type="button" onClick={addCircle}><span>○</span>{t("studio.circles.title")}</button>
+              <button type="button" onClick={addLine}><span>╱</span>{t("studio.lines.title")}</button>
             </div>
             <div className="studio-toolbar-group studio-toolbar-templates">
               <span className="studio-toolbar-label">{t("studio.templates.title")}</span>
@@ -697,7 +790,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             </div>
           </div>
           <div className="studio-tree" role="tree">
-            <button type="button" className={`studio-tree-root${!selectedPath && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={() => { setSelectedPathId(null); setSelectedCircleId(null); setSelectedCircularPathId(null); }}><span>◇</span><strong>{design.name}</strong><small>{geometry.label}</small></button>
+            <button type="button" className={`studio-tree-root${!selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={() => { setSelectedPathId(null); setSelectedLineId(null); setSelectedCircleId(null); setSelectedCircularPathId(null); }}><span>◇</span><strong>{design.name}</strong><small>{geometry.label}</small></button>
             {treeMode === "categories" ? (
               <>
                 <details open>
@@ -712,17 +805,22 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                   <summary><span>○</span><strong>{t("studio.circles.title")}</strong><small>{(design.circles || []).length}</small></summary>
                   <div className="studio-tree-children">{(design.circles || []).map((circle) => <button key={circle.id} type="button" className={circle.id === selectedCircleId ? "active" : ""} onClick={() => selectLayer("circle", circle.id)}><span>○</span><span>{circle.name}</span><small>r {circle.radius.toFixed(2)}</small></button>)}</div>
                 </details>
+                <details open>
+                  <summary><span>╱</span><strong>{t("studio.lines.title")}</strong><small>{(design.lines || []).length}</small></summary>
+                  <div className="studio-tree-children">{(design.lines || []).map((line) => <button key={line.id} type="button" className={line.id === selectedLineId ? "active" : ""} onClick={() => selectLayer("line", line.id)}><span>╱</span><span>{line.name}</span><small>{line.width.toFixed(2)}</small></button>)}</div>
+                </details>
               </>
             ) : (
               <div className="studio-layer-stack">
                 <div className="studio-layer-stack-label"><span>{t("studio.layers.top")}</span><small>{t("studio.layers.orderHelp")}</small></div>
                 {[...getDesignLayers(design)].reverse().map(({ kind, id, item }, displayIndex, layers) => {
                   const active = (kind === "path" && id === selectedPathId && !selectedCircle && !selectedCircularPath)
+                    || (kind === "line" && id === selectedLineId)
                     || (kind === "circle" && id === selectedCircleId)
                     || (kind === "circularPath" && id === selectedCircularPathId);
                   return (
                     <div className={`studio-layer-row${active ? " active" : ""}`} key={`${kind}:${id}`}>
-                      <button type="button" className="studio-layer-select" onClick={() => selectLayer(kind, id)}><span>{kind === "path" ? "⌇" : kind === "circle" ? "○" : "⌁"}</span><span>{item.name}</span><small>{t(`studio.layers.${kind}`)}</small></button>
+                      <button type="button" className="studio-layer-select" onClick={() => selectLayer(kind, id)}><span>{kind === "path" ? "⌇" : kind === "line" ? "╱" : kind === "circle" ? "○" : "⌁"}</span><span>{item.name}</span><small>{t(`studio.layers.${kind}`)}</small></button>
                       <div className="studio-layer-actions">
                         <button type="button" onClick={() => moveLayer(kind, id, 1)} disabled={displayIndex === 0} title={t("studio.layers.moveUp")}>↑</button>
                         <button type="button" onClick={() => moveLayer(kind, id, -1)} disabled={displayIndex === layers.length - 1} title={t("studio.layers.moveDown")}>↓</button>
@@ -735,7 +833,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             )}
           </div>
           <div className="studio-tree-footer">
-            {design.paths.length ? <div className="studio-port-summary"><strong>{boundCount}/{ports.length}</strong><span>{t("studio.ports.bound")}</span></div> : null}
+            {ports.length ? <div className="studio-port-summary"><strong>{boundCount}/{ports.length}</strong><span>{t("studio.ports.bound")}</span></div> : null}
             {status ? <p className="studio-status" role="status">{status}</p> : <p>{t("studio.toolbar.ready")}</p>}
           </div>
         </aside>
@@ -776,10 +874,10 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 mapPoint={mapToCanvas}
                 colorFor={(item) => elementMaterialColor(design, item)}
                 baseColor={design.colors.base}
-                renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapToCanvas) : circularPathD(item, mapToCanvas)}
+                renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapToCanvas) : kind === "line" ? linePath(item.points, mapToCanvas) : circularPathD(item, mapToCanvas)}
                 strokeScale={CANVAS.scale}
                 onSelect={selectLayer}
-                selectedIds={{ path: selectedPathId, circularPath: selectedCircularPathId }}
+                selectedIds={{ path: selectedPathId, line: selectedLineId, circularPath: selectedCircularPathId }}
               />
             </g>
             <TileShape design={design} geometry={geometry} className="studio-tile-outline" />
@@ -816,6 +914,15 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 </g>
               );
             })() : null}
+            {showHandles && selectedLine ? (
+              <g className="studio-handles studio-line-handles">
+                <line x1={mapToCanvas(selectedLine.points[0]).x} y1={mapToCanvas(selectedLine.points[0]).y} x2={mapToCanvas(selectedLine.points[1]).x} y2={mapToCanvas(selectedLine.points[1]).y} />
+                {selectedLine.points.map((point, index) => {
+                  const screen = mapToCanvas(point);
+                  return <circle key={index} className="anchor" cx={screen.x} cy={screen.y} r="8" onPointerDown={(event) => beginLineDragging(event, selectedLine.id, index)} />;
+                })}
+              </g>
+            ) : null}
             {showHandles && selectedCircularPath ? (
               <g className="studio-handles studio-circular-path-handles">
                 <polyline points={pointsAttribute(selectedCircularPath.points, mapToCanvas)} />
@@ -853,13 +960,14 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           </div>
         </main>
         <aside className="studio-context-bar" aria-label={t("studio.toolbar.document")}>
-          <span className="studio-context-type">{selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedCircle ? "○" : "◇"}</span>
-          <strong>{selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}</strong>
+          <span className="studio-context-type">{selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedLine ? "╱" : selectedCircle ? "○" : "◇"}</span>
+          <strong>{selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedLine ? t("studio.lines.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}</strong>
           {renderPathControls()}
+          {renderLineControls()}
           {renderCircleControls()}
           {renderCircularPathControls()}
           {renderSpectreShapeControls()}
-          {family !== "spectre" && !selectedPath && !selectedCircle && !selectedCircularPath ? <span className="studio-context-help">{t("studio.toolbar.selectHint")}</span> : null}
+          {family !== "spectre" && !selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? <span className="studio-context-help">{t("studio.toolbar.selectHint")}</span> : null}
         </aside>
       </div>
 
@@ -930,7 +1038,7 @@ function ClusterPreview({ design, geometry }) {
           <g key={index}>
             <TileShape design={previewDesign} geometry={geometry} mapper={mapper} fill={tileBase} />
             <g clipPath={`url(#cluster-clip-${index})`}>
-              <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={tileBase} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={mapper.scale || Math.sqrt(Math.abs(determinant)) * 78} />
+              <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={tileBase} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={mapper.scale || Math.sqrt(Math.abs(determinant)) * 78} />
             </g>
             <TileShape design={previewDesign} geometry={geometry} mapper={mapper} fill="none" stroke={geometry.previewStroke || "#17313b"} strokeWidth={geometry.previewStroke ? "3" : "1.5"} strokeLinejoin="round" />
             {geometry.family === "einstein" && determinant > 0 ? <text className="studio-mirror-label" x={mapper({ u: 1.5, v: 0 }).x} y={mapper({ u: 1.5, v: 0 }).y}>M</text> : null}
@@ -948,7 +1056,7 @@ function MiniDesign({ design, geometry }) {
       <defs><clipPath id={`mini-${design.id}`}><TileShape design={design} geometry={geometry} /></clipPath></defs>
       <TileShape design={design} geometry={geometry} fill={design.colors.base} />
       <g clipPath={`url(#mini-${design.id})`}>
-        <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={CANVAS.scale} />
+        <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={CANVAS.scale} />
       </g>
       <TileShape design={design} geometry={geometry} fill="none" stroke="#17313b" strokeWidth="4" strokeLinejoin="round" />
     </svg>

@@ -192,6 +192,7 @@ export function createEmptyDesign(tile = "einstein-hat") {
     ...(spectre ? { tileShape: { roundness: 0.18, weight: 0.5, lean: 1 } } : {}),
     colors: { base: "#ffffff", ink: "#00c200" },
     paths: [],
+    lines: [],
     circles: [],
     circularPaths: [],
     layerOrder: [],
@@ -219,6 +220,7 @@ export function insertCircularPathTemplate(design, { id, name } = {}) {
 export function normalizeLayerOrder(design) {
   const collections = {
     path: design.paths || [],
+    line: design.lines || [],
     circle: design.circles || [],
     circularPath: design.circularPaths || [],
   };
@@ -232,7 +234,7 @@ export function normalizeLayerOrder(design) {
       seen.add(key);
     }
   });
-  ["path", "circle", "circularPath"].forEach((kind) => {
+  ["path", "line", "circle", "circularPath"].forEach((kind) => {
     collections[kind].forEach((item) => {
       const key = `${kind}:${item.id}`;
       if (!seen.has(key)) order.push({ kind, id: item.id });
@@ -244,6 +246,7 @@ export function normalizeLayerOrder(design) {
 export function getDesignLayers(design) {
   const collections = {
     path: new Map((design.paths || []).map((item) => [item.id, item])),
+    line: new Map((design.lines || []).map((item) => [item.id, item])),
     circle: new Map((design.circles || []).map((item) => [item.id, item])),
     circularPath: new Map((design.circularPaths || []).map((item) => [item.id, item])),
   };
@@ -259,8 +262,9 @@ export function validateDesign(value) {
     throw new Error("This is not a supported Aperiodos material design.");
   }
   const circles = Array.isArray(value.circles) ? value.circles : [];
+  const lines = Array.isArray(value.lines) ? value.lines : [];
   const circularPaths = Array.isArray(value.circularPaths) ? value.circularPaths : [];
-  if (!['einstein-hat', 'spectre'].includes(value.tile) || !Array.isArray(value.paths) || (!value.paths.length && !circles.length && !circularPaths.length)) {
+  if (!['einstein-hat', 'spectre'].includes(value.tile) || !Array.isArray(value.paths) || (!value.paths.length && !lines.length && !circles.length && !circularPaths.length)) {
     throw new Error("The design must contain supported tile material geometry.");
   }
   if (value.tile === "spectre") {
@@ -283,6 +287,22 @@ export function validateDesign(value) {
     });
     if (path.color !== undefined && (typeof path.color !== "string" || !path.color.trim())) {
       throw new Error("Path colors must be non-empty color values.");
+    }
+  });
+  lines.forEach((line) => {
+    if (!Array.isArray(line.points) || line.points.length !== 2) {
+      throw new Error("Every line must contain exactly two endpoints.");
+    }
+    if (!Number.isFinite(Number(line.width)) || Number(line.width) <= 0) {
+      throw new Error("Every line needs a positive width.");
+    }
+    line.points.forEach((point) => {
+      if (!Number.isFinite(Number(point.u)) || !Number.isFinite(Number(point.v))) {
+        throw new Error("Line endpoints must use finite lattice coordinates.");
+      }
+    });
+    if (line.color !== undefined && (typeof line.color !== "string" || !line.color.trim())) {
+      throw new Error("Line colors must be non-empty color values.");
     }
   });
   circles.forEach((circle) => {
@@ -322,6 +342,7 @@ export function validateDesign(value) {
     }
   });
   if (!Array.isArray(value.circles)) value.circles = circles;
+  if (!Array.isArray(value.lines)) value.lines = lines;
   if (!Array.isArray(value.circularPaths)) value.circularPaths = circularPaths;
   value.layerOrder = normalizeLayerOrder(value);
   return value;

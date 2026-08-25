@@ -110,16 +110,17 @@ function coerceStudioPattern(payload) {
     throw new ApiError("'studio_pattern' must be a version 1 Einstein material design.");
   }
   const paths = Array.isArray(pattern.paths) ? pattern.paths : [];
+  const lines = Array.isArray(pattern.lines) ? pattern.lines : [];
   const circles = Array.isArray(pattern.circles) ? pattern.circles : [];
   const circularPaths = Array.isArray(pattern.circularPaths) ? pattern.circularPaths : [];
-  if (!paths.length && !circles.length && !circularPaths.length) {
+  if (!paths.length && !lines.length && !circles.length && !circularPaths.length) {
     throw new ApiError("'studio_pattern' must contain at least one material element.");
   }
-  if (paths.length + circles.length + circularPaths.length > 100) {
+  if (paths.length + lines.length + circles.length + circularPaths.length > 100) {
     throw new ApiError("'studio_pattern' contains too many material elements.");
   }
   const elementKeys = new Set();
-  for (const [kind, items] of [["path", paths], ["circle", circles], ["circularPath", circularPaths]]) {
+  for (const [kind, items] of [["path", paths], ["line", lines], ["circle", circles], ["circularPath", circularPaths]]) {
     for (const item of items) {
       if (typeof item.id !== "string" || !item.id.trim() || item.id.length > 200 || elementKeys.has(`${kind}:${item.id}`)) {
         throw new ApiError("'studio_pattern' elements must have unique string identifiers.");
@@ -150,6 +151,14 @@ function coerceStudioPattern(payload) {
     }
     if (!Number.isFinite(Number(pathItem.width)) || Number(pathItem.width) <= 0 || Number(pathItem.width) > 20) {
       throw new ApiError("'studio_pattern' path widths must be between 0 and 20.");
+    }
+  }
+  for (const line of lines) {
+    if (!Array.isArray(line.points) || line.points.length !== 2 || !line.points.every(finitePoint)) {
+      throw new ApiError("'studio_pattern' contains an invalid line.");
+    }
+    if (!Number.isFinite(Number(line.width)) || Number(line.width) <= 0 || Number(line.width) > 20) {
+      throw new ApiError("'studio_pattern' line widths must be between 0 and 20.");
     }
   }
   for (const circle of circles) {

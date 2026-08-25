@@ -46,6 +46,7 @@
 			"moveUp": "Move layer up",
 			"moveDown": "Move layer down",
 			"path": "Bézier path",
+			"line": "Line",
 			"circle": "Circle",
 			"circularPath": "Circular path"
 		},
@@ -84,6 +85,13 @@
 			"addSegment": "+ segment",
 			"removeSegment": "− segment",
 			"removePath": "Delete path"
+		},
+		"lines": {
+			"title": "Lines",
+			"newName": "Line {{count}}",
+			"lineName": "Line name",
+			"width": "Width",
+			"remove": "Delete line"
 		},
 		"circles": {
 			"title": "Circle layers",

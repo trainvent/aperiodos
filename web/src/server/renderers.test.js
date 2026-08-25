@@ -38,3 +38,21 @@ test("Einstein rejects Studio documents with invalid geometry before rendering",
     /invalid Bézier path/,
   );
 });
+
+test("Einstein accepts straight-line Studio material", async () => {
+  const result = renderEinstein({
+    width: 128,
+    height: 128,
+    iterations: 1,
+    material_mode: "pattern",
+    studio_pattern: {
+      schema: "aperiodos.material-design",
+      version: 1,
+      tile: "einstein-hat",
+      paths: [],
+      lines: [{ id: "line", width: 0.7, points: [{ u: 0, v: 0 }, { u: 1, v: 1 }] }],
+      layerOrder: [{ kind: "line", id: "line" }],
+    },
+  });
+  await assert.doesNotReject(result);
+});
