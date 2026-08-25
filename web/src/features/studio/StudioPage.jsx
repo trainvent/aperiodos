@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -206,15 +206,19 @@ function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectr
 
 export default function StudioPage() {
   const [family, setFamily] = useState("einstein");
-  return <MaterialStudioEditor key={family} family={family} onFamilyChange={setFamily} />;
+  const [drafts, setDrafts] = useState({});
+  const cacheDraft = useCallback((draftFamily, design) => {
+    setDrafts((current) => current[draftFamily] === design ? current : { ...current, [draftFamily]: design });
+  }, []);
+  return <MaterialStudioEditor key={family} family={family} onFamilyChange={setFamily} cachedDesign={drafts[family]} onDraftChange={cacheDraft} />;
 }
 
-function MaterialStudioEditor({ family, onFamilyChange }) {
+function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftChange }) {
   const { t } = useTranslation("common");
   const geometry = useMemo(() => geometryAdapterFor(family), [family]);
   const mapToCanvas = useMemo(() => canvasMapperFor(geometry), [geometry]);
   const emptyDesign = () => ({ ...createEmptyDesign(geometry.tile), name: family === "spectre" ? t("studio.spectre.untitled") : t("studio.templates.untitled") });
-  const [design, setDesign] = useState(emptyDesign);
+  const [design, setDesign] = useState(() => cachedDesign ? cloneDesign(cachedDesign) : emptyDesign());
   const [selectedPathId, setSelectedPathId] = useState(null);
   const [selectedCircleId, setSelectedCircleId] = useState(null);
   const [selectedCircularPathId, setSelectedCircularPathId] = useState(null);
@@ -241,6 +245,10 @@ function MaterialStudioEditor({ family, onFamilyChange }) {
     : null;
   const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile);
   const selectedExportDesign = familyDesigns.find((item) => item.id === selectedExportId) || null;
+
+  useEffect(() => {
+    onDraftChange(family, design);
+  }, [design, family, onDraftChange]);
 
   useEffect(() => {
     let current = true;
