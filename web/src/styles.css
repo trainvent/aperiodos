@@ -935,6 +935,44 @@ select {
   height: 34px;
 }
 
+.studio-workspace-tabs,
+.studio-pattern-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.studio-workspace-tabs button,
+.studio-pattern-actions button,
+.studio-pattern-layer {
+  border: 1px solid #52646d;
+  border-radius: 4px;
+  background: #17313b;
+  color: #dbe6e8;
+  cursor: pointer;
+}
+
+.studio-workspace-tabs button {
+  padding: 7px 10px;
+}
+
+.studio-workspace-tabs button.active,
+.studio-pattern-layer.active {
+  border-color: #d1825a;
+  background: #385360;
+  color: #fff;
+}
+
+.studio-pattern-actions button {
+  flex: 1;
+  padding: 7px 4px;
+  font-size: 0.68rem;
+}
+
+.studio-pattern-layer {
+  padding: 7px 8px;
+  text-align: left;
+}
+
 .studio-toolbar-group {
   display: flex;
   position: relative;
@@ -1148,8 +1186,49 @@ select {
   width: 16px;
 }
 
+.studio-bend-switch {
+  display: flex !important;
+  align-items: center !important;
+  flex-direction: row !important;
+  justify-content: space-between;
+}
+
+.studio-bend-switch input {
+  width: 16px !important;
+  height: 16px;
+  margin-left: auto;
+  accent-color: #d1825a;
+  cursor: pointer;
+}
+
+.studio-bend-switch b {
+  width: 18px;
+  color: #ffc29f;
+  text-align: right;
+}
+
 .studio-context-bar > button {
   width: 100%;
+}
+
+.studio-secondary-settings {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(173, 189, 196, 0.26);
+}
+
+.studio-secondary-settings summary {
+  color: #9fb0b8;
+  cursor: pointer;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.studio-secondary-settings:not([open]) > :not(summary) {
+  display: none;
 }
 
 .studio-context-measure,

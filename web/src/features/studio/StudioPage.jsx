@@ -22,6 +22,7 @@ import {
 import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
 import SpectreStudioPage from "./SpectreStudioPage";
 import StudioFamilySwitch from "./StudioFamilySwitch";
+import MaterialLayerShapes from "./MaterialLayerShapes";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
 const H_CLUSTER_TRANSFORMS = [
@@ -533,10 +534,6 @@ function EinsteinStudioPage({ onFamilyChange }) {
       <div className="panel studio-layout studio-builder-shell">
         <div className="studio-top-toolbar" role="toolbar" aria-label={t("studio.toolbar.aria")}>
           <div className="studio-toolbar-row studio-toolbar-main">
-            <div className="studio-toolbar-identity">
-              <span className="studio-product-mark">A</span>
-              <div><strong>{t("studio.toolbar.studio")}</strong><small>{t("studio.toolbar.einsteinWorkspace")}</small></div>
-            </div>
             <StudioFamilySwitch family="einstein" onChange={onFamilyChange} />
             <label className="studio-toolbar-name">
               <span>{t("studio.controls.name")}</span>
@@ -659,14 +656,15 @@ function EinsteinStudioPage({ onFamilyChange }) {
             ) : null}
             <polygon className="studio-tile-fill" points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} style={{ fill: design.colors.base }} />
             <g clipPath="url(#studio-hat-clip)">
-              <DesignLayerShapes
-                design={design}
-                mapper={toCanvas}
+              <MaterialLayerShapes
+                layers={getDesignLayers(design)}
+                mapPoint={toCanvas}
+                colorFor={(item) => elementMaterialColor(design, item)}
+                baseColor={design.colors.base}
+                renderPath={(kind, item) => kind === "path" ? bezierPath(item.points) : circularPathD(item)}
                 strokeScale={CANVAS.scale}
                 onSelect={selectLayer}
-                selectedPathId={selectedPathId}
-                selectedCircleId={selectedCircleId}
-                selectedCircularPathId={selectedCircularPathId}
+                selectedIds={{ path: selectedPathId, circularPath: selectedCircularPathId }}
               />
             </g>
             <polygon className="studio-tile-outline" points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} />
@@ -792,29 +790,6 @@ function EinsteinStudioPage({ onFamilyChange }) {
   );
 }
 
-function DesignLayerShapes({ design, mapper, strokeScale, onSelect, selectedPathId, selectedCircleId, selectedCircularPathId }) {
-  return getDesignLayers(design).map(({ kind, id, item }) => {
-    if (kind === "circle") {
-      const center = mapper(item.center);
-      return <circle key={`${kind}:${id}`} className="studio-material-circle" cx={center.x} cy={center.y} r={item.radius * strokeScale} fill={item.operation === "ink" ? elementMaterialColor(design, item) : design.colors.base} onPointerDown={onSelect ? () => onSelect(kind, id) : undefined} />;
-    }
-    const isSelected = kind === "path" ? id === selectedPathId : id === selectedCircularPathId;
-    return (
-      <path
-        key={`${kind}:${id}`}
-        className={`studio-material-path${kind === "circularPath" ? " studio-circular-material-path" : ""}${isSelected ? " selected" : ""}`}
-        d={kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper)}
-        fill="none"
-        stroke={elementMaterialColor(design, item)}
-        strokeWidth={item.width * strokeScale}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        onPointerDown={onSelect ? () => onSelect(kind, id) : undefined}
-      />
-    );
-  });
-}
-
 function ClusterPreview({ design }) {
   return (
     <svg className="studio-cluster-preview" viewBox={`${H_CLUSTER_VIEWBOX.x} ${H_CLUSTER_VIEWBOX.y} ${H_CLUSTER_VIEWBOX.width} ${H_CLUSTER_VIEWBOX.height}`} aria-label="Transformed Einstein material preview">
@@ -829,7 +804,7 @@ function ClusterPreview({ design }) {
           <g key={index}>
             <polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice), mapper)} fill={design.colors.base} />
             <g clipPath={`url(#cluster-clip-${index})`}>
-              <DesignLayerShapes design={design} mapper={mapper} strokeScale={Math.sqrt(Math.abs(determinant)) * 78} />
+              <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={Math.sqrt(Math.abs(determinant)) * 78} />
             </g>
             <polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice), mapper)} fill="none" stroke="#17313b" strokeWidth="1.5" strokeLinejoin="round" />
             {determinant > 0 ? <text className="studio-mirror-label" x={mapper({ u: 1.5, v: 0 }).x} y={mapper({ u: 1.5, v: 0 }).y}>M</text> : null}
@@ -846,7 +821,7 @@ function MiniDesign({ design }) {
       <defs><clipPath id={`mini-${design.id}`}><polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} /></clipPath></defs>
       <polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} fill={design.colors.base} />
       <g clipPath={`url(#mini-${design.id})`}>
-        <DesignLayerShapes design={design} mapper={toCanvas} strokeScale={CANVAS.scale} />
+        <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={toCanvas} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points) : circularPathD(item)} strokeScale={CANVAS.scale} />
       </g>
       <polygon points={pointsAttribute(HAT_CARTESIAN.map(cartesianToLattice))} fill="none" stroke="#17313b" strokeWidth="4" strokeLinejoin="round" />
     </svg>
