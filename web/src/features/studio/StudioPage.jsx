@@ -725,7 +725,6 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     }));
     return (
       <>
-        <span className="studio-context-help">{t("studio.spectre.shapeHelp")}</span>
         <label className="studio-context-range"><span>{t("studio.spectre.roundness")} {shape.roundness.toFixed(2)}</span><input type="range" min="0" max="1" step="0.01" value={shape.roundness} onChange={(event) => updateShape({ roundness: Number(event.target.value) })} /></label>
         <label className="studio-context-range"><span>{t("studio.spectre.weight")} {shape.weight.toFixed(2)}</span><input type="range" min="0.15" max="0.85" step="0.01" value={shape.weight} onChange={(event) => updateShape({ weight: Number(event.target.value) })} /></label>
         <label className="studio-bend-switch"><span>{t("studio.spectre.invert")}</span><input type="checkbox" checked={shape.lean > 0} onChange={(event) => updateShape({ lean: event.target.checked ? 1 : -1 })} /><b aria-hidden="true">{shape.lean > 0 ? "↻" : "↺"}</b></label>
@@ -736,16 +735,17 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   function renderDocumentControls() {
     if (selectedPath || selectedLine || selectedCircle || selectedCircularPath) return null;
     return (
-      <>
+      <section className="studio-context-outline-group" aria-labelledby="studio-outline-heading">
+        <strong id="studio-outline-heading">{t("studio.controls.outlineGroup")}</strong>
         <label className="studio-context-color">
-          <span>{t("generator.common.outline")}</span>
+          <span>{t("studio.controls.outlineColor")}</span>
           <input type="color" value={design.outline || "#17313b"} onChange={(event) => setDesign((current) => ({ ...current, outline: event.target.value }))} />
         </label>
-        <label className="studio-context-range"><span className="studio-context-range-label"><span>{t("generator.common.strokeWidth")}</span><input type="number" aria-label={t("generator.common.strokeWidth")} min="0" max="20" step="0.1" value={Number(design.strokeWidth ?? (family === "spectre" ? 1 : 2)).toFixed(1)} onChange={(event) => {
+        <label className="studio-context-range"><span className="studio-context-range-label"><span>{t("studio.controls.outlineWidth")}</span><input type="number" aria-label={t("studio.controls.outlineWidth")} min="0" max="20" step="0.1" value={Number(design.strokeWidth ?? (family === "spectre" ? 1 : 2)).toFixed(1)} onChange={(event) => {
           const strokeWidth = Number(event.target.value);
           if (Number.isFinite(strokeWidth)) setDesign((current) => ({ ...current, strokeWidth: Math.max(0, Math.min(20, strokeWidth)) }));
         }} /></span><input type="range" min="0" max="8" step="0.1" value={design.strokeWidth ?? (family === "spectre" ? 1 : 2)} onChange={(event) => setDesign((current) => ({ ...current, strokeWidth: Number(event.target.value) }))} /></label>
-      </>
+      </section>
     );
   }
 

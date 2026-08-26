@@ -179,9 +179,8 @@ def _screen_matrix(transform, project):
     )
 
 
-def _svg_pattern_tile(tile, project, curve_color, stroke, stroke_width):
+def _svg_pattern_tile(tile, project, tile_fill, curve_color, stroke, stroke_width):
     transform = tile[2]
-    tile_fill = _normalize_svg_color(tile[1])
     matrix = " ".join(f"{value:.6f}" for value in _screen_matrix(transform, project))
     return (
         f'<g transform="matrix({matrix})" style="--einstein-tile-fill:{escape(str(tile_fill))}">'
@@ -209,12 +208,13 @@ def save_tiles_svg(
     ]
     project = lambda vec: ((vec.x - center_x) * scalar + cx, (vec.y - center_y) * scalar + cy)
     curve_color = str(studio_pattern.get("colors", {}).get("ink", pattern_color)) if studio_pattern else pattern_color
+    tile_fill = str(studio_pattern.get("colors", {}).get("base", pattern_base)) if studio_pattern else pattern_base
     if material_mode == "pattern":
         lines.append(_svg_pattern_defs(studio_pattern, curve_color))
     for tile in tiles:
         points = [project(vec) for vec in tile[0]]
         if material_mode == "pattern":
-            lines.append(_svg_pattern_tile(tile, project, curve_color, stroke, stroke_width))
+            lines.append(_svg_pattern_tile(tile, project, tile_fill, curve_color, stroke, stroke_width))
         else:
             lines.append(_svg_polygon(points, _normalize_svg_color(tile[1]), stroke, stroke_width))
 

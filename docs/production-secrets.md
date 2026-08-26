@@ -1,5 +1,8 @@
 # Production secrets
 
+Tagged GitHub releases deploy these settings automatically after the one-time
+CI identity setup in [tagged-deployments.md](tagged-deployments.md).
+
 Production secrets are stored in Google Secret Manager and mounted into the
 Cloud Run container as read-only files. They are not stored in the repository,
 passed as deployment environment-variable values, or printed by `deploy.sh`.

@@ -16,3 +16,4 @@ web/dist/
 web/.next/
 src/generators/*/target/
 src/generators/*/output/
+gha-creds-*.json

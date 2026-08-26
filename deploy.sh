@@ -28,6 +28,7 @@ SENDGRID_API_KEY_SECRET="${SENDGRID_API_KEY_SECRET:-aperiodos-sendgrid-api-key}"
 SENDGRID_API_KEY_VERSION="${SENDGRID_API_KEY_VERSION:-1}"
 SENDGRID_FROM_EMAIL="${SENDGRID_FROM_EMAIL:-noreply@trainvent.com}"
 SENDGRID_FROM_NAME="${SENDGRID_FROM_NAME:-Trainvent Aperiodos}"
+SKIP_PUBLIC_IAM_UPDATE="${SKIP_PUBLIC_IAM_UPDATE:-0}"
 
 STRIPE_API_KEY_PATH="/secrets/stripe-api-key/value"
 STRIPE_WEBHOOK_SECRET_PATH="/secrets/stripe-webhook-secret/value"
@@ -56,11 +57,16 @@ require_secret_version "$RENDER_QUOTA_SECRET_SECRET" "$RENDER_QUOTA_SECRET_VERSI
 require_secret_version "$RENDER_CREDIT_SECRET_SECRET" "$RENDER_CREDIT_SECRET_VERSION"
 require_secret_version "$SENDGRID_API_KEY_SECRET" "$SENDGRID_API_KEY_VERSION"
 
+PUBLIC_ACCESS_ARGS=(--allow-unauthenticated)
+if [[ "$SKIP_PUBLIC_IAM_UPDATE" == "1" ]]; then
+  PUBLIC_ACCESS_ARGS=()
+fi
+
 gcloud run deploy "$SERVICE_NAME" \
   --source . \
   --region="$REGION" \
   --project="$PROJECT_ID" \
-  --allow-unauthenticated \
+  "${PUBLIC_ACCESS_ARGS[@]}" \
   --memory 2Gi \
   --cpu 1 \
   --timeout 300 \
