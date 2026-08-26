@@ -382,7 +382,6 @@
 		"spectre": {
 			"title": "Spectre Generator",
 			"description": "Render bounded Spectre snapshots, choose a pattern variant, tune the palette and framing, and export SVG.",
-			"autoIterationsValue": "Auto",
 			"drawMode": "Color mode",
 			"palette": "Palette",
 			"drawModeBuild": "Build",

@@ -82,7 +82,6 @@ export default function SpectrePage() {
                 label={t("generator.common.iterations")}
                 min={1}
                 max={8}
-                placeholder={t("generator.spectre.autoIterationsValue")}
               />
               <NumberField values={values} setValues={setValues} name="scale" label={t("generator.common.scale")} min={1} max={1000} />
             </SettingsRow>
@@ -116,12 +115,11 @@ export default function SpectrePage() {
         />
       }
       payload={() => {
-        const iterationValue = String(values.iterations).trim();
         const payload = {
           width: Number(values.width),
           height: Number(values.height),
-          iterations: iterationValue ? Number(iterationValue) : 1,
-          auto_iterations: !iterationValue,
+          iterations: Number(values.iterations) || SPECTRE_DEFAULTS.iterations,
+          auto_iterations: false,
           scale: Number(values.scale),
           center_x: Number(values.center_x),
           center_y: Number(values.center_y),

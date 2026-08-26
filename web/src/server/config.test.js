@@ -39,6 +39,10 @@ test("all generators use a normalized default scale", () => {
   assert.equal(DEFAULT_SCALE * P1_SCALE_NORMALIZATION, 10);
 });
 
+test("Spectre starts with a complete three-iteration patch", () => {
+  assert.equal(SPECTRE_DEFAULTS.iterations, 3);
+});
+
 test("serverSecret reads a mounted file before an environment fallback", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "aperiodos-secret-test-"));
   const secretPath = path.join(directory, "secret");
