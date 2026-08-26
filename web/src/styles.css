@@ -1118,8 +1118,15 @@ select {
   color: #ffc29f;
 }
 
-.studio-context-bar > strong {
+.studio-context-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.studio-context-heading > strong {
   min-width: 0;
+  color: #edf4f5;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1601,11 +1608,64 @@ select {
   }
 
   .studio-layout.studio-builder-shell {
-    grid-template-columns: 238px minmax(0, 1fr) 220px;
+    grid-template-columns: 210px minmax(0, 1fr);
   }
 
   .studio-toolbar-ribbon {
-    overflow-x: auto;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .studio-toolbar-ribbon .studio-toolbar-group {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .studio-context-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-height: 0;
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    padding: 12px 14px;
+    overflow: visible;
+    border-bottom: 1px solid #41525b;
+    border-left: 0;
+  }
+
+  .studio-context-heading {
+    flex: 0 0 164px;
+    align-items: center;
+    align-self: stretch;
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .studio-context-bar > label,
+  .studio-context-bar > section,
+  .studio-context-bar > details,
+  .studio-context-bar > .studio-context-help,
+  .studio-context-bar > .studio-context-measure {
+    flex: 1 1 180px;
+    max-width: 260px;
+  }
+
+  .studio-context-bar > button {
+    width: auto;
+    flex: 0 1 auto;
+  }
+
+  .studio-tool-menu {
+    grid-column: 1;
+    grid-row: 3;
+    min-height: 0;
+  }
+
+  .studio-workbench {
+    grid-column: 2;
+    grid-row: 3;
   }
 
   .studio-toolbar-identity {
@@ -1625,6 +1685,7 @@ select {
 
   .studio-context-bar {
     grid-column: 1;
+    grid-row: 2;
   }
 
   .studio-intro {
@@ -1632,6 +1693,8 @@ select {
   }
 
   .studio-tool-menu {
+    grid-column: 1;
+    grid-row: 3;
     min-height: auto;
     max-height: 330px;
     border-right: 0;
@@ -1666,6 +1729,11 @@ select {
 
   .studio-canvas {
     min-height: 420px;
+  }
+
+  .studio-workbench {
+    grid-column: 1;
+    grid-row: 4;
   }
 }
 

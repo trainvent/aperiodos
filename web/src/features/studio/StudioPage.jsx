@@ -991,8 +991,10 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           </div>
         </main>
         <aside className="studio-context-bar" aria-label={t("studio.toolbar.document")}>
-          <span className="studio-context-type">{selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedLine ? "╱" : selectedCircle ? "○" : "◇"}</span>
-          <strong>{selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedLine ? t("studio.lines.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}</strong>
+          <div className="studio-context-heading">
+            <span className="studio-context-type">{selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedLine ? "╱" : selectedCircle ? "○" : "◇"}</span>
+            <strong>{selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedLine ? t("studio.lines.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}</strong>
+          </div>
           {renderPathControls()}
           {renderLineControls()}
           {renderCircleControls()}
