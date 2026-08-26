@@ -20,6 +20,19 @@ import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
 import StudioFamilySwitch from "./StudioFamilySwitch";
 import MaterialLayerShapes from "./MaterialLayerShapes";
 import { geometryAdapterFor, snapCartesianPoint } from "./studioGeometryAdapters";
+import {
+  InspectorActions,
+  InspectorGroup,
+  InspectorMetric,
+  InspectorPanel,
+} from "./widgets/InspectorPanel";
+import {
+  InspectorColorField,
+  InspectorRangeField,
+  InspectorSelectField,
+  InspectorTextField,
+  InspectorToggleField,
+} from "./widgets/InspectorFields";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
 const H_CLUSTER_TRANSFORMS = [
@@ -636,28 +649,33 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   function renderPathControls() {
     if (!selectedPath) return null;
     return (
-      <>
-        <label><span>{t("studio.paths.pathName")}</span><input value={selectedPath.name} onChange={(event) => updateSelectedPath({ name: event.target.value })} /></label>
+      <InspectorGroup>
+        <InspectorTextField label={t("studio.paths.pathName")} value={selectedPath.name} onChange={(name) => updateSelectedPath({ name })} />
         {renderElementColorControl(selectedPath, updateSelectedPath)}
-        <label className="studio-context-range"><span>{t("studio.paths.width")} {selectedPath.width.toFixed(2)}</span><input type="range" min="0.1" max="1.6" step="0.02" value={selectedPath.width} onChange={(event) => updateSelectedPath({ width: Number(event.target.value) })} /></label>
-        <label className="studio-context-check"><input type="checkbox" checked={bindEndpoints} onChange={(event) => setBindEndpoints(event.target.checked)} /><span>{t("studio.controls.bindEndpoints")}</span></label>
-        <button type="button" onClick={addSegment}>{t("studio.paths.addSegment")}</button>
-        <button type="button" onClick={removeSegment} disabled={selectedPath.points.length <= 4}>{t("studio.paths.removeSegment")}</button>
-        <button type="button" className="danger" onClick={removePath}>{t("studio.paths.removePath")}</button>
-      </>
+        <InspectorRangeField label={t("studio.paths.width")} value={selectedPath.width} min="0.1" max="1.6" step="0.02" onChange={(width) => updateSelectedPath({ width })} />
+        <InspectorToggleField label={t("studio.controls.bindEndpoints")} checked={bindEndpoints} onChange={setBindEndpoints} />
+        <InspectorActions>
+          <button type="button" onClick={addSegment}>{t("studio.paths.addSegment")}</button>
+          <button type="button" onClick={removeSegment} disabled={selectedPath.points.length <= 4}>{t("studio.paths.removeSegment")}</button>
+          <button type="button" className="danger" onClick={removePath}>{t("studio.paths.removePath")}</button>
+        </InspectorActions>
+      </InspectorGroup>
     );
   }
 
   function renderCircleControls() {
     if (!selectedCircle) return null;
     return (
-      <>
-        <label><span>{t("studio.circles.circleName")}</span><input value={selectedCircle.name} onChange={(event) => updateCircle(selectedCircle.id, { name: event.target.value })} /></label>
+      <InspectorGroup>
+        <InspectorTextField label={t("studio.circles.circleName")} value={selectedCircle.name} onChange={(name) => updateCircle(selectedCircle.id, { name })} />
         {renderElementColorControl(selectedCircle, (changes) => updateCircle(selectedCircle.id, changes))}
-        <label><span>{t("studio.circles.operation")}</span><select value={selectedCircle.operation} onChange={(event) => updateCircle(selectedCircle.id, { operation: event.target.value })}><option value="ink">{t("studio.circles.addColor")}</option><option value="base">{t("studio.circles.cutColor")}</option></select></label>
-        <label className="studio-context-range"><span>{t("studio.circles.radius")} {selectedCircle.radius.toFixed(2)}</span><input type="range" min="0.125" max="5" step="0.125" value={selectedCircle.radius} onChange={(event) => updateCircle(selectedCircle.id, { radius: Number(event.target.value) })} /></label>
-        <button type="button" className="danger" onClick={removeCircle}>{t("studio.circles.remove")}</button>
-      </>
+        <InspectorSelectField label={t("studio.circles.operation")} value={selectedCircle.operation} onChange={(operation) => updateCircle(selectedCircle.id, { operation })}>
+          <option value="ink">{t("studio.circles.addColor")}</option>
+          <option value="base">{t("studio.circles.cutColor")}</option>
+        </InspectorSelectField>
+        <InspectorRangeField label={t("studio.circles.radius")} value={selectedCircle.radius} min="0.125" max="5" step="0.125" onChange={(radius) => updateCircle(selectedCircle.id, { radius })} />
+        <InspectorActions><button type="button" className="danger" onClick={removeCircle}>{t("studio.circles.remove")}</button></InspectorActions>
+      </InspectorGroup>
     );
   }
 
@@ -670,22 +688,19 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       onLineWidthChange(family, width);
     };
     return (
-      <>
-        <label><span>{t("studio.lines.lineName")}</span><input value={selectedLine.name} onChange={(event) => updateLine(selectedLine.id, { name: event.target.value })} /></label>
+      <InspectorGroup>
+        <InspectorTextField label={t("studio.lines.lineName")} value={selectedLine.name} onChange={(name) => updateLine(selectedLine.id, { name })} />
         {renderElementColorControl(selectedLine, (changes) => updateLine(selectedLine.id, changes))}
-        <label className="studio-context-range"><span className="studio-context-range-label"><span>{t("studio.lines.width")}</span><input type="number" aria-label={t("studio.lines.width")} min="0.1" max="1.6" step="0.02" value={selectedLine.width.toFixed(2)} onChange={(event) => updateWidth(Number(event.target.value))} /></span><input type="range" min="0.1" max="1.6" step="0.02" value={selectedLine.width} onChange={(event) => updateWidth(Number(event.target.value))} /></label>
-        <label className="studio-context-check"><input type="checkbox" checked={bindEndpoints} onChange={(event) => setBindEndpoints(event.target.checked)} /><span>{t("studio.controls.bindEndpoints")}</span></label>
-        <button type="button" className="danger" onClick={removeLine}>{t("studio.lines.remove")}</button>
-      </>
+        <InspectorRangeField label={t("studio.lines.width")} value={selectedLine.width} min="0.1" max="1.6" step="0.02" editable onChange={updateWidth} />
+        <InspectorToggleField label={t("studio.controls.bindEndpoints")} checked={bindEndpoints} onChange={setBindEndpoints} />
+        <InspectorActions><button type="button" className="danger" onClick={removeLine}>{t("studio.lines.remove")}</button></InspectorActions>
+      </InspectorGroup>
     );
   }
 
   function renderElementColorControl(element, update) {
     return (
-      <label className="studio-context-color">
-        <span>{t("studio.controls.elementColor")}</span>
-        <input type="color" value={elementMaterialColor(design, element)} onChange={(event) => update({ color: event.target.value })} />
-      </label>
+      <InspectorColorField label={t("studio.controls.elementColor")} value={elementMaterialColor(design, element)} onChange={(color) => update({ color })} />
     );
   }
 
@@ -693,26 +708,17 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     if (!selectedCircularPath) return null;
     const geometry = circularPathGeometry(selectedCircularPath);
     return (
-      <>
-        <label>
-          <span>{t("studio.circularPaths.pathName")}</span>
-          <input value={selectedCircularPath.name} onChange={(event) => updateCircularPath(selectedCircularPath.id, { name: event.target.value })} />
-        </label>
+      <InspectorGroup>
+        <InspectorTextField label={t("studio.circularPaths.pathName")} value={selectedCircularPath.name} onChange={(name) => updateCircularPath(selectedCircularPath.id, { name })} />
         {renderElementColorControl(selectedCircularPath, (changes) => updateCircularPath(selectedCircularPath.id, changes))}
-        <label className="studio-context-range">
-          <span>{t("studio.circularPaths.width")} {selectedCircularPath.width.toFixed(2)}</span>
-          <input type="range" min="0.1" max="1.6" step="0.02" value={selectedCircularPath.width} onChange={(event) => updateCircularPath(selectedCircularPath.id, { width: Number(event.target.value) })} />
-        </label>
-        <label>
-          <span>{t("studio.circularPaths.side")}</span>
-          <select value={selectedCircularPath.side} onChange={(event) => updateCircularPath(selectedCircularPath.id, { side: event.target.value })}>
-            <option value="left">{t("studio.circularPaths.left")}</option>
-            <option value="right">{t("studio.circularPaths.right")}</option>
-          </select>
-        </label>
-        <span className={`studio-context-measure${geometry.mismatch ? " warning" : ""}`}>r {geometry.radius.toFixed(3)}</span>
-        <button type="button" className="danger" onClick={removeCircularPath}>{t("studio.circularPaths.remove")}</button>
-      </>
+        <InspectorRangeField label={t("studio.circularPaths.width")} value={selectedCircularPath.width} min="0.1" max="1.6" step="0.02" onChange={(width) => updateCircularPath(selectedCircularPath.id, { width })} />
+        <InspectorSelectField label={t("studio.circularPaths.side")} value={selectedCircularPath.side} onChange={(side) => updateCircularPath(selectedCircularPath.id, { side })}>
+          <option value="left">{t("studio.circularPaths.left")}</option>
+          <option value="right">{t("studio.circularPaths.right")}</option>
+        </InspectorSelectField>
+        <InspectorMetric warning={geometry.mismatch}>r {geometry.radius.toFixed(3)}</InspectorMetric>
+        <InspectorActions><button type="button" className="danger" onClick={removeCircularPath}>{t("studio.circularPaths.remove")}</button></InspectorActions>
+      </InspectorGroup>
     );
   }
 
@@ -724,28 +730,26 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       tileShape: { ...current.tileShape, ...changes },
     }));
     return (
-      <>
-        <label className="studio-context-range"><span>{t("studio.spectre.roundness")} {shape.roundness.toFixed(2)}</span><input type="range" min="0" max="1" step="0.01" value={shape.roundness} onChange={(event) => updateShape({ roundness: Number(event.target.value) })} /></label>
-        <label className="studio-context-range"><span>{t("studio.spectre.weight")} {shape.weight.toFixed(2)}</span><input type="range" min="0.15" max="0.85" step="0.01" value={shape.weight} onChange={(event) => updateShape({ weight: Number(event.target.value) })} /></label>
-        <label className="studio-bend-switch"><span>{t("studio.spectre.invert")}</span><input type="checkbox" checked={shape.lean > 0} onChange={(event) => updateShape({ lean: event.target.checked ? 1 : -1 })} /><b aria-hidden="true">{shape.lean > 0 ? "↻" : "↺"}</b></label>
-      </>
+      <InspectorGroup>
+        <InspectorRangeField label={t("studio.spectre.roundness")} value={shape.roundness} min="0" max="1" step="0.01" onChange={(roundness) => updateShape({ roundness })} />
+        <InspectorRangeField label={t("studio.spectre.weight")} value={shape.weight} min="0.15" max="0.85" step="0.01" onChange={(weight) => updateShape({ weight })} />
+        <InspectorToggleField label={t("studio.spectre.invert")} checked={shape.lean > 0} onChange={(checked) => updateShape({ lean: checked ? 1 : -1 })} indicator={shape.lean > 0 ? "↻" : "↺"} />
+      </InspectorGroup>
     );
   }
 
   function renderDocumentControls() {
     if (selectedPath || selectedLine || selectedCircle || selectedCircularPath) return null;
+    const outlineWidth = design.strokeWidth ?? (family === "spectre" ? 1 : 2);
+    const updateOutlineWidth = (value) => {
+      if (!Number.isFinite(value)) return;
+      setDesign((current) => ({ ...current, strokeWidth: Math.max(0, Math.min(20, value)) }));
+    };
     return (
-      <section className="studio-context-outline-group" aria-labelledby="studio-outline-heading">
-        <strong id="studio-outline-heading">{t("studio.controls.outlineGroup")}</strong>
-        <label className="studio-context-color">
-          <span>{t("studio.controls.outlineColor")}</span>
-          <input type="color" value={design.outline || "#17313b"} onChange={(event) => setDesign((current) => ({ ...current, outline: event.target.value }))} />
-        </label>
-        <label className="studio-context-range"><span className="studio-context-range-label"><span>{t("studio.controls.outlineWidth")}</span><input type="number" aria-label={t("studio.controls.outlineWidth")} min="0" max="20" step="0.1" value={Number(design.strokeWidth ?? (family === "spectre" ? 1 : 2)).toFixed(1)} onChange={(event) => {
-          const strokeWidth = Number(event.target.value);
-          if (Number.isFinite(strokeWidth)) setDesign((current) => ({ ...current, strokeWidth: Math.max(0, Math.min(20, strokeWidth)) }));
-        }} /></span><input type="range" min="0" max="8" step="0.1" value={design.strokeWidth ?? (family === "spectre" ? 1 : 2)} onChange={(event) => setDesign((current) => ({ ...current, strokeWidth: Number(event.target.value) }))} /></label>
-      </section>
+      <InspectorGroup title={t("studio.controls.outlineGroup")} titleId="studio-outline-heading" className="studio-widget-outline-group">
+        <InspectorColorField label={t("studio.controls.outlineColor")} value={design.outline || "#17313b"} onChange={(outline) => setDesign((current) => ({ ...current, outline }))} />
+        <InspectorRangeField label={t("studio.controls.outlineWidth")} value={outlineWidth} min="0" max="8" step="0.1" digits={1} editable onChange={updateOutlineWidth} />
+      </InspectorGroup>
     );
   }
 
@@ -990,19 +994,19 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             <span><i className="legend-port" />{t("studio.canvas.port")}</span>
           </div>
         </main>
-        <aside className="studio-context-bar" aria-label={t("studio.toolbar.document")}>
-          <div className="studio-context-heading">
-            <span className="studio-context-type">{selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedLine ? "╱" : selectedCircle ? "○" : "◇"}</span>
-            <strong>{selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedLine ? t("studio.lines.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}</strong>
-          </div>
+        <InspectorPanel
+          ariaLabel={t("studio.toolbar.document")}
+          icon={selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedLine ? "╱" : selectedCircle ? "○" : "◇"}
+          title={selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedLine ? t("studio.lines.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}
+          help={family !== "spectre" && !selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? t("studio.toolbar.selectHint") : null}
+        >
           {renderPathControls()}
           {renderLineControls()}
           {renderCircleControls()}
           {renderCircularPathControls()}
           {renderSpectreShapeControls()}
           {renderDocumentControls()}
-          {family !== "spectre" && !selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? <span className="studio-context-help">{t("studio.toolbar.selectHint")}</span> : null}
-        </aside>
+        </InspectorPanel>
       </div>
 
       <section className="studio-lower-grid">
