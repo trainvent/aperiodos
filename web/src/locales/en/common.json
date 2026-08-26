@@ -54,6 +54,7 @@
 			"title": "Templates",
 			"choose": "Choose template…",
 			"circularPath": "Einstein circular path",
+			"hexagonalization": "Spectre hexagonalization",
 			"untitled": "Untitled Einstein pattern"
 		},
 		"controls": {
@@ -168,7 +169,7 @@
 			"loaded": "Design loaded.",
 			"deleted": "Local design deleted.",
 			"reset": "Blank Studio document restored.",
-			"templateApplied": "Circular-path template added to the canvas.",
+			"templateApplied": "Template added to the canvas.",
 			"imported": "Design imported. Save it to add it to the local library.",
 			"importFailed": "That file is not a valid Aperiodos material design.",
 			"libraryFailed": "The local design library could not be read."
@@ -373,7 +374,8 @@
 			"title": "Spectre Generator",
 			"description": "Render bounded Spectre snapshots, choose a pattern variant, tune the palette and framing, and export SVG.",
 			"autoIterationsValue": "Auto",
-			"drawMode": "Color Mode",
+			"drawMode": "Color mode",
+			"palette": "Palette",
 			"drawModeBuild": "Build",
 			"drawModeTranslation": "Translation",
 			"shape": "Shape",

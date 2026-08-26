@@ -5,6 +5,7 @@
   "name": "GreenCurves",
   "tile": "einstein-hat",
   "colors": { "base": "#ffffff", "ink": "#00c200" },
+  "outline": "#17313b",
   "paths": [],
   "circles": [],
   "circularPaths": [

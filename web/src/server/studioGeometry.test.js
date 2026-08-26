@@ -10,13 +10,14 @@ import {
   elementMaterialColor,
   getDesignLayers,
   insertCircularPathTemplate,
+  insertHexagonalizationTemplate,
   latticeToCartesian,
   nearestBoundaryPoint,
   snapCircleHandle,
   snapLatticePoint,
   validateDesign,
 } from "../features/studio/einsteinGeometry.js";
-import { getEinsteinStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns } from "../features/studio/patternLibrary.js";
+import { getEinsteinStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns, readStudioLibrary, writeStudioLibrary } from "../features/studio/patternLibrary.js";
 import { SPECTRE_POINTS, spectreEdgeControl, spectrePath } from "../features/studio/spectreGeometry.js";
 import { cartesianGridLines, geometryAdapterFor, snapCartesianPoint } from "../features/studio/studioGeometryAdapters.js";
 
@@ -186,6 +187,23 @@ test("Studio pattern consumers receive only their geometry family", async () => 
   assert.equal((await getSpectreStudioPatterns(storage, fetcher))[0].tile, "spectre");
 });
 
+test("Spectre designs persist in the local Studio library", () => {
+  const design = createEmptyDesign("spectre");
+  design.id = "saved-spectre";
+  design.outline = "#123456";
+  design.lines = [{ id: "line", width: 0.2, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }];
+  design.layerOrder = [{ kind: "line", id: "line" }];
+  const storage = {
+    value: null,
+    getItem: () => storage.value,
+    setItem: (_key, value) => { storage.value = value; },
+  };
+  writeStudioLibrary([design], storage);
+  const saved = readStudioLibrary(storage)[0];
+  assert.equal(saved.tile, "spectre");
+  assert.equal(saved.outline, "#123456");
+});
+
 test("Public Studio presets load from their pattern assets", async () => {
   const assets = await Promise.all([
     readFile(new URL("../../public/patterns/einstein/greencurves.json", import.meta.url), "utf8"),
@@ -196,7 +214,9 @@ test("Public Studio presets load from their pattern assets", async () => {
   const greenCurves = designs.find((design) => design.id === "builtin-green-curves");
   const hexagonalization = designs.find((design) => design.id === "builtin-spectre-hexagonalization");
   assert.deepEqual(greenCurves.circularPaths.map((path) => path.width), [0.7, 1.3]);
+  assert.equal(greenCurves.outline, "#17313b");
   assert.equal(hexagonalization.tile, "spectre");
+  assert.equal(hexagonalization.outline, "#000000");
   assert.equal(hexagonalization.lines.length, 7);
 });
 
@@ -222,6 +242,30 @@ test("Studio templates append without replacing existing canvas elements", () =>
   assert.deepEqual(result.layerOrder, [
     { kind: "circle", id: "existing-circle" },
     { kind: "circularPath", id: "inserted-template" },
+  ]);
+});
+
+test("Studio templates are scoped to their geometry family", () => {
+  const einstein = createEmptyDesign();
+  const spectre = createEmptyDesign("spectre");
+
+  assert.throws(
+    () => insertCircularPathTemplate(spectre, { id: "wrong-family" }),
+    /needs an Einstein design/,
+  );
+  assert.throws(
+    () => insertHexagonalizationTemplate(einstein, { idPrefix: "wrong-family" }),
+    /needs a Spectre design/,
+  );
+
+  spectre.circles.push({ id: "existing-circle", name: "Existing", center: { u: 0, v: 0 }, radius: 1, operation: "ink" });
+  spectre.layerOrder.push({ kind: "circle", id: "existing-circle" });
+  const result = insertHexagonalizationTemplate(spectre, { idPrefix: "hex", name: "Hexagonalization" });
+  assert.equal(result.circles[0].id, "existing-circle");
+  assert.equal(result.lines.length, 7);
+  assert.deepEqual(result.layerOrder.slice(0, 2), [
+    { kind: "circle", id: "existing-circle" },
+    { kind: "line", id: "hex-1" },
   ]);
 });
 

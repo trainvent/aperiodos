@@ -10,6 +10,7 @@ import {
   elementMaterialColor,
   getDesignLayers,
   insertCircularPathTemplate,
+  insertHexagonalizationTemplate,
   latticeToCartesian,
   normalizeLayerOrder,
   snapCircleHandle,
@@ -207,7 +208,7 @@ function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectr
     const pathData = kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper);
     return `<path d="${pathData}" fill="none" stroke="${xmlEscape(elementMaterialColor(design, item))}" stroke-width="${(item.width * CANVAS.scale).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" />`;
   }).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS.width} ${CANVAS.height}" width="${CANVAS.width}" height="${CANVAS.height}"><title>${xmlEscape(design.name)}</title><defs><clipPath id="tile">${tileShape} /></clipPath></defs><rect width="100%" height="100%" fill="white"/>${tileShape} fill="${xmlEscape(design.colors.base)}"/><g clip-path="url(#tile)">${layers}</g>${tileShape} fill="none" stroke="#17313b" stroke-width="2" stroke-linejoin="round"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS.width} ${CANVAS.height}" width="${CANVAS.width}" height="${CANVAS.height}"><title>${xmlEscape(design.name)}</title><defs><clipPath id="tile">${tileShape} /></clipPath></defs><rect width="100%" height="100%" fill="white"/>${tileShape} fill="${xmlEscape(design.colors.base)}"/><g clip-path="url(#tile)">${layers}</g>${tileShape} fill="none" stroke="${xmlEscape(design.outline || "#17313b")}" stroke-width="${Number(design.strokeWidth ?? 2).toFixed(2)}" stroke-linejoin="round"/></svg>`;
 }
 
 export default function StudioPage() {
@@ -307,6 +308,16 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
         name: t("studio.circularPaths.newName", { count: (current.circularPaths || []).length + 1 }),
       }));
       selectLayer("circularPath", id);
+      setStatus(t("studio.status.templateApplied"));
+      return;
+    }
+    if (templateId === "spectre-hexagonalization") {
+      const idPrefix = `template-hexagonalization-${window.crypto?.randomUUID?.() || Date.now()}`;
+      setDesign((current) => insertHexagonalizationTemplate(current, {
+        idPrefix,
+        name: t("studio.templates.hexagonalization"),
+      }));
+      selectLayer("line", `${idPrefix}-1`);
       setStatus(t("studio.status.templateApplied"));
     }
   }
@@ -722,6 +733,22 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     );
   }
 
+  function renderDocumentControls() {
+    if (selectedPath || selectedLine || selectedCircle || selectedCircularPath) return null;
+    return (
+      <>
+        <label className="studio-context-color">
+          <span>{t("generator.common.outline")}</span>
+          <input type="color" value={design.outline || "#17313b"} onChange={(event) => setDesign((current) => ({ ...current, outline: event.target.value }))} />
+        </label>
+        <label className="studio-context-range"><span className="studio-context-range-label"><span>{t("generator.common.strokeWidth")}</span><input type="number" aria-label={t("generator.common.strokeWidth")} min="0" max="20" step="0.1" value={Number(design.strokeWidth ?? (family === "spectre" ? 1 : 2)).toFixed(1)} onChange={(event) => {
+          const strokeWidth = Number(event.target.value);
+          if (Number.isFinite(strokeWidth)) setDesign((current) => ({ ...current, strokeWidth: Math.max(0, Math.min(20, strokeWidth)) }));
+        }} /></span><input type="range" min="0" max="8" step="0.1" value={design.strokeWidth ?? (family === "spectre" ? 1 : 2)} onChange={(event) => setDesign((current) => ({ ...current, strokeWidth: Number(event.target.value) }))} /></label>
+      </>
+    );
+  }
+
   const ports = [...design.paths, ...(design.lines || [])].flatMap((path) => [
     { path, side: t("studio.ports.start"), port: geometry.nearestBoundary(path.points[0]) },
     { path, side: t("studio.ports.end"), port: geometry.nearestBoundary(path.points[path.points.length - 1]) },
@@ -757,7 +784,11 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 <span>▧</span>
                 <select value="" onChange={(event) => applyTemplate(event.target.value)} aria-label={t("studio.templates.choose")}>
                   <option value="" disabled>{t("studio.templates.choose")}</option>
-                  <option value="einstein-circular-path">{t("studio.templates.circularPath")}</option>
+                  {family === "einstein" ? (
+                    <option value="einstein-circular-path">{t("studio.templates.circularPath")}</option>
+                  ) : (
+                    <option value="spectre-hexagonalization">{t("studio.templates.hexagonalization")}</option>
+                  )}
                 </select>
               </label>
             </div>
@@ -880,7 +911,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 selectedIds={{ path: selectedPathId, line: selectedLineId, circularPath: selectedCircularPathId }}
               />
             </g>
-            <TileShape design={design} geometry={geometry} className="studio-tile-outline" />
+            <TileShape design={design} geometry={geometry} className="studio-tile-outline" style={{ stroke: design.outline || "#17313b", strokeWidth: design.strokeWidth ?? (family === "spectre" ? 1 : 2) }} />
             {showEdgeNumbers ? geometry.points.map((point, index) => {
               const next = geometry.points[(index + 1) % geometry.points.length];
               const label = mapToCanvas(cartesianToLattice({ x: (point.x + next.x) / 2, y: (point.y + next.y) / 2 }));
@@ -967,6 +998,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           {renderCircleControls()}
           {renderCircularPathControls()}
           {renderSpectreShapeControls()}
+          {renderDocumentControls()}
           {family !== "spectre" && !selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? <span className="studio-context-help">{t("studio.toolbar.selectHint")}</span> : null}
         </aside>
       </div>
@@ -1040,7 +1072,7 @@ function ClusterPreview({ design, geometry }) {
             <g clipPath={`url(#cluster-clip-${index})`}>
               <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={tileBase} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={mapper.scale || Math.sqrt(Math.abs(determinant)) * 78} />
             </g>
-            <TileShape design={previewDesign} geometry={geometry} mapper={mapper} fill="none" stroke={geometry.previewStroke || "#17313b"} strokeWidth={geometry.previewStroke ? "3" : "1.5"} strokeLinejoin="round" />
+            <TileShape design={previewDesign} geometry={geometry} mapper={mapper} fill="none" stroke={design.outline || "#17313b"} strokeWidth={geometry.previewStroke ? "3" : "1.5"} strokeLinejoin="round" />
             {geometry.family === "einstein" && determinant > 0 ? <text className="studio-mirror-label" x={mapper({ u: 1.5, v: 0 }).x} y={mapper({ u: 1.5, v: 0 }).y}>M</text> : null}
           </g>
         );
@@ -1058,7 +1090,7 @@ function MiniDesign({ design, geometry }) {
       <g clipPath={`url(#mini-${design.id})`}>
         <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={CANVAS.scale} />
       </g>
-      <TileShape design={design} geometry={geometry} fill="none" stroke="#17313b" strokeWidth="4" strokeLinejoin="round" />
+      <TileShape design={design} geometry={geometry} fill="none" stroke={design.outline || "#17313b"} strokeWidth="4" strokeLinejoin="round" />
     </svg>
   );
 }

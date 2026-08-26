@@ -54,6 +54,7 @@
 			"title": "Vorlagen",
 			"choose": "Vorlage wählen…",
 			"circularPath": "Einstein-Kreisbogenpfad",
+			"hexagonalization": "Spectre-Hexagonalisierung",
 			"untitled": "Unbenanntes Einstein-Muster"
 		},
 		"controls": {
@@ -168,7 +169,7 @@
 			"loaded": "Entwurf geladen.",
 			"deleted": "Lokaler Entwurf gelöscht.",
 			"reset": "Leeres Studio-Dokument wiederhergestellt.",
-			"templateApplied": "Kreisbogenpfad-Vorlage zur Arbeitsfläche hinzugefügt.",
+			"templateApplied": "Vorlage zur Arbeitsfläche hinzugefügt.",
 			"imported": "Entwurf importiert. Speichere ihn, um ihn zur lokalen Bibliothek hinzuzufügen.",
 			"importFailed": "Diese Datei ist kein gültiger Aperiodos-Materialentwurf.",
 			"libraryFailed": "Die lokale Designbibliothek konnte nicht gelesen werden."
@@ -374,6 +375,7 @@
 			"description": "Begrenzte Spectre-Snapshots rendern, Varianten wählen, Palette und Rahmen anpassen und SVG exportieren.",
 			"autoIterationsValue": "Auto",
 			"drawMode": "Farbmodus",
+			"palette": "Palette",
 			"drawModeBuild": "Aufbau",
 			"drawModeTranslation": "Translation",
 			"shape": "Form",

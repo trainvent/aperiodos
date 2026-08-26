@@ -191,6 +191,8 @@ export function createEmptyDesign(tile = "einstein-hat") {
     tile,
     ...(spectre ? { tileShape: { roundness: 0.18, weight: 0.5, lean: 1 } } : {}),
     colors: { base: "#ffffff", ink: "#00c200" },
+    outline: "#17313b",
+    strokeWidth: spectre ? 1 : 2,
     paths: [],
     lines: [],
     circles: [],
@@ -200,6 +202,9 @@ export function createEmptyDesign(tile = "einstein-hat") {
 }
 
 export function insertCircularPathTemplate(design, { id, name } = {}) {
+  if (design.tile !== "einstein-hat") {
+    throw new Error("The Einstein circular-path template needs an Einstein design.");
+  }
   if (!id || getDesignLayers(design).some((layer) => layer.id === id)) {
     throw new Error("A template element needs a unique identifier.");
   }
@@ -214,6 +219,43 @@ export function insertCircularPathTemplate(design, { id, name } = {}) {
     ...design,
     circularPaths: [...(design.circularPaths || []), circularPath],
     layerOrder: [...normalizeLayerOrder(design), { kind: "circularPath", id }],
+  };
+}
+
+const SPECTRE_HEXAGONALIZATION_LINES = [
+  [{ u: 2.7320508075688767, v: 2 }, { u: 3.1547005383792515, v: 0.4226497308103742 }],
+  [{ u: 2.220446049250313e-16, v: 2.732050807568877 }, { u: 1.1547005383792515, v: 3.1547005383792515 }],
+  [{ u: 0.350480947161671, v: 1.299038105676658 }, { u: 2.220446049250313e-16, v: 2.732050807568877 }],
+  [{ u: 0.350480947161671, v: 1.299038105676658 }, { u: 2, v: 0 }],
+  [{ u: 0.350480947161671, v: 1.299038105676658 }, { u: 0, v: 0 }],
+  [{ u: -0.41885662013573544, v: 1.5877132402714709 }, { u: 0, v: 0 }],
+  [{ u: 0.003793110674638722, v: 2.7424137786507226 }, { u: -0.41885662013573544, v: 1.5877132402714709 }],
+];
+
+export function insertHexagonalizationTemplate(design, { idPrefix, name } = {}) {
+  if (design.tile !== "spectre") {
+    throw new Error("The Hexagonalization template needs a Spectre design.");
+  }
+  if (!idPrefix) {
+    throw new Error("A template needs a unique identifier prefix.");
+  }
+  const lines = SPECTRE_HEXAGONALIZATION_LINES.map((points, index) => ({
+    id: `${idPrefix}-${index + 1}`,
+    name: `${name || "Hexagonalization"} ${index + 1}`,
+    width: 0.2,
+    points: points.map((point) => ({ ...point })),
+  }));
+  const existingIds = new Set(getDesignLayers(design).map((layer) => layer.id));
+  if (lines.some((line) => existingIds.has(line.id))) {
+    throw new Error("A template element needs a unique identifier.");
+  }
+  return {
+    ...design,
+    lines: [...(design.lines || []), ...lines],
+    layerOrder: [
+      ...normalizeLayerOrder(design),
+      ...lines.map((line) => ({ kind: "line", id: line.id })),
+    ],
   };
 }
 
@@ -273,6 +315,13 @@ export function validateDesign(value) {
       throw new Error("Spectre designs need finite tile curvature settings.");
     }
   }
+  if (value.strokeWidth !== undefined && (!Number.isFinite(Number(value.strokeWidth)) || Number(value.strokeWidth) < 0 || Number(value.strokeWidth) > 20)) {
+    throw new Error("Pattern stroke width must be between 0 and 20.");
+  }
+  if (value.outline !== undefined && (typeof value.outline !== "string" || !value.outline.trim())) {
+    throw new Error("Pattern outline colors must be non-empty color values.");
+  }
+  value.strokeWidth = value.strokeWidth === undefined ? (value.tile === "spectre" ? 1 : 2) : Number(value.strokeWidth);
   value.paths.forEach((path) => {
     if (!Array.isArray(path.points) || path.points.length < 4 || (path.points.length - 1) % 3 !== 0) {
       throw new Error("Every path must contain complete cubic Bézier segments.");

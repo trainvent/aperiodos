@@ -99,20 +99,26 @@ function coerceOneOf(payload, key, fallback, allowed) {
   return value;
 }
 
-function coerceStudioPattern(payload) {
+function coerceStudioPattern(payload, tile = "einstein-hat") {
   if (payload.studio_pattern === undefined || payload.studio_pattern === null) return null;
   const pattern = payload.studio_pattern;
   const serialized = JSON.stringify(pattern);
   if (!pattern || typeof pattern !== "object" || Array.isArray(pattern) || serialized.length > 65536) {
     throw new ApiError("'studio_pattern' must be a Studio pattern document smaller than 64 KB.");
   }
-  if (pattern.schema !== "aperiodos.material-design" || pattern.version !== 1 || pattern.tile !== "einstein-hat") {
-    throw new ApiError("'studio_pattern' must be a version 1 Einstein material design.");
+  if (pattern.schema !== "aperiodos.material-design" || pattern.version !== 1 || pattern.tile !== tile) {
+    throw new ApiError(`'studio_pattern' must be a version 1 ${tile === "spectre" ? "Spectre" : "Einstein"} material design.`);
   }
   const paths = Array.isArray(pattern.paths) ? pattern.paths : [];
   const lines = Array.isArray(pattern.lines) ? pattern.lines : [];
   const circles = Array.isArray(pattern.circles) ? pattern.circles : [];
   const circularPaths = Array.isArray(pattern.circularPaths) ? pattern.circularPaths : [];
+  if (pattern.strokeWidth !== undefined && (!Number.isFinite(Number(pattern.strokeWidth)) || Number(pattern.strokeWidth) < 0 || Number(pattern.strokeWidth) > 20)) {
+    throw new ApiError("'studio_pattern.strokeWidth' must be between 0 and 20.");
+  }
+  if (pattern.outline !== undefined && (typeof pattern.outline !== "string" || !pattern.outline.trim())) {
+    throw new ApiError("'studio_pattern.outline' must be a non-empty color value.");
+  }
   if (!paths.length && !lines.length && !circles.length && !circularPaths.length) {
     throw new ApiError("'studio_pattern' must contain at least one material element.");
   }
@@ -175,6 +181,89 @@ function coerceStudioPattern(payload) {
     }
   }
   return pattern;
+}
+
+const SQRT3_OVER_2 = Math.sqrt(3) / 2;
+const SPECTRE_STUDIO_POINTS = [
+  [0, 0], [1, 0], [2, 0], [2.5, SQRT3_OVER_2], [2.5 + SQRT3_OVER_2, SQRT3_OVER_2 - 0.5], [2.5 + SQRT3_OVER_2 * 2, SQRT3_OVER_2], [2 + SQRT3_OVER_2 * 2, SQRT3_OVER_2 * 2],
+  [1 + SQRT3_OVER_2 * 2, SQRT3_OVER_2 * 2], [1 + SQRT3_OVER_2 * 2, 1 + SQRT3_OVER_2 * 2], [1 + SQRT3_OVER_2, 1.5 + SQRT3_OVER_2 * 2], [0.5 + SQRT3_OVER_2, 1.5 + SQRT3_OVER_2], [SQRT3_OVER_2 - 0.5, 1.5 + SQRT3_OVER_2], [SQRT3_OVER_2 - 0.5, 0.5 + SQRT3_OVER_2], [-0.5, SQRT3_OVER_2],
+];
+
+function escapeXml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[character]));
+}
+
+function parseSvgPoints(raw) {
+  return raw.trim().split(/\s+/).map((pair) => pair.split(",").map(Number)).filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+}
+
+function studioCartesian(point) {
+  return { x: Number(point.u) + Number(point.v) / 2, y: Number(point.v) * SQRT3_OVER_2 };
+}
+
+function spectreTileMapper(points) {
+  const anchors = points.length >= 105 ? [points[0], points[8], points[24]] : [points[0], points[1], points[3]];
+  if (anchors.length < 3) return null;
+  const [source0, source1, source2] = [SPECTRE_STUDIO_POINTS[0], SPECTRE_STUDIO_POINTS[1], SPECTRE_STUDIO_POINTS[3]];
+  const [target0, target1, target2] = anchors.map(([x, y]) => ({ x, y }));
+  const determinant = (source1[0] - source0[0]) * (source2[1] - source0[1]) - (source1[1] - source0[1]) * (source2[0] - source0[0]);
+  if (Math.abs(determinant) < 1e-9) return null;
+  const transform = (point) => {
+    const { x, y } = studioCartesian(point);
+    const dx = x - source0[0];
+    const dy = y - source0[1];
+    const alpha = (dx * (source2[1] - source0[1]) - dy * (source2[0] - source0[0])) / determinant;
+    const beta = ((source1[0] - source0[0]) * dy - (source1[1] - source0[1]) * dx) / determinant;
+    return { x: target0.x + alpha * (target1.x - target0.x) + beta * (target2.x - target0.x), y: target0.y + alpha * (target1.y - target0.y) + beta * (target2.y - target0.y) };
+  };
+  return { transform, scale: Math.hypot(target1.x - target0.x, target1.y - target0.y) };
+}
+
+function svgPathForStudioItem(kind, item, transform) {
+  const points = item.points || [];
+  if (kind === "line" && points.length === 2) {
+    const [start, end] = points.map(transform);
+    return `M ${start.x.toFixed(3)} ${start.y.toFixed(3)} L ${end.x.toFixed(3)} ${end.y.toFixed(3)}`;
+  }
+  if (kind === "path" && points.length >= 4) {
+    const start = transform(points[0]);
+    const commands = [`M ${start.x.toFixed(3)} ${start.y.toFixed(3)}`];
+    for (let index = 1; index + 2 < points.length; index += 3) {
+      commands.push(`C ${points.slice(index, index + 3).map(transform).map((point) => `${point.x.toFixed(3)} ${point.y.toFixed(3)}`).join(" ")}`);
+    }
+    return commands.join(" ");
+  }
+  return "";
+}
+
+function renderSpectreMaterial(pattern, mapper) {
+  const byKind = new Map([["path", pattern.paths || []], ["line", pattern.lines || []], ["circle", pattern.circles || []]]);
+  const ordered = Array.isArray(pattern.layerOrder) ? pattern.layerOrder.map(({ kind, id }) => ({ kind, item: byKind.get(kind)?.find((item) => item.id === id) })).filter(({ item }) => item) : [
+    ...(pattern.paths || []).map((item) => ({ kind: "path", item })), ...(pattern.lines || []).map((item) => ({ kind: "line", item })), ...(pattern.circles || []).map((item) => ({ kind: "circle", item })),
+  ];
+  return ordered.map(({ kind, item }) => {
+    const color = escapeXml(item.color || pattern.colors?.ink || "black");
+    if (kind === "circle" && item.center && Number.isFinite(Number(item.radius))) {
+      const center = mapper.transform(item.center);
+      return `<circle cx="${center.x.toFixed(3)}" cy="${center.y.toFixed(3)}" r="${(Number(item.radius) * mapper.scale).toFixed(3)}" fill="${color}" />`;
+    }
+    const d = svgPathForStudioItem(kind, item, mapper.transform);
+    return d ? `<path d="${d}" fill="none" stroke="${color}" stroke-width="${(Number(item.width || 1) * mapper.scale).toFixed(3)}" stroke-linecap="round" stroke-linejoin="round" />` : "";
+  }).join("");
+}
+
+function applySpectreStudioMaterial(svg, pattern) {
+  const matches = [...svg.matchAll(/<polygon\b[^>]*\bpoints="([^"]+)"[^>]*\/>/g)];
+  const tiles = matches.map((match, index) => ({ index, source: match[0], points: match[1], mapper: spectreTileMapper(parseSvgPoints(match[1])) })).filter(({ mapper }) => mapper);
+  if (!tiles.length) return svg;
+  const definitions = tiles.map(({ index, points }) => `<clipPath id="studio-spectre-tile-${index}"><polygon points="${points}" /></clipPath>`).join("");
+  let tileIndex = 0;
+  const decorated = svg.replace(/<polygon\b[^>]*\bpoints="([^"]+)"[^>]*\/>/g, (polygon) => {
+    const tile = tiles[tileIndex++];
+    if (!tile) return polygon;
+    return `${polygon}<g clip-path="url(#studio-spectre-tile-${tile.index})">${renderSpectreMaterial(pattern, tile.mapper)}</g>`;
+  });
+  return decorated.replace(/(<svg\b[^>]*>)/, `$1<defs>${definitions}</defs>`);
 }
 
 function coerceBoolean(payload, key, fallback = false) {
@@ -374,8 +463,11 @@ export async function renderSpectre(payload) {
   const centerY = coerceFloat(payload, "center_y", 0.0);
   const background = String(payload.background || "#ffffff");
   const outline = String(payload.outline || "black");
+  const materialMode = coerceOneOf(payload, "material_mode", "solid", ["solid", "pattern"]);
+  const studioPattern = materialMode === "pattern" ? coerceStudioPattern(payload, "spectre") : null;
   const strokeWidth = coerceFloat(payload, "stroke_width", 1.2, { minimum: 0.0, maximum: 20.0 });
-  const palette = coercePalette(payload);
+  const colorMode = coerceOneOf(payload, "color_mode", "families", ["simple", "families"]);
+  const palette = colorMode === "simple" ? Array(4).fill(String(payload.simple_color || "white")) : coercePalette(payload);
   const drawMode = coerceOneOf(payload, "draw_mode", "translation", ["generated", "translation"]);
   const shape = coerceOneOf(payload, "shape", "curved", ["straight", "curved"]);
   const imageFormat = coerceFormat(payload, ALLOWED_SPECTRE_FORMATS, "svg");
@@ -388,6 +480,7 @@ export async function renderSpectre(payload) {
     releaseBinary: path.join(GENERATORS_DIR, "spectre", "target", "release", "spectre"),
     debugBinary: path.join(GENERATORS_DIR, "spectre", "target", "debug", "spectre"),
     cargoCwd: path.join(GENERATORS_DIR, "spectre"),
+    transformSvg: studioPattern ? (svg) => applySpectreStudioMaterial(svg, studioPattern) : undefined,
     args: [
       "--width",
       String(width),
@@ -476,7 +569,7 @@ export async function renderPenrose(payload) {
   });
 }
 
-async function renderRustSvg({ imageFormat, allowedFormats, filenameBase, binaryEnv, releaseBinary, debugBinary, cargoCwd, args }) {
+async function renderRustSvg({ imageFormat, allowedFormats, filenameBase, binaryEnv, releaseBinary, debugBinary, cargoCwd, args, transformSvg }) {
   return withTempFile("svg", async (outputPath) => {
     const configured = process.env[binaryEnv];
     const binaryPath = configured || (await newestExisting([releaseBinary, debugBinary]));
@@ -489,7 +582,8 @@ async function renderRustSvg({ imageFormat, allowedFormats, filenameBase, binary
       cwd: binaryPath ? PROJECT_ROOT : cargoCwd,
     });
 
-    const svgBuffer = await readFile(outputPath);
+    const renderedSvg = await readFile(outputPath);
+    const svgBuffer = transformSvg ? Buffer.from(transformSvg(renderedSvg.toString("utf8"))) : renderedSvg;
     const buffer = await svgToRequestedFormat(svgBuffer, imageFormat);
     return {
       buffer,

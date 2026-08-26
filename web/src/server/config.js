@@ -6,8 +6,8 @@ export const PROJECT_ROOT = path.basename(WEB_ROOT) === "web" ? path.resolve(WEB
 export const SRC_DIR = path.join(PROJECT_ROOT, "src");
 export const GENERATORS_DIR = path.join(SRC_DIR, "generators");
 
-export const DEFAULT_HTTP_WIDTH = 1600;
-export const DEFAULT_HTTP_HEIGHT = 1600;
+export const DEFAULT_HTTP_WIDTH = 1024;
+export const DEFAULT_HTTP_HEIGHT = 1024;
 export const MAX_IMAGE_DIMENSION = 6000;
 export const MAX_ITERATIONS = 6;
 export const MAX_SPECTRE_ITERATIONS = 8;
@@ -15,7 +15,7 @@ export const MAX_PENROSE_ITERATIONS = 10;
 export const DEFAULT_SCALE = 100;
 export const MAX_SCALE = 1000;
 export const EINSTEIN_SCALE_NORMALIZATION = 10.0 / DEFAULT_SCALE;
-export const SPECTRE_SCALE_NORMALIZATION = 4.0 / DEFAULT_SCALE;
+export const SPECTRE_SCALE_NORMALIZATION = 8.0 / DEFAULT_SCALE;
 export const PENROSE_SCALE_NORMALIZATION = 20.0 / DEFAULT_SCALE;
 export const P1_SCALE_NORMALIZATION = 10.0 / DEFAULT_SCALE;
 

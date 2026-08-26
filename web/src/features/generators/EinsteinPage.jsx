@@ -35,9 +35,21 @@ export default function EinsteinPage() {
     ...studioPatterns.map((pattern) => ({ value: studioPatternValue(pattern.id), label: `${pattern.name} · ${t("generator.material.studio")}` })),
   ], [studioPatterns, t]);
   const selectedStudioPattern = studioPatterns.find((pattern) => pattern.id === studioPatternId(values.pattern_design));
-  const simplePatternColor = values.material_mode === "pattern"
-    ? selectedStudioPattern?.colors?.base || values.pattern_base
-    : null;
+  const patternStrokeWidth = selectedStudioPattern?.strokeWidth;
+  const patternTileColor = selectedStudioPattern?.colors?.base;
+  const patternOutline = selectedStudioPattern?.outline;
+
+  useEffect(() => {
+    if (!selectedStudioPattern) return;
+    setValues((current) => ({
+      ...current,
+      color_mode: "simple",
+      simple_color: patternTileColor || current.simple_color,
+      stroke_width: patternStrokeWidth ?? current.stroke_width,
+      outline: patternOutline || current.outline,
+    }));
+  }, [selectedStudioPattern?.id, patternStrokeWidth, patternTileColor, patternOutline]);
+
   return (
     <>
       <GeneratorLayout
@@ -74,12 +86,11 @@ export default function EinsteinPage() {
           palette={
             values.color_mode === "simple" ? (
               <ColorField
-                values={simplePatternColor ? { ...values, simple_color: simplePatternColor } : values}
+                values={values}
                 setValues={setValues}
                 name="simple_color"
                 label={t("generator.material.tileColor")}
                 full
-                disabled={Boolean(simplePatternColor)}
               />
             ) : values.color_mode === "families" ? (
               <>
@@ -125,7 +136,10 @@ export default function EinsteinPage() {
           payload.seed = Number(values.seed);
         }
         if (selectedStudioPattern) {
-          payload.studio_pattern = selectedStudioPattern;
+          payload.studio_pattern = {
+            ...selectedStudioPattern,
+            colors: { ...selectedStudioPattern.colors, base: values.simple_color },
+          };
         }
         return payload;
       }}

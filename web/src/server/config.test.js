@@ -27,13 +27,14 @@ test("all generators use the server canvas defaults", () => {
   }
 });
 
+
 test("all generators use a normalized default scale", () => {
   assert.equal(EINSTEIN_DEFAULTS.scale, DEFAULT_SCALE);
   assert.equal(SPECTRE_DEFAULTS.scale, DEFAULT_SCALE);
   assert.equal(PENROSE_DEFAULTS.scale, DEFAULT_SCALE);
 
   assert.equal(DEFAULT_SCALE * EINSTEIN_SCALE_NORMALIZATION, 10);
-  assert.equal(DEFAULT_SCALE * SPECTRE_SCALE_NORMALIZATION, 4);
+  assert.equal(DEFAULT_SCALE * SPECTRE_SCALE_NORMALIZATION, 8);
   assert.equal(DEFAULT_SCALE * PENROSE_SCALE_NORMALIZATION, 20);
   assert.equal(DEFAULT_SCALE * P1_SCALE_NORMALIZATION, 10);
 });

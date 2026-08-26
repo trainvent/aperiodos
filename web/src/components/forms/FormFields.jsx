@@ -36,6 +36,7 @@ export function NumberField({
   step,
   full = false,
   placeholder,
+  disabled = false,
 }) {
   return (
     <label className={full ? "full" : ""}>
@@ -47,6 +48,7 @@ export function NumberField({
         max={max}
         step={step}
         value={values[name]}
+        disabled={disabled}
         placeholder={placeholder}
         onChange={(event) => setValues((current) => ({ ...current, [name]: event.target.value }))}
       />

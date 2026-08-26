@@ -1,4 +1,4 @@
-export const DEFAULT_CANVAS_SIZE = 1600;
+export const DEFAULT_CANVAS_SIZE = 1024;
 
 export const EINSTEIN_DEFAULTS = {
   iterations: 5,
@@ -8,7 +8,7 @@ export const EINSTEIN_DEFAULTS = {
   center_x: 0,
   center_y: 0,
   format: "png",
-  color_mode: "families",
+  color_mode: "translation",
   simple_color: "white",
   material_mode: "solid",
   pattern_style: "curves",
@@ -38,6 +38,10 @@ export const SPECTRE_DEFAULTS = {
   center_x: 0,
   center_y: 0,
   format: "svg",
+  material_mode: "solid",
+  pattern_design: "",
+  color_mode: "translation",
+  simple_color: "white",
   draw_mode: "translation",
   shape: "curved",
   background: "white",
