@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import ThemeToggle from "./components/ThemeToggle";
 import AboutPage from "./features/about/AboutPage";
 import EinsteinPage from "./features/generators/EinsteinPage";
 import PenrosePage from "./features/generators/PenrosePage";
@@ -96,18 +97,21 @@ export default function App() {
             </TopNavLink>
             <TopNavLink to="/about">{t("nav.about")}</TopNavLink>
           </nav>
-          <div className="lang-switch" role="group" aria-label={t("language.label")}>
-            <span className="lang-switch-control">
-              <button
-                className="lang-toggle"
-                type="button"
-                onClick={() => i18n.changeLanguage(language === "de" ? "en" : "de")}
-                aria-label="Toggle language"
-              >
-                <span className="lang-flag" aria-hidden="true">{language === "de" ? "🇩🇪" : "🇬🇧"}</span>
-                <span className="lang-code">{language.toUpperCase()}</span>
-              </button>
-            </span>
+          <div className="global-controls">
+            <ThemeToggle />
+            <div className="lang-switch" role="group" aria-label={t("language.label")}>
+              <span className="lang-switch-control">
+                <button
+                  className="lang-toggle"
+                  type="button"
+                  onClick={() => i18n.changeLanguage(language === "de" ? "en" : "de")}
+                  aria-label="Toggle language"
+                >
+                  <span className="lang-flag" aria-hidden="true">{language === "de" ? "🇩🇪" : "🇬🇧"}</span>
+                  <span className="lang-code">{language.toUpperCase()}</span>
+                </button>
+              </span>
+            </div>
           </div>
         </div>
       </header>

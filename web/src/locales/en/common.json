@@ -9,6 +9,12 @@
 	"language": {
 		"label": "Language"
 	},
+	"theme": {
+		"auto": "Automatic",
+		"light": "Light",
+		"dark": "Dark",
+		"toggle": "Theme: {{current}}. Switch to {{next}}"
+	},
 	"studio": {
 		"hero": {
 			"pageTitle": "Studio",

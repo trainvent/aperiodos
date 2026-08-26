@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --bg: #ffffff;
   --bg-soft: #ffffff;
   --panel: rgba(255, 252, 245, 0.88);
@@ -10,6 +11,33 @@
   --accent-green: #1f6a5d;
   --accent-ink: #204f7a;
   --shadow: 0 24px 60px rgba(23, 49, 59, 0.14);
+  --body-glow-left: rgba(180, 85, 45, 0.2);
+  --body-glow-right: rgba(31, 106, 93, 0.16);
+  --surface-glass: rgba(255, 255, 255, 0.72);
+  --surface-glass-strong: rgba(255, 255, 255, 0.92);
+  --surface-hover: rgba(23, 49, 59, 0.08);
+  --surface-solid: #fffdf8;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e181e;
+  --bg-soft: #15252d;
+  --panel: rgba(27, 43, 52, 0.92);
+  --ink: #edf4f5;
+  --ink-soft: rgba(225, 237, 239, 0.76);
+  --line: rgba(225, 237, 239, 0.16);
+  --accent: #e08759;
+  --accent-strong: #f1a06f;
+  --accent-green: #5ba18f;
+  --accent-ink: #78a9d2;
+  --shadow: 0 24px 64px rgba(0, 0, 0, 0.34);
+  --body-glow-left: rgba(180, 85, 45, 0.16);
+  --body-glow-right: rgba(31, 106, 93, 0.2);
+  --surface-glass: rgba(37, 56, 66, 0.78);
+  --surface-glass-strong: rgba(30, 48, 58, 0.96);
+  --surface-hover: rgba(225, 237, 239, 0.09);
+  --surface-solid: #1b2b34;
 }
 
 * {
@@ -27,9 +55,10 @@ body {
   font-family: "Avenir Next", "Segoe UI", sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(180, 85, 45, 0.2), transparent 28%),
-    radial-gradient(circle at top right, rgba(31, 106, 93, 0.16), transparent 30%),
+    radial-gradient(circle at top left, var(--body-glow-left), transparent 28%),
+    radial-gradient(circle at top right, var(--body-glow-right), transparent 30%),
     linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
+  transition: color 160ms ease, background-color 160ms ease;
 }
 
 a {
@@ -446,7 +475,7 @@ select {
   border: 1px solid rgba(180, 85, 45, 0.28);
   border-radius: 10px;
   background: rgba(180, 85, 45, 0.08);
-  color: #8a4327;
+  color: var(--accent);
   font-size: 0.76rem;
   line-height: 1.4;
 }
@@ -743,6 +772,31 @@ select {
 }
 
 .panel.studio-surface {
+  --studio-shell: #e5edef;
+  --studio-panel: #f2f6f7;
+  --studio-raised: #dce7ea;
+  --studio-card: #f7f9f9;
+  --studio-card-hover: #ffffff;
+  --studio-border: #9babb2;
+  --studio-border-soft: rgba(23, 49, 59, 0.14);
+  --studio-text: #17313b;
+  --studio-muted: #58707a;
+  --studio-accent: #b4552d;
+  --studio-accent-soft: rgba(180, 85, 45, 0.13);
+  --studio-input: #ffffff;
+  --studio-control: #d9e4e7;
+  --studio-control-hover: #c9dadd;
+  --studio-label: #526b75;
+  --studio-subtle-text: #667d86;
+  --studio-accent-text: #8a4327;
+  border: 1px solid var(--studio-border);
+  border-radius: 0;
+  background: var(--studio-shell);
+  color: var(--studio-text);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .panel.studio-surface {
   --studio-shell: #172630;
   --studio-panel: #20333e;
   --studio-raised: #2a3e49;
@@ -754,11 +808,12 @@ select {
   --studio-muted: #adbdc4;
   --studio-accent: #d1825a;
   --studio-accent-soft: rgba(209, 130, 90, 0.18);
-  border: 1px solid var(--studio-border);
-  border-radius: 0;
-  background: var(--studio-shell);
-  color: var(--studio-text);
-  box-shadow: none;
+  --studio-input: #13232c;
+  --studio-control: #2b404b;
+  --studio-control-hover: #304752;
+  --studio-label: #9fb0b8;
+  --studio-subtle-text: #b8c5ca;
+  --studio-accent-text: #ffc29f;
 }
 
 .studio-surface button,
@@ -849,14 +904,14 @@ select {
   padding: 5px 8px;
   border: 1px solid var(--studio-border);
   border-radius: 4px;
-  background: #304852;
+  background: var(--studio-control);
   color: var(--studio-text);
   font-size: 0.68rem;
 }
 
 .studio-surface .studio-card-actions button:hover {
   border-color: var(--studio-accent);
-  background: #3a5360;
+  background: var(--studio-control-hover);
 }
 
 .studio-library-actions {
@@ -873,28 +928,30 @@ select {
   padding: 7px 11px;
   border: 1px solid var(--studio-border);
   border-radius: 5px;
-  background: #304852;
+  background: var(--studio-control);
   color: var(--studio-text);
   box-shadow: none;
 }
 
 .studio-library-actions .button:hover:not(:disabled) {
   border-color: var(--studio-accent);
-  background: #3a5360;
+  background: var(--studio-control-hover);
 }
 
 .studio-library-actions .button-green:not(:disabled) {
   border-color: #4f917f;
   background: #286c61;
+  color: #fff;
 }
 
 .studio-library-actions .button-ink:not(:disabled) {
   border-color: #567da5;
   background: #294f75;
+  color: #fff;
 }
 
 .studio-library-actions .button:disabled {
-  opacity: 0.4;
+  opacity: 0.65;
 }
 
 .studio-file-input {
@@ -1810,8 +1867,8 @@ select {
 .studio-workbench {
   position: relative;
   padding: 0 0 16px;
-  background: #263a45;
-  color: #e5edef;
+  background: var(--studio-panel);
+  color: var(--studio-text);
 }
 
 .studio-transform-dock {
@@ -1886,12 +1943,12 @@ select {
 }
 
 .studio-workbench .studio-panel-heading h2 {
-  color: #edf4f5;
+  color: var(--studio-text);
 }
 
 .studio-workbench .studio-panel-heading p,
 .studio-workbench .studio-canvas-legend {
-  color: #adbdc4;
+  color: var(--studio-muted);
 }
 
 .studio-workbench .studio-canvas {
@@ -1902,6 +1959,109 @@ select {
   border: 0;
   border-radius: 0;
   box-shadow: none;
+}
+
+/* Theme bridge: editor and library consume the same Studio surface tokens. */
+.studio-surface .studio-top-toolbar input,
+.studio-surface .studio-top-toolbar select,
+.studio-surface .studio-context-bar input:not([type="range"]):not([type="checkbox"]):not([type="color"]),
+.studio-surface .studio-context-bar select {
+  border-color: var(--studio-border);
+  background: var(--studio-input);
+  color: var(--studio-text);
+}
+
+.studio-surface .studio-top-toolbar button,
+.studio-surface .studio-widget-actions button {
+  border-color: var(--studio-border);
+  background: var(--studio-control);
+  color: var(--studio-text);
+}
+
+.studio-surface .studio-top-toolbar button:hover,
+.studio-surface .studio-widget-actions button:hover:not(:disabled) {
+  border-color: var(--studio-accent);
+  background: var(--studio-control-hover);
+}
+
+.studio-surface .studio-top-toolbar button.primary {
+  border-color: var(--studio-accent);
+  background: var(--studio-accent);
+  color: #fff;
+}
+
+.studio-surface .studio-toolbar-name > span,
+.studio-surface .studio-toolbar-label,
+.studio-surface .studio-widget-label,
+.studio-surface .studio-context-bar label,
+.studio-surface .studio-tree-header span:first-child,
+.studio-surface .studio-tree button small,
+.studio-surface .studio-tree summary small {
+  color: var(--studio-label);
+}
+
+.studio-surface .studio-toolbar-toggle > span,
+.studio-surface .studio-toolbar-grid-controls,
+.studio-surface .studio-widget-color,
+.studio-surface .studio-widget-toggle,
+.studio-surface .studio-widget-group {
+  border-color: var(--studio-border-soft);
+  background: color-mix(in srgb, var(--studio-control) 45%, transparent);
+  color: var(--studio-text);
+}
+
+.studio-surface .studio-toolbar-toggle input:checked + span,
+.studio-surface .studio-context-type {
+  border-color: var(--studio-accent);
+  color: var(--studio-accent-text);
+}
+
+.studio-surface .studio-widget-range-head output,
+.studio-surface .studio-widget-range-head input[type="number"],
+.studio-surface .studio-widget-color input[type="color"] {
+  border-color: var(--studio-border-soft);
+  background: var(--studio-input);
+  color: var(--studio-text);
+}
+
+.studio-surface .studio-widget-group h3,
+.studio-surface .studio-widget-toggle b {
+  color: var(--studio-accent-text);
+}
+
+.studio-surface .studio-widget-help,
+.studio-surface .studio-widget-metric {
+  color: var(--studio-subtle-text);
+}
+
+.studio-surface .studio-tree-header,
+.studio-surface .studio-tree-footer,
+.studio-surface .studio-canvas-legend {
+  border-color: var(--studio-border);
+}
+
+.studio-surface .studio-tree button,
+.studio-surface .studio-tree summary {
+  color: var(--studio-text);
+}
+
+.studio-surface .studio-tree button:hover,
+.studio-surface .studio-tree button.active,
+.studio-surface .studio-layer-row:hover,
+.studio-surface .studio-layer-row.active {
+  background: var(--studio-control-hover);
+}
+
+.studio-surface .studio-tree-mode,
+.studio-surface .studio-tree-mode button {
+  border-color: var(--studio-border);
+  background: var(--studio-control);
+  color: var(--studio-text);
+}
+
+.studio-surface .studio-tree-mode button.active {
+  background: var(--studio-accent-soft);
+  color: var(--studio-accent-text);
 }
 
 @media (max-width: 1120px) {
@@ -2087,7 +2247,7 @@ select {
   width: 1px;
   height: 1em;
   flex: none;
-  background: rgba(23, 49, 59, 0.38);
+  background: var(--line);
 }
 
 .page-title {
@@ -2115,6 +2275,59 @@ select {
   justify-content: flex-end;
 }
 
+.global-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.theme-toggle {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-glass);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+  outline: none;
+}
+
+.theme-toggle:active {
+  transform: scale(0.94);
+}
+
+.theme-toggle-icon {
+  display: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-theme-preference="light"] .theme-toggle-icon:nth-child(1),
+html[data-theme-preference="dark"] .theme-toggle-icon:nth-child(2),
+html[data-theme-preference="auto"] .theme-toggle-icon:nth-child(3) {
+  display: block;
+}
+
+.theme-toggle-auto-fill {
+  fill: currentColor;
+  stroke: none;
+}
+
 .mobile-menu-toggle {
   display: none;
 }
@@ -2140,7 +2353,7 @@ select {
 
 .lang-switch-control:hover,
 .lang-switch-control:focus-within {
-  background: rgba(23, 49, 59, 0.08);
+  background: var(--surface-hover);
 }
 
 .lang-flag {
@@ -2228,7 +2441,7 @@ select {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-size: 0.8rem;
-  color: rgba(23, 49, 59, 0.66);
+  color: var(--ink-soft);
 }
 
 h1 {
@@ -2364,7 +2577,7 @@ h1 {
   font-size: 0.74rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(23, 49, 59, 0.56);
+  color: var(--ink-soft);
 }
 
 .feature-card p {
@@ -2609,7 +2822,7 @@ select {
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(23, 49, 59, 0.18);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--surface-glass-strong);
   color: var(--ink);
 }
 
@@ -2964,7 +3177,7 @@ select {
   width: min(80%, 420px);
   text-align: center;
   line-height: 1.6;
-  color: rgba(23, 49, 59, 0.7);
+  color: var(--ink-soft);
 }
 
 .stack {
@@ -3099,7 +3312,7 @@ select {
   place-items: center;
   border: 1px dashed rgba(23, 49, 59, 0.24);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.42);
+  background: var(--surface-glass);
   color: var(--ink-soft);
   text-align: center;
   font-size: clamp(1.15rem, 2vw, 1.6rem);
@@ -3156,7 +3369,7 @@ select {
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--surface-glass);
 }
 
 .sponsor-name {
@@ -3184,8 +3397,8 @@ select {
 .footer {
   margin-top: 38px;
   padding-top: 18px;
-  border-top: 1px solid rgba(23, 49, 59, 0.12);
-  color: rgba(23, 49, 59, 0.72);
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
 }
 
 @media (max-width: 900px) {
@@ -3277,7 +3490,7 @@ select {
     padding: 10px;
     border: 1px solid var(--line);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.58);
+    background: var(--surface-glass);
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -3313,7 +3526,7 @@ select {
     padding: 8px 14px;
     border: 1px solid var(--line);
     border-radius: 18px;
-    background: rgba(255, 252, 245, 0.9);
+    background: var(--panel);
     box-shadow: 0 16px 36px rgba(23, 49, 59, 0.1);
     backdrop-filter: blur(12px);
     align-items: stretch;
@@ -3337,6 +3550,12 @@ select {
 
   .lang-switch {
     padding: 10px 2px 4px;
+  }
+
+  .global-controls {
+    width: 100%;
+    justify-content: space-between;
+    padding-top: 6px;
   }
 
   .monotile-inner {
