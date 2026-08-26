@@ -33,6 +33,7 @@ import {
   InspectorTextField,
   InspectorToggleField,
 } from "./widgets/InspectorFields";
+import StudioSurface from "./widgets/StudioSurface";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
 const H_CLUSTER_TRANSFORMS = [
@@ -761,7 +762,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 
   return (
     <section className="studio-page">
-      <div className="panel studio-layout studio-builder-shell">
+      <StudioSurface className="studio-layout studio-builder-shell">
         <div className="studio-top-toolbar" role="toolbar" aria-label={t("studio.toolbar.aria")}>
           <div className="studio-toolbar-row studio-toolbar-main">
             <StudioFamilySwitch family={family} onChange={onFamilyChange} />
@@ -1007,10 +1008,10 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           {renderSpectreShapeControls()}
           {renderDocumentControls()}
         </InspectorPanel>
-      </div>
+      </StudioSurface>
 
       <section className="studio-lower-grid">
-        <div className="panel studio-library-panel">
+        <StudioSurface className="studio-library-panel">
           <div className="studio-panel-heading">
             <div><h2>{t("studio.library.title")}</h2></div>
           </div>
@@ -1046,7 +1047,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             <button className="button button-muted small" type="button" onClick={() => importRef.current?.click()}>{t("studio.actions.import")}</button>
             <input ref={importRef} className="studio-file-input" type="file" accept="application/json,.json" onChange={handleImport} />
           </div>
-        </div>
+        </StudioSurface>
       </section>
     </section>
   );
