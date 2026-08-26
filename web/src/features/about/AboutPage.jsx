@@ -7,6 +7,7 @@ function createAboutFallback(t) {
   return {
     title: t("about.hero.title"),
     summary: t("about.hero.summary"),
+    version: "development",
     references: [
       {
         label: "Trainvent",
@@ -71,6 +72,7 @@ export default function AboutPage() {
     <section className="about-grid">
         <article className="panel prose-panel about-intro">
           <p>{content.summary}</p>
+          <p className="about-version">{t("about.version", { version: content.version })}</p>
         </article>
 
         <article className="panel prose-panel">

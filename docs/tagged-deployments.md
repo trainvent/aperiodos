@@ -149,3 +149,5 @@ git push origin v1.0.0
 The workflow serializes production deployments, so two tags cannot update the
 Cloud Run service concurrently. Follow the run under the repository's Actions
 tab; the completed deploy job includes the Cloud Run revision and service URL.
+The release tag is also exposed to the running service as `APP_VERSION` and is
+shown on the About page.

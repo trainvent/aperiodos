@@ -398,6 +398,7 @@
 		}
 	},
 	"about": {
+		"version": "Version {{version}}",
 		"hero": {
 			"title": "About Aperiodos",
 			"summary": "Aperiodos is an experimental Trainvent tool for exploring aperiodic tilings. You can generate, customize, and export Einstein, Spectre, and Penrose patterns directly in the browser."

@@ -2611,6 +2611,13 @@ select {
   font-size: 1.08rem;
 }
 
+.about-grid .about-intro .about-version {
+  margin-top: 12px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+}
+
 .about-grid .prose-panel p,
 .about-grid .reference-list {
   max-width: 65ch;

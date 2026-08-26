@@ -398,6 +398,7 @@
 		}
 	},
 	"about": {
+		"version": "Version {{version}}",
 		"hero": {
 			"title": "Über Aperiodos",
 			"summary": "Aperiodos ist ein experimentelles Werkzeug von Trainvent für aperiodische Kachelungen. Im Browser lassen sich Einstein-, Spectre- und Penrose-Muster erzeugen, anpassen und als Bilddateien exportieren."

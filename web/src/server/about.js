@@ -90,6 +90,14 @@ const ABOUT_CONTENT_BY_LANGUAGE = {
 
 export const ABOUT_CONTENT = ABOUT_CONTENT_BY_LANGUAGE.en;
 
-export function getAboutContent(language) {
-  return ABOUT_CONTENT_BY_LANGUAGE[language === "en" ? "en" : "de"];
+export function getAppVersion(environment = process.env) {
+  const version = String(environment.APP_VERSION || "development").trim();
+  return version || "development";
+}
+
+export function getAboutContent(language, environment = process.env) {
+  return {
+    ...ABOUT_CONTENT_BY_LANGUAGE[language === "en" ? "en" : "de"],
+    version: getAppVersion(environment),
+  };
 }
