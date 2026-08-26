@@ -18,7 +18,7 @@ Set the shell variables used below:
 
 ```bash
 export PROJECT_ID=aperiodos
-export GITHUB_REPOSITORY=Trainvent/Aperiodos
+export GITHUB_REPOSITORY=trainvent/aperiodos
 export WORKLOAD_IDENTITY_POOL=github
 export WORKLOAD_IDENTITY_PROVIDER=aperiodos
 export DEPLOY_SERVICE_ACCOUNT=github-deployer
@@ -56,7 +56,7 @@ gcloud iam workload-identity-pools providers create-oidc "$WORKLOAD_IDENTITY_PRO
   --display-name="Aperiodos GitHub releases" \
   --issuer-uri="https://token.actions.githubusercontent.com" \
   --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner" \
-  --attribute-condition="assertion.repository == 'Trainvent/Aperiodos'"
+  --attribute-condition="assertion.repository == 'trainvent/aperiodos'"
 ```
 
 Allow only workflows from this repository to impersonate the deployer:
