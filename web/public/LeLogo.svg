@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900" preserveAspectRatio="xMidYMid meet" fill="none">
+  <circle cx="450.0000" cy="450.0000" r="445.0000" stroke="black" stroke-width="10" fill="white" />
+  <polygon points="450.0000,9.4500 831.5275,670.2750 68.4725,670.2750" stroke="black" fill="white" stroke-width="10" stroke-opacity="1.0" fill-opacity="1.0" />
+  <polygon points="492.8234,83.6223 745.8807,670.2750 111.2959,596.1027" stroke="black" fill="white" stroke-width="10" stroke-opacity="1" fill-opacity="1" />
+  <polygon points="521.2271,149.4694 674.6536,661.9498 154.1193,538.5809" stroke="black" fill="white" stroke-width="10" stroke-opacity="1" fill-opacity="1" />
+  <polygon points="538.4480,206.9912 616.2278,648.1026 195.3242,494.9062" stroke="black" fill="white" stroke-width="10" stroke-opacity="1" fill-opacity="1" />
+  <polygon points="547.1781,256.5024 568.9847,630.9075 233.8371,462.5901" stroke="black" fill="white" stroke-width="10" stroke-opacity="1" fill-opacity="1" />
+  <polygon points="549.6257,298.5264 531.3671,612.0152 269.0071,439.4584" stroke="black" fill="white" stroke-width="10" stroke-opacity="1" fill-opacity="1" />
+  <polygon points="547.5764,333.7130 501.9193,592.6471 300.5043,423.6399" stroke="black" fill="white" stroke-width="10" stroke-opacity="1" fill-opacity="1" />
+  <polygon points="542.4517,362.7763 479.3121,573.6774 328.2362,413.5463" stroke="black" fill="white" stroke-width="10" stroke-opacity="1" fill-opacity="1" />
+  <polygon points="535.3648,386.4483 462.3550,555.7040 352.2802,407.8478" stroke="black" fill="white" stroke-width="10" stroke-opacity="1" fill-opacity="1" />
+  <polygon points="527.1700,405.4459 450.0000,539.1083 372.8300,405.4459" stroke="black" fill="white" stroke-width="10" stroke-opacity="1" fill-opacity="1" />
+</svg>
