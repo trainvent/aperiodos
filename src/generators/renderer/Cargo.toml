@@ -1,0 +1,11 @@
+[package]
+name = "aperiodos-render"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+einstein = { path = "../einstein" }
+spectre = { path = "../spectre" }
+penrose = { path = "../penrose" }
+serde_json.workspace = true

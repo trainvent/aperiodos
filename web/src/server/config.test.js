@@ -27,6 +27,9 @@ test("all generators use the server canvas defaults", () => {
   }
 });
 
+test("Einstein starts with a valid simple color mode", () => {
+  assert.equal(EINSTEIN_DEFAULTS.color_mode, "simple");
+});
 
 test("all generators use a normalized default scale", () => {
   assert.equal(EINSTEIN_DEFAULTS.scale, DEFAULT_SCALE);

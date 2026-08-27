@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { renderEinstein, renderSpectre } from "./renderers.js";
+import { renderEinstein, renderPenrose, renderSpectre } from "./renderers.js";
 
 test("Einstein rejects unknown material modes before rendering", async () => {
   await assert.rejects(
@@ -55,6 +55,20 @@ test("Einstein accepts straight-line Studio material", async () => {
     },
   });
   await assert.doesNotReject(result);
+});
+
+test("Einstein simple coloring reaches the Rust renderer on the initial payload", async () => {
+  const result = await renderEinstein({
+    width: 128,
+    height: 128,
+    iterations: 1,
+    format: "svg",
+    color_mode: "simple",
+    simple_color: "#123456",
+  });
+  const svg = result.buffer.toString("utf8");
+  assert.match(svg, /fill="#123456"/);
+  assert.doesNotMatch(svg, /fill="seagreen"|fill="sandybrown"|fill="gold"/);
 });
 
 test("Spectre repeats a Studio material design inside every generated tile", async () => {
@@ -127,4 +141,19 @@ test("Spectre Simple coloring does not fall back to the default palette", async 
   const svg = result.buffer.toString("utf8");
   assert.match(svg, /fill="#123456"/);
   assert.doesNotMatch(svg, /fill="#b4552d"|fill="#d8b24c"|fill="#17313b"/);
+});
+
+test("Penrose pattern material is rendered natively and clipped per tile", async () => {
+  const result = await renderPenrose({
+    width: 128,
+    height: 128,
+    iterations: 1,
+    scale: 40,
+    format: "svg",
+    material_mode: "pattern",
+  });
+  const svg = result.buffer.toString("utf8");
+  assert.match(svg, /studio-penrose-tile-/);
+  assert.match(svg, /clip-path="url\(#studio-penrose-tile-/);
+  assert.match(svg, /id="aperiodos-render"/);
 });

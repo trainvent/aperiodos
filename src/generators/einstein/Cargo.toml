@@ -1,8 +1,10 @@
 [package]
-name = "penrose"
+name = "einstein"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 aperiodos-render-core.workspace = true
 serde_json.workspace = true
+

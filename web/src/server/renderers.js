@@ -15,7 +15,6 @@ import {
   DEFAULT_ITERATIONS,
   DEFAULT_SCALE,
   EINSTEIN_SCALE_NORMALIZATION,
-  GENERATORS_DIR,
   MAX_IMAGE_DIMENSION,
   MAX_ITERATIONS,
   MAX_PENROSE_ITERATIONS,
@@ -25,7 +24,6 @@ import {
   P1_SCALE_NORMALIZATION,
   PROJECT_ROOT,
   SPECTRE_SCALE_NORMALIZATION,
-  SRC_DIR,
 } from "./config.js";
 import { ApiError } from "./http.js";
 
@@ -183,89 +181,6 @@ function coerceStudioPattern(payload, tile = "einstein-hat") {
   return pattern;
 }
 
-const SQRT3_OVER_2 = Math.sqrt(3) / 2;
-const SPECTRE_STUDIO_POINTS = [
-  [0, 0], [1, 0], [2, 0], [2.5, SQRT3_OVER_2], [2.5 + SQRT3_OVER_2, SQRT3_OVER_2 - 0.5], [2.5 + SQRT3_OVER_2 * 2, SQRT3_OVER_2], [2 + SQRT3_OVER_2 * 2, SQRT3_OVER_2 * 2],
-  [1 + SQRT3_OVER_2 * 2, SQRT3_OVER_2 * 2], [1 + SQRT3_OVER_2 * 2, 1 + SQRT3_OVER_2 * 2], [1 + SQRT3_OVER_2, 1.5 + SQRT3_OVER_2 * 2], [0.5 + SQRT3_OVER_2, 1.5 + SQRT3_OVER_2], [SQRT3_OVER_2 - 0.5, 1.5 + SQRT3_OVER_2], [SQRT3_OVER_2 - 0.5, 0.5 + SQRT3_OVER_2], [-0.5, SQRT3_OVER_2],
-];
-
-function escapeXml(value) {
-  return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[character]));
-}
-
-function parseSvgPoints(raw) {
-  return raw.trim().split(/\s+/).map((pair) => pair.split(",").map(Number)).filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
-}
-
-function studioCartesian(point) {
-  return { x: Number(point.u) + Number(point.v) / 2, y: Number(point.v) * SQRT3_OVER_2 };
-}
-
-function spectreTileMapper(points) {
-  const anchors = points.length >= 105 ? [points[0], points[8], points[24]] : [points[0], points[1], points[3]];
-  if (anchors.length < 3) return null;
-  const [source0, source1, source2] = [SPECTRE_STUDIO_POINTS[0], SPECTRE_STUDIO_POINTS[1], SPECTRE_STUDIO_POINTS[3]];
-  const [target0, target1, target2] = anchors.map(([x, y]) => ({ x, y }));
-  const determinant = (source1[0] - source0[0]) * (source2[1] - source0[1]) - (source1[1] - source0[1]) * (source2[0] - source0[0]);
-  if (Math.abs(determinant) < 1e-9) return null;
-  const transform = (point) => {
-    const { x, y } = studioCartesian(point);
-    const dx = x - source0[0];
-    const dy = y - source0[1];
-    const alpha = (dx * (source2[1] - source0[1]) - dy * (source2[0] - source0[0])) / determinant;
-    const beta = ((source1[0] - source0[0]) * dy - (source1[1] - source0[1]) * dx) / determinant;
-    return { x: target0.x + alpha * (target1.x - target0.x) + beta * (target2.x - target0.x), y: target0.y + alpha * (target1.y - target0.y) + beta * (target2.y - target0.y) };
-  };
-  return { transform, scale: Math.hypot(target1.x - target0.x, target1.y - target0.y) };
-}
-
-function svgPathForStudioItem(kind, item, transform) {
-  const points = item.points || [];
-  if (kind === "line" && points.length === 2) {
-    const [start, end] = points.map(transform);
-    return `M ${start.x.toFixed(3)} ${start.y.toFixed(3)} L ${end.x.toFixed(3)} ${end.y.toFixed(3)}`;
-  }
-  if (kind === "path" && points.length >= 4) {
-    const start = transform(points[0]);
-    const commands = [`M ${start.x.toFixed(3)} ${start.y.toFixed(3)}`];
-    for (let index = 1; index + 2 < points.length; index += 3) {
-      commands.push(`C ${points.slice(index, index + 3).map(transform).map((point) => `${point.x.toFixed(3)} ${point.y.toFixed(3)}`).join(" ")}`);
-    }
-    return commands.join(" ");
-  }
-  return "";
-}
-
-function renderSpectreMaterial(pattern, mapper) {
-  const byKind = new Map([["path", pattern.paths || []], ["line", pattern.lines || []], ["circle", pattern.circles || []]]);
-  const ordered = Array.isArray(pattern.layerOrder) ? pattern.layerOrder.map(({ kind, id }) => ({ kind, item: byKind.get(kind)?.find((item) => item.id === id) })).filter(({ item }) => item) : [
-    ...(pattern.paths || []).map((item) => ({ kind: "path", item })), ...(pattern.lines || []).map((item) => ({ kind: "line", item })), ...(pattern.circles || []).map((item) => ({ kind: "circle", item })),
-  ];
-  return ordered.map(({ kind, item }) => {
-    const color = escapeXml(item.color || pattern.colors?.ink || "black");
-    if (kind === "circle" && item.center && Number.isFinite(Number(item.radius))) {
-      const center = mapper.transform(item.center);
-      return `<circle cx="${center.x.toFixed(3)}" cy="${center.y.toFixed(3)}" r="${(Number(item.radius) * mapper.scale).toFixed(3)}" fill="${color}" />`;
-    }
-    const d = svgPathForStudioItem(kind, item, mapper.transform);
-    return d ? `<path d="${d}" fill="none" stroke="${color}" stroke-width="${(Number(item.width || 1) * mapper.scale).toFixed(3)}" stroke-linecap="round" stroke-linejoin="round" />` : "";
-  }).join("");
-}
-
-function applySpectreStudioMaterial(svg, pattern) {
-  const matches = [...svg.matchAll(/<polygon\b[^>]*\bpoints="([^"]+)"[^>]*\/>/g)];
-  const tiles = matches.map((match, index) => ({ index, source: match[0], points: match[1], mapper: spectreTileMapper(parseSvgPoints(match[1])) })).filter(({ mapper }) => mapper);
-  if (!tiles.length) return svg;
-  const definitions = tiles.map(({ index, points }) => `<clipPath id="studio-spectre-tile-${index}"><polygon points="${points}" /></clipPath>`).join("");
-  let tileIndex = 0;
-  const decorated = svg.replace(/<polygon\b[^>]*\bpoints="([^"]+)"[^>]*\/>/g, (polygon) => {
-    const tile = tiles[tileIndex++];
-    if (!tile) return polygon;
-    return `${polygon}<g clip-path="url(#studio-spectre-tile-${tile.index})">${renderSpectreMaterial(pattern, tile.mapper)}</g>`;
-  });
-  return decorated.replace(/(<svg\b[^>]*>)/, `$1<defs>${definitions}</defs>`);
-}
-
 function coerceBoolean(payload, key, fallback = false) {
   const value = payload[key];
   if (value === undefined || value === null) {
@@ -387,65 +302,54 @@ export async function renderEinstein(payload) {
   const strokeWidth = coerceFloat(payload, "stroke_width", payload.no_outline ? 0 : 2, { minimum: 0.0, maximum: 20.0 });
   const seed = payload.seed;
 
-  const generatorFormat = materialMode === "pattern" ? "svg" : imageFormat;
-  return withTempFile(generatorFormat, async (outputPath) => {
-    const pythonBin = process.env.PYTHON_BIN || "python3";
-    const args = [
-      "-m",
-      "generators.einstein",
-      "--iterations",
-      String(iterations),
-      "--scalar",
-      String(scalar),
-      "--width",
-      String(width),
-      "--height",
-      String(height),
-      "--center-x",
-      String(centerX),
-      "--center-y",
-      String(centerY),
-      "--output",
-      outputPath,
-      "--colors",
-      ...colors,
-      "--color-mode",
-      colorMode === "simple" ? "families" : colorMode,
-      "--four-colors",
-      ...fourColors,
-      "--background",
-      background,
-      "--outline",
-      outline,
-      "--stroke-width",
-      String(strokeWidth),
-      "--material-mode",
-      materialMode,
-      "--pattern-style",
-      patternStyle,
-      "--pattern-base",
-      patternBase,
-      "--pattern-color",
-      patternColor,
-      ...(studioPattern ? ["--studio-pattern", JSON.stringify(studioPattern)] : []),
-    ];
-    if (seed !== undefined && seed !== null && String(seed).trim() !== "") {
-      args.push("--seed", String(coerceInt(payload, "seed", seed, { minimum: 1 })));
-    }
+  const args = [
+    "--iterations",
+    String(iterations),
+    "--scalar",
+    String(scalar),
+    "--width",
+    String(width),
+    "--height",
+    String(height),
+    "--center-x",
+    String(centerX),
+    "--center-y",
+    String(centerY),
+    "--colors",
+    ...colors,
+    "--color-mode",
+    colorMode === "simple" ? "families" : colorMode,
+    "--four-colors",
+    ...fourColors,
+    "--background",
+    background,
+    "--outline",
+    outline,
+    "--stroke-width",
+    String(strokeWidth),
+    "--material-mode",
+    materialMode,
+    "--pattern-style",
+    patternStyle,
+    "--pattern-base",
+    patternBase,
+    "--pattern-color",
+    patternColor,
+    ...(studioPattern ? ["--studio-pattern", JSON.stringify(studioPattern)] : []),
+  ];
+  if (seed !== undefined && seed !== null && String(seed).trim() !== "") {
+    args.push("--seed", String(coerceInt(payload, "seed", seed, { minimum: 1 })));
+  }
 
-    await runCommand(pythonBin, args, {
-      cwd: PROJECT_ROOT,
-      env: {
-        PYTHONPATH: SRC_DIR,
-      },
-    });
-
-    const renderedBuffer = await readFile(outputPath);
-    return {
-      buffer: materialMode === "pattern" ? await svgToRequestedFormat(renderedBuffer, imageFormat) : renderedBuffer,
-      contentType: ALLOWED_EINSTEIN_FORMATS[imageFormat],
-      filename: `aperiodic-pattern.${imageFormat}`,
-    };
+  return renderRustSvg({
+    imageFormat,
+    allowedFormats: ALLOWED_EINSTEIN_FORMATS,
+    filenameBase: "aperiodic-pattern",
+    cargoPackage: "einstein",
+    binaryEnv: "EINSTEIN_BIN",
+    releaseBinary: path.join(PROJECT_ROOT, "target", "release", "einstein"),
+    debugBinary: path.join(PROJECT_ROOT, "target", "debug", "einstein"),
+    args,
   });
 }
 
@@ -476,11 +380,10 @@ export async function renderSpectre(payload) {
     imageFormat,
     allowedFormats: ALLOWED_SPECTRE_FORMATS,
     filenameBase: "spectre",
+    cargoPackage: "spectre",
     binaryEnv: "SPECTRE_BIN",
-    releaseBinary: path.join(GENERATORS_DIR, "spectre", "target", "release", "spectre"),
-    debugBinary: path.join(GENERATORS_DIR, "spectre", "target", "debug", "spectre"),
-    cargoCwd: path.join(GENERATORS_DIR, "spectre"),
-    transformSvg: studioPattern ? (svg) => applySpectreStudioMaterial(svg, studioPattern) : undefined,
+    releaseBinary: path.join(PROJECT_ROOT, "target", "release", "spectre"),
+    debugBinary: path.join(PROJECT_ROOT, "target", "debug", "spectre"),
     args: [
       "--width",
       String(width),
@@ -506,6 +409,7 @@ export async function renderSpectre(payload) {
       "--shape",
       shape,
       ...(palette ? ["--palette", palette.join(",")] : []),
+      ...(studioPattern ? ["--studio-pattern", JSON.stringify(studioPattern)] : []),
     ],
   });
 }
@@ -520,6 +424,7 @@ export async function renderPenrose(payload) {
   const background = String(payload.background || "#ffffff");
   const outline = String(payload.outline || "black");
   const strokeWidth = coerceFloat(payload, "stroke_width", 1.0, { minimum: 0.0, maximum: 20.0 });
+  const materialMode = coerceOneOf(payload, "material_mode", "solid", ["solid", "pattern"]);
   const palette = coercePalette(payload);
   let buildLogic = coerceOneOf(payload, "build_logic", "default", ["default", "cartwheel"]);
   const tileMode = coerceOneOf(payload, "tile_mode", "kite-dart", ["kite-dart", "rhombs", "p1"]);
@@ -537,10 +442,10 @@ export async function renderPenrose(payload) {
     imageFormat,
     allowedFormats: ALLOWED_PENROSE_FORMATS,
     filenameBase: "penrose",
+    cargoPackage: "penrose",
     binaryEnv: "PENROSE_BIN",
-    releaseBinary: path.join(GENERATORS_DIR, "penrose", "target", "release", "penrose"),
-    debugBinary: path.join(GENERATORS_DIR, "penrose", "target", "debug", "penrose"),
-    cargoCwd: path.join(GENERATORS_DIR, "penrose"),
+    releaseBinary: path.join(PROJECT_ROOT, "target", "release", "penrose"),
+    debugBinary: path.join(PROJECT_ROOT, "target", "debug", "penrose"),
     args: [
       "--width",
       String(width),
@@ -560,6 +465,8 @@ export async function renderPenrose(payload) {
       outline,
       "--stroke-width",
       String(strokeWidth),
+      "--material-mode",
+      materialMode,
       "--seed",
       seed,
       "--tile-mode",
@@ -569,17 +476,17 @@ export async function renderPenrose(payload) {
   });
 }
 
-async function renderRustSvg({ imageFormat, allowedFormats, filenameBase, binaryEnv, releaseBinary, debugBinary, cargoCwd, args, transformSvg }) {
+async function renderRustSvg({ imageFormat, allowedFormats, filenameBase, cargoPackage, binaryEnv, releaseBinary, debugBinary, args, transformSvg }) {
   return withTempFile("svg", async (outputPath) => {
     const configured = process.env[binaryEnv];
     const binaryPath = configured || (await newestExisting([releaseBinary, debugBinary]));
     const command = binaryPath || "cargo";
     const commandArgs = binaryPath
       ? ["--output", outputPath, ...args]
-      : ["run", "--quiet", "--release", "--", "--output", outputPath, ...args];
+      : ["run", "--quiet", "--release", "-p", cargoPackage, "--", "--output", outputPath, ...args];
 
     await runCommand(command, commandArgs, {
-      cwd: binaryPath ? PROJECT_ROOT : cargoCwd,
+      cwd: PROJECT_ROOT,
     });
 
     const renderedSvg = await readFile(outputPath);

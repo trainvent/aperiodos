@@ -422,7 +422,7 @@
 			"notes": "Technischer Aufbau",
 			"creditsBody": "Die Generatoren basieren auf publizierter mathematischer Forschung und öffentlich zugänglichen Open-Source-Projekten. Die verlinkten Quellen dokumentieren wichtige Grundlagen und frühere Implementierungen.",
 			"technicalBody": "OpenAI unterstützte die Entwicklung bei Softwarearchitektur, API-Design, Refactoring sowie bei der Integration von Benutzeroberfläche und Renderern.",
-			"notesBody": "Der Einstein-Generator wird in Python berechnet; die Spectre- und Penrose-Renderer sind in Rust umgesetzt. Eine Next.js-Anwendung führt die drei Werkzeuge in einer gemeinsamen Browseroberfläche zusammen."
+			"notesBody": "Alle drei Rendering-Engines sind als Crates in einem gemeinsamen Rust-Workspace umgesetzt. Eine Next.js-Anwendung führt die Werkzeuge in einer gemeinsamen Browseroberfläche zusammen."
 		}
 	}
 }

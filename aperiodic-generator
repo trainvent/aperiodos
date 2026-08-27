@@ -3,5 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-export PYTHONPATH="$SCRIPT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
-exec python3 -m generators.einstein "$@"
+if [[ -x "$SCRIPT_DIR/target/release/einstein" ]]; then
+  exec "$SCRIPT_DIR/target/release/einstein" "$@"
+fi
+
+exec cargo run --quiet --release --manifest-path "$SCRIPT_DIR/Cargo.toml" -p einstein -- "$@"

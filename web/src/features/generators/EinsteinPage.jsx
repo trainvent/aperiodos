@@ -54,6 +54,7 @@ export default function EinsteinPage() {
     <>
       <GeneratorLayout
       title={t("generator.einstein.title")}
+      generator="einstein"
       controls={
         <GeneratorSettingsScaffold
           values={values}

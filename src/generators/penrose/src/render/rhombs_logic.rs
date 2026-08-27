@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 
 use crate::math::Vec2;
 
-use super::{PHI, PenroseSeed, RenderTile, polar};
+use super::{polar, PenroseSeed, RenderTile, PHI};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum TriangleKind {

@@ -1,6 +1,4 @@
-.PHONY: install install-python dev dev-sandbox build build-generators check deploy
-
-PYTHON ?= python3
+.PHONY: install install-tools dev dev-sandbox build build-generators build-wasm check check-rust deploy
 
 dev:
 	cd web && npm run dev
@@ -8,20 +6,24 @@ dev:
 dev-sandbox:
 	@./scripts/dev-sandbox.sh
 
-build:
+build: build-wasm
 	cd web && npm run build
 
 build-generators:
-	cargo build --release --manifest-path src/generators/spectre/Cargo.toml
-	cargo build --release --manifest-path src/generators/penrose/Cargo.toml
+	cargo build --release --workspace
 
-check:
-	$(PYTHON) -m compileall -q src/generators/einstein
-	PYTHONPATH=src $(PYTHON) -m unittest generators.einstein.svg_test
-	cargo test --manifest-path src/generators/spectre/Cargo.toml
-	cargo test --manifest-path src/generators/penrose/Cargo.toml
+build-wasm:
+	cargo build --release -p aperiodos-render-wasm --target wasm32-unknown-unknown
+	mkdir -p web/public/wasm
+	wasm-bindgen --target web --out-dir web/public/wasm --out-name aperiodos_render target/wasm32-unknown-unknown/release/aperiodos_render_wasm.wasm
+
+check: check-rust build-wasm
 	cd web && npm test
 	cd web && npm run build
+
+check-rust:
+	cargo nextest run --workspace
+	cargo test --workspace --doc
 
 deploy:
 	./deploy.sh
@@ -29,5 +31,7 @@ deploy:
 install:
 	cd web && npm ci
 
-install-python:
-	$(PYTHON) -m pip install -r requirements.txt
+install-tools:
+	cargo install cargo-nextest --locked --version 0.9.143
+	cargo install wasm-bindgen-cli --locked --version 0.2.127
+	rustup target add wasm32-unknown-unknown

@@ -98,10 +98,12 @@ export default function PenrosePage() {
   return (
     <GeneratorLayout
       title={t("generator.penrose.title")}
+      generator="penrose"
       controls={
         <GeneratorSettingsScaffold
           values={values}
           setValues={setValues}
+          allowMaterial
           parameters={
             <SettingsRow>
               <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={0} max={10} />
@@ -153,6 +155,7 @@ export default function PenrosePage() {
         center_x: Number(values.center_x),
         center_y: Number(values.center_y),
         format: values.format,
+        material_mode: values.material_mode,
         build_logic: values.build_logic,
         tile_mode: values.tile_mode,
         background: values.background,

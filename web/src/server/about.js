@@ -72,7 +72,7 @@ const ABOUT_CONTENT_BY_LANGUAGE = {
     technical_realizations:
       "OpenAI unterstützte die Entwicklung bei Softwarearchitektur, API-Design, Refactoring sowie bei der Integration von Benutzeroberfläche und Renderern.",
     notes:
-      "Der Einstein-Generator wird in Python berechnet; die Spectre- und Penrose-Renderer sind in Rust umgesetzt. Eine Next.js-Anwendung führt die drei Werkzeuge in einer gemeinsamen Browseroberfläche zusammen.",
+      "Alle drei Rendering-Engines sind als Crates in einem gemeinsamen Rust-Workspace umgesetzt. Eine Next.js-Anwendung führt die Werkzeuge in einer gemeinsamen Browseroberfläche zusammen.",
   },
   en: {
     title: "About Aperiodos",
@@ -84,7 +84,7 @@ const ABOUT_CONTENT_BY_LANGUAGE = {
     technical_realizations:
       "OpenAI supported development through software architecture, API design, refactoring, and the integration of the interface with the rendering engines.",
     notes:
-      "The Einstein generator is implemented in Python, while the Spectre and Penrose renderers are written in Rust. A Next.js application brings all three tools together in a shared browser interface.",
+      "All three rendering engines are implemented as crates in a shared Rust workspace. A Next.js application brings the tools together in a shared browser interface.",
   },
 };
 

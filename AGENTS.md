@@ -8,21 +8,16 @@
 - `web/` contains the Next.js web app, API routes, Stripe donation flow, and Firestore sponsor reads/writes.
 - `web/src/features/` groups React views and feature-specific configuration by product area.
 - `web/src/components/` contains shared React controls; `web/src/lib/` contains shared browser-side utilities.
-- `src/generators/einstein/` contains the Python Einstein generator.
+- `src/generators/common/` contains geometry and SVG primitives shared by Rust renderers.
+- `src/generators/einstein/` contains the Rust Einstein renderer crate.
 - `src/generators/spectre/` contains the Rust Spectre renderer crate.
 - `src/generators/penrose/` contains the Rust Penrose renderer crate.
-- `requirements.txt` lists Python packages needed by the Python generator only.
-- `Dockerfile` builds a Next.js server image with Python/Rust generators available at runtime.
+- `src/generators/renderer/` exposes the unified native CLI and JSON recipe API.
+- `src/generators/wasm/` exposes that same renderer API to browser previews.
+- `Cargo.toml` defines the Rust renderer workspace.
+- `Dockerfile` builds a Next.js server image with all three Rust generators available at runtime.
 
 ## Local Setup
-
-Install Python generator dependencies:
-
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-```
 
 Install web dependencies:
 
@@ -35,9 +30,11 @@ cd ..
 Build Rust generators when you want local API routes to use binaries instead of `cargo run` fallbacks:
 
 ```bash
-cargo build --release --manifest-path src/generators/spectre/Cargo.toml
-cargo build --release --manifest-path src/generators/penrose/Cargo.toml
+cargo build --release --workspace
+make build-wasm
 ```
+
+Install the pinned Rust test runner with `make install-tools`.
 
 Run the complete project verification suite:
 
@@ -293,11 +290,3 @@ Available service endpoints:
 - `POST /api/einstein/render`
 - `POST /api/spectre/render`
 - `POST /api/penrose/render`
-
-## System Packages
-
-On Debian/Ubuntu, install the optional desktop preview dependencies only if you are working directly with the Python generator internals:
-
-```bash
-sudo apt-get install python3-tk
-```

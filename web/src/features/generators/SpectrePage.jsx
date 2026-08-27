@@ -57,6 +57,7 @@ export default function SpectrePage() {
   return (
     <GeneratorLayout
       title={t("generator.spectre.title")}
+      generator="spectre"
       controls={
         <GeneratorSettingsScaffold
           values={values}

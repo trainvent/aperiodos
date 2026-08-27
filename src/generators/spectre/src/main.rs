@@ -68,6 +68,14 @@ fn parse_args(args: impl Iterator<Item = String>) -> (PathBuf, SpectreSvgConfig)
                     .map(ToOwned::to_owned)
                     .collect();
             }
+            "--studio-pattern" => {
+                let value = next_arg(&mut args, "--studio-pattern");
+                config.studio_pattern =
+                    Some(serde_json::from_str(&value).unwrap_or_else(|error| {
+                        eprintln!("invalid value for --studio-pattern: {error}");
+                        std::process::exit(2);
+                    }));
+            }
             "--help" | "-h" => {
                 print_help();
                 std::process::exit(0);
@@ -117,6 +125,7 @@ fn print_help() {
            --stroke-width PX\n\
            --draw-mode generated|translation\n\
            --shape straight|curved\n\
-           --palette c1,c2,c3,..."
+           --palette c1,c2,c3,...
+           --studio-pattern JSON"
     );
 }

@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 
 use crate::math::Vec2;
 
-use super::{PHI, PenroseSeed, PenroseTileMode, RenderTile, approx_eq, distance, polar};
+use super::{approx_eq, distance, polar, PenroseSeed, PenroseTileMode, RenderTile, PHI};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum TriangleKind {
@@ -96,11 +96,14 @@ fn cartwheel_fill_index(points: &[Vec2]) -> usize {
 
     let angle = dy.atan2(dx);
     let spoke_step = PI / 5.0;
-    let nearest_spoke =
-        ((angle - SPOKE_OFFSET) / spoke_step).round() * spoke_step + SPOKE_OFFSET;
+    let nearest_spoke = ((angle - SPOKE_OFFSET) / spoke_step).round() * spoke_step + SPOKE_OFFSET;
     let delta = wrapped_angle(angle - nearest_spoke).abs();
 
-    if delta <= SPOKE_HALF_WIDTH { 1 } else { 0 }
+    if delta <= SPOKE_HALF_WIDTH {
+        1
+    } else {
+        0
+    }
 }
 
 fn polygon_centroid(points: &[Vec2]) -> Vec2 {

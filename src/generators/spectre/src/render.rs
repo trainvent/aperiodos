@@ -1,8 +1,12 @@
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
-use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
+
+use aperiodos_render_core::{
+    render_studio_elements, Affine, Polygon, Renderer, Scene, Vec2 as ScenePoint,
+};
+use serde_json::{json, Value};
 
 use crate::math::Vec2;
 use crate::tiles::{Anchor, Skeleton, Spectre, SpectreCluster};
@@ -35,6 +39,7 @@ pub struct SpectreSvgConfig {
     pub stroke_width: f32,
     pub draw_mode: DrawMode,
     pub shape_mode: ShapeMode,
+    pub studio_pattern: Option<Value>,
 }
 
 impl Default for SpectreSvgConfig {
@@ -58,99 +63,166 @@ impl Default for SpectreSvgConfig {
             stroke_width: 1.2,
             draw_mode: DrawMode::Translation,
             shape_mode: ShapeMode::Curved,
+            studio_pattern: None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SpectreRenderer;
+
+impl Renderer for SpectreRenderer {
+    type Config = SpectreSvgConfig;
+
+    fn scene(&self, config: &Self::Config) -> Result<Scene, String> {
+        let palette = if config.palette.is_empty() {
+            SpectreSvgConfig::default().palette
+        } else {
+            let mut palette = config.palette.clone();
+            let defaults = SpectreSvgConfig::default().palette;
+            while palette.len() < 4 {
+                palette.push(defaults[palette.len()].clone());
+            }
+            palette
+        };
+        match config.draw_mode {
+            DrawMode::Generated => Ok(render_scene_generated(config, &palette)),
+            DrawMode::Translation => Ok(render_scene_translation(config, &palette)),
         }
     }
 }
 
 pub fn render_svg(config: &SpectreSvgConfig) -> String {
-    let palette = if config.palette.is_empty() {
-        SpectreSvgConfig::default().palette
-    } else {
-        let mut palette = config.palette.clone();
-        let defaults = SpectreSvgConfig::default().palette;
-        while palette.len() < 4 {
-            palette.push(defaults[palette.len()].clone());
-        }
-        palette
-    };
-    match config.draw_mode {
-        DrawMode::Generated => render_svg_generated(config, &palette),
-        DrawMode::Translation => render_svg_translation(config, &palette),
-    }
+    SpectreRenderer
+        .render_svg(config)
+        .expect("Spectre scene construction is infallible")
 }
 
-fn render_svg_generated(config: &SpectreSvgConfig, palette: &[String]) -> String {
+fn base_scene(config: &SpectreSvgConfig) -> Scene {
+    Scene::new(
+        config.width,
+        config.height,
+        &config.background,
+        "spectre",
+        json!({
+            "width": config.width, "height": config.height, "iterations": config.iterations,
+            "auto_iterations": config.auto_iterations, "scale": config.scale,
+            "center_x": config.center_x, "center_y": config.center_y, "palette": config.palette,
+            "background": config.background, "outline": config.outline, "stroke_width": config.stroke_width,
+            "draw_mode": match config.draw_mode { DrawMode::Generated => "generated", DrawMode::Translation => "translation" },
+        "shape_mode": match config.shape_mode { ShapeMode::Straight => "straight", ShapeMode::Curved => "curved" },
+        "studio_pattern": config.studio_pattern,
+        }),
+    )
+}
+
+fn render_scene_generated(config: &SpectreSvgConfig, palette: &[String]) -> Scene {
     let (cluster, bbox) = render_cluster(config);
     let spectres: Vec<_> = cluster.spectre_paths_in(bbox).collect();
     let content_bbox = content_bbox(&spectres).unwrap_or(bbox);
     let view_center = render_center(config, &content_bbox, &bbox);
     let color_indices = spectre_color_indices_generated(&spectres, palette.len());
 
-    let mut document = String::new();
-    let _ = writeln!(
-        document,
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {} {}\" width=\"{}\" height=\"{}\">",
-        config.width, config.height, config.width, config.height
-    );
-    let _ = writeln!(
-        document,
-        "<rect width=\"100%\" height=\"100%\" fill=\"{}\" />",
-        config.background
-    );
+    let mut scene = base_scene(config);
 
     for (index, spectre) in spectres.iter().enumerate() {
         let shape_points = spectre_outline_points(spectre.spectre, view_center, config);
         if !points_intersect_canvas(&shape_points, config) {
             continue;
         }
-        let points = svg_points(&shape_points);
-        let fill = &palette[color_indices[index]];
-        let _ = writeln!(
-            document,
-            "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
-            points, fill, config.outline, config.stroke_width
+        let points = shape_points
+            .iter()
+            .map(|point| ScenePoint::new(point.x as f64, point.y as f64))
+            .collect();
+        push_tile(
+            &mut scene,
+            points,
+            &palette[color_indices[index]],
+            config,
+            index,
         );
     }
-
-    document.push_str("</svg>\n");
-    document
+    scene
 }
 
-fn render_svg_translation(config: &SpectreSvgConfig, palette: &[String]) -> String {
+fn render_scene_translation(config: &SpectreSvgConfig, palette: &[String]) -> Scene {
     let (cluster, bbox) = render_cluster(config);
     let spectres: Vec<_> = cluster.spectres_in(bbox).collect();
     let content_bbox = content_bbox_spectres(&spectres).unwrap_or(bbox);
     let view_center = render_center(config, &content_bbox, &bbox);
     let color_indices = spectre_color_indices_translation(&spectres, palette.len());
 
-    let mut document = String::new();
-    let _ = writeln!(
-        document,
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {} {}\" width=\"{}\" height=\"{}\">",
-        config.width, config.height, config.width, config.height
-    );
-    let _ = writeln!(
-        document,
-        "<rect width=\"100%\" height=\"100%\" fill=\"{}\" />",
-        config.background
-    );
+    let mut scene = base_scene(config);
 
     for (index, spectre) in spectres.iter().enumerate() {
         let shape_points = spectre_outline_points(spectre, view_center, config);
         if !points_intersect_canvas(&shape_points, config) {
             continue;
         }
-        let points = svg_points(&shape_points);
-        let fill = &palette[color_indices[index]];
-        let _ = writeln!(
-            document,
-            "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
-            points, fill, config.outline, config.stroke_width
+        let points = shape_points
+            .iter()
+            .map(|point| ScenePoint::new(point.x as f64, point.y as f64))
+            .collect();
+        push_tile(
+            &mut scene,
+            points,
+            &palette[color_indices[index]],
+            config,
+            index,
         );
     }
+    scene
+}
 
-    document.push_str("</svg>\n");
-    document
+fn push_tile(
+    scene: &mut Scene,
+    points: Vec<ScenePoint>,
+    fill: &str,
+    config: &SpectreSvgConfig,
+    index: usize,
+) {
+    scene.push_polygon(Polygon::new(
+        points.clone(),
+        fill,
+        &config.outline,
+        config.stroke_width as f64,
+    ));
+    let Some(pattern) = config.studio_pattern.as_ref() else {
+        return;
+    };
+    let anchors = if points.len() >= 105 {
+        [0, 8, 24]
+    } else {
+        [0, 1, 3]
+    };
+    if anchors[2] >= points.len() {
+        return;
+    }
+    let p0 = points[anchors[0]];
+    let p1 = points[anchors[1]];
+    let p2 = points[anchors[2]];
+    let sqrt3_over_2 = 3.0_f64.sqrt() / 2.0;
+    let a = p1.x - p0.x;
+    let b = p1.y - p0.y;
+    let c = (p2.x - p0.x - 2.5 * a) / sqrt3_over_2;
+    let d = (p2.y - p0.y - 2.5 * b) / sqrt3_over_2;
+    let transform = Affine::new([a, c, p0.x, b, d, p0.y]);
+    let scale = a.hypot(b);
+    let clip_id = format!("studio-spectre-tile-{index}");
+    let polygon_points = points
+        .iter()
+        .map(|point| format!("{:.2},{:.2}", point.x, point.y))
+        .collect::<Vec<_>>()
+        .join(" ");
+    scene.definitions.push(format!(
+        "<clipPath id=\"{clip_id}\"><polygon points=\"{polygon_points}\" /></clipPath>"
+    ));
+    let ink = pattern
+        .pointer("/colors/ink")
+        .and_then(Value::as_str)
+        .unwrap_or("black");
+    let motif = render_studio_elements(pattern, ink, fill, transform, scale);
+    scene.push_raw(format!("<g clip-path=\"url(#{clip_id})\">{motif}</g>"));
 }
 
 pub fn write_svg(path: impl AsRef<Path>, config: &SpectreSvgConfig) -> std::io::Result<()> {
@@ -228,7 +300,11 @@ fn content_bbox_from_iter<'a>(spectres: impl Iterator<Item = &'a Spectre>) -> Op
         has_content = true;
     }
 
-    if has_content { Some(bbox) } else { None }
+    if has_content {
+        Some(bbox)
+    } else {
+        None
+    }
 }
 
 fn content_bbox(spectres: &[crate::tiles::SpectreLeaf<'_>]) -> Option<Aabb> {
@@ -447,7 +523,11 @@ fn build_edge_adjacency_translation(spectres: &[&Spectre]) -> Vec<Vec<usize>> {
 }
 
 fn normalized_edge(a: HexVec, b: HexVec) -> (HexVec, HexVec) {
-    if a <= b { (a, b) } else { (b, a) }
+    if a <= b {
+        (a, b)
+    } else {
+        (b, a)
+    }
 }
 
 fn is_special_spectre(spectre: &Spectre) -> bool {
@@ -557,21 +637,6 @@ fn append_curved_edge_points(
         let point = base + outward_normal * offset;
         output.push(point);
     }
-}
-
-fn svg_points(points_list: &[Vec2]) -> String {
-    let mut points = String::new();
-
-    for (index, point) in points_list.iter().enumerate() {
-        let x = point.x;
-        let y = point.y;
-        if index > 0 {
-            points.push(' ');
-        }
-        let _ = write!(points, "{x:.2},{y:.2}");
-    }
-
-    points
 }
 
 #[allow(dead_code)]

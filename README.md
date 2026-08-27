@@ -25,13 +25,13 @@ ceiling prevents distributed traffic from causing unbounded rendering costs.
 
 ## Offline Use
 
-The original Einstein generator can also run locally:
+The Einstein generator can also run locally:
 
 ```bash
 ./aperiodic-generator
 ```
 
-This writes a generated image to `output/einstein_pattern.jpg`.
+This writes a generated SVG to `output/einstein.svg`.
 
 ## For Developers
 
@@ -51,9 +51,12 @@ The repository is organized by runtime responsibility:
 │       ├── locales/             Translation resources
 │       └── server/              Server-side services
 ├── src/generators/
-│   ├── einstein/                Python Einstein generator
+│   ├── common/                  Shared Rust rendering primitives
+│   ├── einstein/                Rust Einstein generator
 │   ├── spectre/                 Rust Spectre generator
-│   └── penrose/                 Rust Penrose generator
+│   ├── penrose/                 Rust Penrose generator
+│   ├── renderer/                Unified native renderer and JSON recipe API
+│   └── wasm/                    Browser preview WebAssembly bindings
 ├── Dockerfile                   Production multi-stage image
 └── Makefile                     Common development commands
 ```
@@ -62,13 +65,28 @@ Common commands:
 
 ```bash
 make install
+make install-tools
 make dev
 make dev-sandbox
 make build
 make build-generators
+make build-wasm
 make check
 make deploy
 ```
+
+All SVG exports embed a versioned `aperiodos.render` JSON recipe in their
+metadata. The same recipe can be rendered through the unified binary:
+
+```bash
+cargo run --release -p aperiodos-render -- penrose \
+  --config '{"width":800,"height":800,"iterations":4,"tile_mode":"rhombs"}' \
+  --output output/penrose.svg
+```
+
+Generator pages use the same Rust code compiled to WebAssembly for debounced,
+quota-free previews. Full-resolution SVG, PNG, and JPEG exports still go through
+the server renderer.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting changes.
 

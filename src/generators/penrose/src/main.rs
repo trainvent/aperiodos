@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use penrose::{PenroseSeed, PenroseSvgConfig, PenroseTileMode, write_svg};
+use penrose::{write_svg, PenroseMaterialMode, PenroseSeed, PenroseSvgConfig, PenroseTileMode};
 
 fn main() {
     let (output, config) = parse_args(env::args().skip(1));
@@ -67,6 +67,24 @@ fn parse_args(args: impl Iterator<Item = String>) -> (PathBuf, PenroseSvgConfig)
                     .map(ToOwned::to_owned)
                     .collect();
             }
+            "--material-mode" => {
+                config.material_mode = match next_arg(&mut args, "--material-mode").as_str() {
+                    "solid" => PenroseMaterialMode::Solid,
+                    "pattern" => PenroseMaterialMode::Pattern,
+                    other => {
+                        eprintln!("invalid value for --material-mode: {other}");
+                        std::process::exit(2);
+                    }
+                }
+            }
+            "--studio-pattern" => {
+                let value = next_arg(&mut args, "--studio-pattern");
+                config.studio_pattern =
+                    Some(serde_json::from_str(&value).unwrap_or_else(|error| {
+                        eprintln!("invalid value for --studio-pattern: {error}");
+                        std::process::exit(2);
+                    }));
+            }
             "--help" | "-h" => {
                 print_help();
                 std::process::exit(0);
@@ -115,6 +133,8 @@ fn print_help() {
           --stroke-width PX\n\
           --seed sun|star\n\
           --tile-mode kite-dart|rhombs|p1\n\
-          --palette c1,c2,c3,..."
+          --palette c1,c2,c3,...
+          --material-mode solid|pattern
+          --studio-pattern JSON"
     );
 }

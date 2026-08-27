@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import Link from "next/link";
 
 import { apiUrl } from "../../lib/api";
+import { renderBrowserPreview } from "../../lib/rendererPreview";
 
 export default function GeneratorLayout({
   title,
@@ -11,6 +12,7 @@ export default function GeneratorLayout({
   endpoint,
   downloadName,
   previewType,
+  generator,
   values,
   setValues,
   defaults
@@ -18,10 +20,12 @@ export default function GeneratorLayout({
   const { t } = useTranslation("common");
   const [status, setStatus] = useState(() => t("generator.status.ready"));
   const [previewUrl, setPreviewUrl] = useState("");
+  const [downloadUrl, setDownloadUrl] = useState("");
   const [quotaExhausted, setQuotaExhausted] = useState(false);
   const [creditCode, setCreditCode] = useState("");
   const [resettingDevQuota, setResettingDevQuota] = useState(false);
   const lastUrlRef = useRef("");
+  const lastDownloadUrlRef = useRef("");
   const isDevelopment = process.env.NODE_ENV === "development";
 
   useEffect(() => {
@@ -29,8 +33,34 @@ export default function GeneratorLayout({
       if (lastUrlRef.current) {
         URL.revokeObjectURL(lastUrlRef.current);
       }
+      if (lastDownloadUrlRef.current && lastDownloadUrlRef.current !== lastUrlRef.current) {
+        URL.revokeObjectURL(lastDownloadUrlRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    if (!generator) return undefined;
+    if (lastDownloadUrlRef.current) {
+      if (lastDownloadUrlRef.current !== lastUrlRef.current) URL.revokeObjectURL(lastDownloadUrlRef.current);
+      lastDownloadUrlRef.current = "";
+      setDownloadUrl("");
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const svg = await renderBrowserPreview(generator, payload());
+        if (cancelled) return;
+        const nextUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+        if (lastUrlRef.current && lastUrlRef.current !== lastDownloadUrlRef.current) URL.revokeObjectURL(lastUrlRef.current);
+        lastUrlRef.current = nextUrl;
+        setPreviewUrl(nextUrl);
+      } catch {
+        // Full server renders remain available if WebAssembly is unsupported.
+      }
+    }, 180);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [generator, values]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -71,7 +101,12 @@ export default function GeneratorLayout({
         URL.revokeObjectURL(lastUrlRef.current);
       }
       lastUrlRef.current = nextUrl;
+      if (lastDownloadUrlRef.current && lastDownloadUrlRef.current !== lastUrlRef.current) {
+        URL.revokeObjectURL(lastDownloadUrlRef.current);
+      }
+      lastDownloadUrlRef.current = nextUrl;
       setPreviewUrl(nextUrl);
+      setDownloadUrl(nextUrl);
       const remaining = Number.parseInt(response.headers.get("X-RateLimit-Remaining") || "", 10);
       const usedCredit = response.headers.get("X-Render-Credit-Used") === "true";
       if (usedCredit) setCreditCode("");
@@ -153,8 +188,8 @@ export default function GeneratorLayout({
           <h2>{t("generator.layout.preview")}</h2>
           <div className="meta">
             <div className="status">{status}</div>
-            {previewUrl ? (
-              <a className="button button-green small" href={previewUrl} download={downloadName(payload())}>
+            {downloadUrl ? (
+              <a className="button button-green small" href={downloadUrl} download={downloadName(payload())}>
                 {t("generator.layout.download")}
               </a>
             ) : null}

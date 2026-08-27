@@ -2,9 +2,13 @@ mod classic_logic;
 mod p1_logic;
 mod rhombs_logic;
 
-use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
+
+use aperiodos_render_core::{
+    render_studio_elements, Affine, Polygon, Renderer, Scene, Vec2 as ScenePoint,
+};
+use serde_json::{json, Value};
 
 use crate::math::Vec2;
 
@@ -23,6 +27,12 @@ pub enum PenroseTileMode {
     P1,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PenroseMaterialMode {
+    Solid,
+    Pattern,
+}
+
 #[derive(Clone, Debug)]
 pub struct PenroseSvgConfig {
     pub width: u32,
@@ -37,6 +47,8 @@ pub struct PenroseSvgConfig {
     pub stroke_width: f64,
     pub seed: PenroseSeed,
     pub tile_mode: PenroseTileMode,
+    pub material_mode: PenroseMaterialMode,
+    pub studio_pattern: Option<Value>,
 }
 
 impl Default for PenroseSvgConfig {
@@ -59,6 +71,8 @@ impl Default for PenroseSvgConfig {
             stroke_width: 1.0,
             seed: PenroseSeed::Sun,
             tile_mode: PenroseTileMode::KiteDart,
+            material_mode: PenroseMaterialMode::Solid,
+            studio_pattern: None,
         }
     }
 }
@@ -69,41 +83,125 @@ pub(super) struct RenderTile {
     pub(super) fill_index: usize,
 }
 
-pub fn render_svg(config: &PenroseSvgConfig) -> String {
-    let palette = normalized_palette(config);
-    let tiles = match config.tile_mode {
-        PenroseTileMode::KiteDart => classic_logic::render_tiles(config.seed, config.iterations),
-        PenroseTileMode::Rhombs => rhombs_logic::render_tiles(config.seed, config.iterations),
-        PenroseTileMode::P1 => p1_logic::render_tiles(config.seed, config.iterations),
-    };
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PenroseRenderer;
 
-    let mut document = String::new();
-    let _ = writeln!(
-        document,
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {} {}\" width=\"{}\" height=\"{}\">",
-        config.width, config.height, config.width, config.height
-    );
-    let _ = writeln!(
-        document,
-        "<rect width=\"100%\" height=\"100%\" fill=\"{}\" />",
-        config.background
-    );
+impl Renderer for PenroseRenderer {
+    type Config = PenroseSvgConfig;
 
-    for tile in tiles {
-        if !tile_visible(&tile, config) {
-            continue;
-        }
-        let fill = &palette[tile.fill_index];
-        let points = svg_polygon_points(&tile.points, config);
-        let _ = writeln!(
-            document,
-            "<polygon points=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linejoin=\"round\" />",
-            points, fill, config.outline, config.stroke_width
+    fn scene(&self, config: &Self::Config) -> Result<Scene, String> {
+        let palette = normalized_palette(config);
+        let tiles = match config.tile_mode {
+            PenroseTileMode::KiteDart => {
+                classic_logic::render_tiles(config.seed, config.iterations)
+            }
+            PenroseTileMode::Rhombs => rhombs_logic::render_tiles(config.seed, config.iterations),
+            PenroseTileMode::P1 => p1_logic::render_tiles(config.seed, config.iterations),
+        };
+
+        let mut scene = Scene::new(
+            config.width,
+            config.height,
+            &config.background,
+            "penrose",
+            json!({
+                "width": config.width, "height": config.height, "iterations": config.iterations,
+                "scale": config.scale, "center_x": config.center_x, "center_y": config.center_y,
+                "palette": config.palette, "background": config.background, "outline": config.outline,
+                "stroke_width": config.stroke_width,
+                "seed": match config.seed { PenroseSeed::Sun => "sun", PenroseSeed::Star => "star" },
+                "tile_mode": match config.tile_mode { PenroseTileMode::KiteDart => "kite-dart", PenroseTileMode::Rhombs => "rhombs", PenroseTileMode::P1 => "p1" },
+                "material_mode": match config.material_mode { PenroseMaterialMode::Solid => "solid", PenroseMaterialMode::Pattern => "pattern" },
+                "studio_pattern": config.studio_pattern,
+            }),
         );
-    }
 
-    document.push_str("</svg>\n");
-    document
+        let built_in_pattern = json!({
+            "schema":"aperiodos.material-design", "version":1, "tile":"penrose",
+            "colors":{"ink":config.outline,"base":"transparent"},
+            "lines":[
+                {"id":"diagonal-a","points":[{"u":0.08,"v":0.08},{"u":0.92,"v":0.92}],"width":0.055},
+                {"id":"diagonal-b","points":[{"u":0.08,"v":0.92},{"u":0.92,"v":0.08}],"width":0.055}
+            ]
+        });
+        let material = (config.material_mode == PenroseMaterialMode::Pattern)
+            .then(|| config.studio_pattern.as_ref().unwrap_or(&built_in_pattern));
+
+        for tile in tiles {
+            if !tile_visible(&tile, config) {
+                continue;
+            }
+            let points = tile
+                .points
+                .iter()
+                .map(|point| {
+                    let (x, y) = svg_point(*point, config);
+                    ScenePoint::new(x, y)
+                })
+                .collect();
+            push_tile(
+                &mut scene,
+                points,
+                &palette[tile.fill_index],
+                config,
+                material,
+                tile.fill_index,
+            );
+        }
+        Ok(scene)
+    }
+}
+
+fn push_tile(
+    scene: &mut Scene,
+    points: Vec<ScenePoint>,
+    fill: &str,
+    config: &PenroseSvgConfig,
+    material: Option<&Value>,
+    palette_index: usize,
+) {
+    scene.push_polygon(Polygon::new(
+        points.clone(),
+        fill,
+        &config.outline,
+        config.stroke_width,
+    ));
+    let Some(pattern) = material else { return };
+    if points.len() < 3 {
+        return;
+    }
+    let (p0, p1, p2) = (points[0], points[1], points[2]);
+    let root = 3.0_f64.sqrt() / 2.0;
+    let (a, b) = (p1.x - p0.x, p1.y - p0.y);
+    let (c, d) = (
+        (p2.x - p0.x - 0.5 * a) / root,
+        (p2.y - p0.y - 0.5 * b) / root,
+    );
+    let transform = Affine::new([a, c, p0.x, b, d, p0.y]);
+    let clip_id = format!(
+        "studio-penrose-tile-{}-{palette_index}",
+        scene.elements.len()
+    );
+    let polygon_points = points
+        .iter()
+        .map(|point| format!("{:.2},{:.2}", point.x, point.y))
+        .collect::<Vec<_>>()
+        .join(" ");
+    scene.definitions.push(format!(
+        "<clipPath id=\"{clip_id}\"><polygon points=\"{polygon_points}\" /></clipPath>"
+    ));
+    let ink = pattern
+        .pointer("/colors/ink")
+        .and_then(Value::as_str)
+        .unwrap_or(&config.outline);
+    let motif = render_studio_elements(pattern, ink, fill, transform, a.hypot(b));
+    scene.push_raw(format!("<g clip-path=\"url(#{clip_id})\">{motif}</g>"));
+}
+
+pub fn render_svg(config: &PenroseSvgConfig) -> String {
+    PenroseRenderer
+        .render_svg(config)
+        .expect("Penrose scene construction is infallible")
 }
 
 pub fn write_svg(path: impl AsRef<Path>, config: &PenroseSvgConfig) -> std::io::Result<()> {
@@ -139,17 +237,6 @@ fn tile_visible(tile: &RenderTile, config: &PenroseSvgConfig) -> bool {
     tile.points
         .iter()
         .any(|point| point.x >= min_x && point.x <= max_x && point.y >= min_y && point.y <= max_y)
-}
-
-fn svg_polygon_points(points: &[Vec2], config: &PenroseSvgConfig) -> String {
-    points
-        .iter()
-        .map(|point| {
-            let (x, y) = svg_point(*point, config);
-            format!("{x:.2},{y:.2}")
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
 }
 
 pub(super) fn polar(radius: f64, angle: f64) -> Vec2 {

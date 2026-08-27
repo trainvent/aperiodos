@@ -10,18 +10,14 @@ Install the web dependencies:
 make install
 ```
 
-For work on the Python Einstein generator, create a virtual environment and install its dependencies:
+The generators require a current Rust toolchain, cargo-nextest, wasm-bindgen,
+and the `wasm32-unknown-unknown` target. Install the pinned tools and build the
+workspace with:
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
-make install-python
-```
-
-The Rust generators require a current Rust toolchain. Build them with:
-
-```bash
+make install-tools
 make build-generators
+make build-wasm
 ```
 
 ## Develop and verify
