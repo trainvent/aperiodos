@@ -3081,9 +3081,112 @@ select {
 
 .preview-panel {
   min-height: 620px;
-  display: grid;
-  grid-template-rows: auto auto 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+}
+
+.preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.preview-panel .preview-heading h2 {
+  margin: 0;
+}
+
+.render-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.render-control,
+.hint-anchor {
+  position: relative;
+}
+
+.hint-popup {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  bottom: calc(100% + 14px);
+  width: min(260px, 72vw);
+  padding: 12px 14px;
+  border: 1px solid rgba(240, 143, 96, 0.45);
+  border-radius: 14px;
+  background: var(--ink);
+  box-shadow: 0 14px 36px rgba(5, 22, 28, 0.24);
+  color: var(--bg);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  pointer-events: none;
+  animation: hint-popup-in 180ms ease-out both;
+}
+
+.hint-popup::after {
+  content: "";
+  position: absolute;
+  right: 24px;
+  top: 100%;
+  border: 8px solid transparent;
+  border-top-color: var(--ink);
+}
+
+@keyframes hint-popup-in {
+  from { opacity: 0; transform: translateY(5px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint-popup { animation: none; }
+}
+
+.render-button,
+.actions-row .button {
+  gap: 8px;
+}
+
+.button-icon,
+.render-action svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.render-action {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-glass);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.render-action:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.render-status {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(31, 106, 93, 0.09);
+  color: var(--accent-green);
+  font-size: 0.9rem;
 }
 
 .meta {
@@ -3157,6 +3260,7 @@ select {
 }
 
 .preview-box {
+  flex: 1;
   border-radius: 20px;
   border: 1px dashed rgba(23, 49, 59, 0.22);
   background:
