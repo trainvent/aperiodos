@@ -115,6 +115,39 @@ function nearestPolygonBoundary(point, cartesianPoints) {
   return nearest;
 }
 
+function translatePoints(points, x, y) {
+  return points.map(([pointX, pointY]) => [pointX + x, pointY + y]);
+}
+
+function penroseAdapter({ family, label, tileMode, shapes }) {
+  const resolvedShapes = shapes.map((shape) => ({
+    ...shape,
+    points: shape.points.map(([x, y]) => ({ x, y })),
+  }));
+  const allPoints = resolvedShapes.flatMap((shape) => shape.points);
+  return {
+    family,
+    tile: "penrose",
+    tileMode,
+    label,
+    // `points` remains the primary editable shape for backwards-compatible
+    // tools; `shapes` is the complete, truthful tile combination preview.
+    points: resolvedShapes[0].points,
+    allPoints,
+    shapes: resolvedShapes,
+    centerCanvas: true,
+    nearestBoundary: (point) => resolvedShapes
+      .map((shape) => nearestPolygonBoundary(point, shape.points))
+      .reduce((nearest, candidate) => candidate.distance < nearest.distance ? candidate : nearest),
+    snapPoint: snapCartesianPoint,
+    cartesianGridLines: cartesianGridLines(),
+    defaultGridMode: "cartesian",
+    previewTransforms: [[1, 0, 0, 0, 1, 0]],
+    previewStroke: "#050806",
+    outlineD: null,
+  };
+}
+
 const GEOMETRY_ADAPTERS = {
   einstein: {
     family: "einstein",
@@ -148,6 +181,37 @@ const GEOMETRY_ADAPTERS = {
       ([x, y]) => mapper(cartesianToLattice({ x, y })),
     ),
   },
+  "penrose-kite-dart": penroseAdapter({
+    family: "penrose-kite-dart",
+    label: "Penrose P2 · Kite & Dart",
+    tileMode: "kite-dart",
+    shapes: [
+      { name: "Dart", points: translatePoints([[0, 0], [0.3090169944, -0.9510565163], [0.8090169944, -0.5877852523], [1, 0]], -1.25, 0.6) },
+      { name: "Kite", points: translatePoints([[0, 0], [0.1909830056, -0.5877852523], [0, -1.1755705046], [0.8090169944, -0.5877852523]], 0.25, 0.6) },
+    ],
+  }),
+  "penrose-rhombs": penroseAdapter({
+    family: "penrose-rhombs",
+    label: "Penrose P3 · Rhombs",
+    tileMode: "rhombs",
+    shapes: [
+      { name: "Thin rhomb", points: translatePoints([[0, 0], [0.9510565163, -0.3090169944], [1.9021130326, 0], [0.9510565163, 0.3090169944]], -1.2, 0) },
+      { name: "Thick rhomb", points: translatePoints([[0, 0], [0.5877852523, 0.8090169944], [1.5388417686, 0.5], [0.9510565163, -0.3090169944]], 0.15, 0) },
+    ],
+  }),
+  "penrose-p1": penroseAdapter({
+    family: "penrose-p1",
+    label: "Penrose P1 · Stars",
+    tileMode: "p1",
+    // The current P1 renderer produces four primitive forms, not two. Keep
+    // the Studio reference honest by displaying every form it actually draws.
+    shapes: [
+      { name: "Pentagon", points: translatePoints([[0, 0], [-0.3090169944, 0.9510565163], [0.5, 1.5388417686], [1.3090169944, 0.9510565163], [1, 0]], -1.9, 0.9) },
+      { name: "Star", points: translatePoints([[1, 0], [0.1909830056, -0.5877852523], [0.5, -1.5388417686], [-0.3090169944, -0.9510565163], [-1.2360679775, -0.5877852523], [-1.0450849719, 0], [-1.6180339887, 0], [-0.6180339887, 0], [-0.3090169944, 0.9510565163], [0, 0]], 1.4, 0.9) },
+      { name: "Boat", points: translatePoints([[-1.6180339887, 0], [-0.6180339887, 0], [-0.3090169944, 0.9510565163], [0, 0], [1, 0], [0.1909830056, -0.5877852523], [-1.0450849719, -0.5877852523]], -1.1, -1.5) },
+      { name: "Diamond", points: translatePoints([[0, 0], [0.9510565163, 0.3090169944], [1.9021130326, 0], [0.9510565163, -0.3090169944]], 1.2, -1.5) },
+    ],
+  }),
 };
 
 export function geometryAdapterFor(family) {

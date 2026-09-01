@@ -105,7 +105,8 @@ function coerceStudioPattern(payload, tile = "einstein-hat") {
     throw new ApiError("'studio_pattern' must be a Studio pattern document smaller than 64 KB.");
   }
   if (pattern.schema !== "aperiodos.material-design" || pattern.version !== 1 || pattern.tile !== tile) {
-    throw new ApiError(`'studio_pattern' must be a version 1 ${tile === "spectre" ? "Spectre" : "Einstein"} material design.`);
+    const label = tile === "spectre" ? "Spectre" : tile === "penrose" ? "Penrose" : "Einstein";
+    throw new ApiError(`'studio_pattern' must be a version 1 ${label} material design.`);
   }
   const paths = Array.isArray(pattern.paths) ? pattern.paths : [];
   const lines = Array.isArray(pattern.lines) ? pattern.lines : [];
@@ -437,6 +438,7 @@ export async function renderPenrose(payload) {
   const seed = buildLogic === "default" ? "sun" : "star";
   const rendererScale = scale * (tileMode === "p1" ? P1_SCALE_NORMALIZATION : PENROSE_SCALE_NORMALIZATION);
   const imageFormat = coerceFormat(payload, ALLOWED_PENROSE_FORMATS, "svg");
+  const studioPattern = coerceStudioPattern(payload, "penrose");
 
   return renderRustSvg({
     imageFormat,
@@ -472,6 +474,7 @@ export async function renderPenrose(payload) {
       "--tile-mode",
       tileMode,
       ...(palette ? ["--palette", palette.join(",")] : []),
+      ...(studioPattern ? ["--studio-pattern", JSON.stringify(studioPattern)] : []),
     ],
   });
 }

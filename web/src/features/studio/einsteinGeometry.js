@@ -183,11 +183,12 @@ export function bindPathEndpoints(path) {
 
 export function createEmptyDesign(tile = "einstein-hat") {
   const spectre = tile === "spectre";
+  const penrose = tile === "penrose";
   return {
     schema: "aperiodos.material-design",
     version: 1,
-    id: `builtin-empty-${spectre ? "spectre" : "einstein"}-pattern`,
-    name: `Untitled ${spectre ? "Spectre" : "Einstein"} pattern`,
+    id: `builtin-empty-${penrose ? "penrose" : spectre ? "spectre" : "einstein"}-pattern`,
+    name: `Untitled ${penrose ? "Penrose" : spectre ? "Spectre" : "Einstein"} pattern`,
     tile,
     ...(spectre ? { tileShape: { roundness: 0.18, weight: 0.5, lean: 1 } } : {}),
     colors: { base: "#ffffff", ink: "#00c200" },
@@ -306,7 +307,7 @@ export function validateDesign(value) {
   const circles = Array.isArray(value.circles) ? value.circles : [];
   const lines = Array.isArray(value.lines) ? value.lines : [];
   const circularPaths = Array.isArray(value.circularPaths) ? value.circularPaths : [];
-  if (!['einstein-hat', 'spectre'].includes(value.tile) || !Array.isArray(value.paths) || (!value.paths.length && !lines.length && !circles.length && !circularPaths.length)) {
+  if (!['einstein-hat', 'spectre', 'penrose'].includes(value.tile) || !Array.isArray(value.paths) || (!value.paths.length && !lines.length && !circles.length && !circularPaths.length)) {
     throw new Error("The design must contain supported tile material geometry.");
   }
   if (value.tile === "spectre") {
@@ -314,6 +315,9 @@ export function validateDesign(value) {
     if (![shape.roundness, shape.weight, shape.lean].every((item) => Number.isFinite(Number(item)))) {
       throw new Error("Spectre designs need finite tile curvature settings.");
     }
+  }
+  if (value.tile === "penrose" && value.tileMode !== undefined && !["kite-dart", "rhombs", "p1"].includes(value.tileMode)) {
+    throw new Error("Penrose designs need a supported tile combination.");
   }
   if (value.strokeWidth !== undefined && (!Number.isFinite(Number(value.strokeWidth)) || Number(value.strokeWidth) < 0 || Number(value.strokeWidth) > 20)) {
     throw new Error("Pattern stroke width must be between 0 and 20.");

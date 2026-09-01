@@ -316,6 +316,7 @@
 			"pattern": "Kacheln mit Muster",
 			"patternLabel": "Muster",
 			"curves": "Kurven",
+			"crosshatch": "Kreuzschraffur",
 			"studio": "Studio",
 			"tileColor": "Kachelfarbe",
 			"curveColor": "Kurvenfarbe"

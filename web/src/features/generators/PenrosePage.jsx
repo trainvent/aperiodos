@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ColorField, NumberField, SelectField } from "../../components/forms/FormFields";
@@ -6,10 +6,12 @@ import { apiUrl } from "../../lib/api";
 import { PENROSE_DEFAULTS } from "./defaults";
 import GeneratorLayout from "./GeneratorLayout";
 import GeneratorSettingsScaffold, { SettingsRow } from "./GeneratorSettingsScaffold";
+import { getPenroseStudioPatterns, STUDIO_LIBRARY_EVENT, studioPatternId, studioPatternValue } from "../studio/patternLibrary";
 
 export default function PenrosePage() {
   const { t } = useTranslation("common");
   const [values, setValues] = useState(PENROSE_DEFAULTS);
+  const [studioPatterns, setStudioPatterns] = useState([]);
   const previousTileModeRef = useRef(PENROSE_DEFAULTS.tile_mode);
   const modeScaleDefaults = { "kite-dart": 100, rhombs: 100, p1: 100 };
   const modeLegacyScales = { "kite-dart": [320], rhombs: [320], p1: [7, 10, 14, 285, 320] };
@@ -17,6 +19,37 @@ export default function PenrosePage() {
   const legacyPaletteDefaults = ["wheat", "midnightblue", "sandybrown", "seagreen"];
   const cartwheelPaletteDefaults = ["lightyellow", "lightcoral", "gainsboro", "dodgerblue"];
   const cartwheelLegacyHexDefaults = ["#ffffb3", "#ff6666", "#e6e6e6", "#0080ff"];
+
+  useEffect(() => {
+    async function refreshPatterns() {
+      try {
+        setStudioPatterns(await getPenroseStudioPatterns());
+      } catch {
+        setStudioPatterns([]);
+      }
+    }
+    refreshPatterns();
+    window.addEventListener(STUDIO_LIBRARY_EVENT, refreshPatterns);
+    window.addEventListener("storage", refreshPatterns);
+    return () => {
+      window.removeEventListener(STUDIO_LIBRARY_EVENT, refreshPatterns);
+      window.removeEventListener("storage", refreshPatterns);
+    };
+  }, []);
+
+  const compatibleStudioPatterns = studioPatterns.filter((pattern) => !pattern.tileMode || pattern.tileMode === values.tile_mode);
+  const patternOptions = useMemo(() => [
+    { value: "builtin:crosshatch", label: t("generator.material.crosshatch") },
+    ...compatibleStudioPatterns.map((pattern) => ({ value: studioPatternValue(pattern.id), label: `${pattern.name} · ${t("generator.material.studio")}` })),
+  ], [compatibleStudioPatterns, t]);
+  const selectedStudioPattern = compatibleStudioPatterns.find((pattern) => pattern.id === studioPatternId(values.pattern_design));
+  const patternStrokeWidth = selectedStudioPattern?.strokeWidth;
+  const patternOutline = selectedStudioPattern?.outline;
+
+  useEffect(() => {
+    if (!selectedStudioPattern) return;
+    setValues((current) => ({ ...current, stroke_width: patternStrokeWidth ?? current.stroke_width, outline: patternOutline || current.outline }));
+  }, [selectedStudioPattern?.id, patternStrokeWidth, patternOutline]);
 
   useEffect(() => {
     const previousMode = previousTileModeRef.current;
@@ -104,6 +137,7 @@ export default function PenrosePage() {
           values={values}
           setValues={setValues}
           allowMaterial
+          patternOptions={patternOptions}
           parameters={
             <SettingsRow>
               <NumberField values={values} setValues={setValues} name="iterations" label={t("generator.common.iterations")} min={0} max={10} />
@@ -163,7 +197,8 @@ export default function PenrosePage() {
         stroke_width: Number(values.stroke_width),
         palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4]
           .map((value) => String(value).trim())
-          .filter(Boolean)
+          .filter(Boolean),
+        ...(selectedStudioPattern ? { studio_pattern: selectedStudioPattern } : {})
       })}
       endpoint={apiUrl("/api/penrose/render")}
       downloadName={(payload) => `penrose.${payload.format}`}

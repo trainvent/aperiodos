@@ -316,6 +316,7 @@
 			"pattern": "Patterned tiles",
 			"patternLabel": "Pattern",
 			"curves": "Curves",
+			"crosshatch": "Crosshatch",
 			"studio": "Studio",
 			"tileColor": "Tile color",
 			"curveColor": "Curve color"

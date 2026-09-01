@@ -97,7 +97,7 @@ export function getAppVersion(environment = process.env) {
 
 export function getAboutContent(language, environment = process.env) {
   return {
-    ...ABOUT_CONTENT_BY_LANGUAGE[language === "en" ? "en" : "de"],
+    ...ABOUT_CONTENT_BY_LANGUAGE[language === "de" ? "de" : "en"],
     version: getAppVersion(environment),
   };
 }
