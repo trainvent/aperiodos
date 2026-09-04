@@ -102,7 +102,6 @@ export default function App() {
           <div className="global-controls">
             <ThemeToggle />
             <div className="lang-switch">
-              <label className="sr-only" htmlFor="language-select">{t("language.label")}</label>
               <span className="lang-switch-control">
                 <span className="lang-flag" aria-hidden="true">{LANGUAGES[language].flag}</span>
                 <select
@@ -110,6 +109,7 @@ export default function App() {
                   id="language-select"
                   value={language}
                   onChange={(event) => i18n.changeLanguage(event.target.value)}
+                  aria-label={t("language.label")}
                 >
                   {Object.entries(LANGUAGES).map(([code, { label }]) => (
                     <option key={code} value={code}>{label}</option>
