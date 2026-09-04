@@ -22,6 +22,7 @@ export default function App() {
   const currentPath = normalizePath(router.asPath);
   const pageTitle = getPageTitle(currentPath, t);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -101,20 +102,38 @@ export default function App() {
           </nav>
           <div className="global-controls">
             <ThemeToggle />
-            <div className="lang-switch">
+            <div className="lang-switch" role="group" aria-label={t("language.label")}>
               <span className="lang-switch-control">
-                <span className="lang-flag" aria-hidden="true">{LANGUAGES[language].flag}</span>
-                <select
-                  className="lang-select"
-                  id="language-select"
-                  value={language}
-                  onChange={(event) => i18n.changeLanguage(event.target.value)}
+                <button
+                  className="lang-toggle"
+                  type="button"
+                  onClick={() => setLanguageMenuOpen((open) => !open)}
                   aria-label={t("language.label")}
+                  aria-expanded={languageMenuOpen}
+                  aria-haspopup="menu"
                 >
-                  {Object.entries(LANGUAGES).map(([code, { label }]) => (
-                    <option key={code} value={code}>{label}</option>
-                  ))}
-                </select>
+                  <span className="lang-flag" aria-hidden="true">{LANGUAGES[language].flag}</span>
+                  <span className="lang-code">{language.toUpperCase()}</span>
+                </button>
+                {languageMenuOpen ? (
+                  <span className="lang-menu" role="menu">
+                    {Object.entries(LANGUAGES).map(([code, { flag, label }]) => (
+                      <button
+                        key={code}
+                        type="button"
+                        role="menuitem"
+                        className={code === language ? "active" : ""}
+                        onClick={() => {
+                          void i18n.changeLanguage(code);
+                          setLanguageMenuOpen(false);
+                        }}
+                      >
+                        <span aria-hidden="true">{flag}</span>
+                        {label}
+                      </button>
+                    ))}
+                  </span>
+                ) : null}
               </span>
             </div>
           </div>

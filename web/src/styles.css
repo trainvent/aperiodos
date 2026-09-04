@@ -2335,6 +2335,7 @@ html[data-theme-preference="auto"] .theme-toggle-icon:nth-child(3) {
 .lang-switch {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   font-size: 0.82rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2344,24 +2345,10 @@ html[data-theme-preference="auto"] .theme-toggle-icon:nth-child(3) {
 .lang-switch-control {
   display: inline-flex;
   align-items: center;
+  position: relative;
   gap: 4px;
   padding: 0;
   background: transparent;
-  transition: color 140ms ease;
-}
-
-.lang-switch-control::after {
-  content: "▾";
-  margin-left: -15px;
-  pointer-events: none;
-  color: var(--ink-soft);
-  font-size: 0.65rem;
-  line-height: 1;
-}
-
-.lang-switch-control:hover,
-.lang-switch-control:focus-within {
-  color: var(--accent);
 }
 
 .lang-flag {
@@ -2369,27 +2356,71 @@ html[data-theme-preference="auto"] .theme-toggle-icon:nth-child(3) {
   line-height: 1;
 }
 
-.lang-select {
-  min-width: 82px;
-  padding: 5px 17px 4px 3px;
-  border: 0;
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 3px 4px;
+  border: none;
   border-bottom: 1px solid transparent;
+  border-radius: 0;
   background: transparent;
   color: var(--ink);
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  text-transform: uppercase;
   cursor: pointer;
-  appearance: none;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
   transition: border-color 140ms ease, color 140ms ease;
 }
 
-.lang-select:hover,
-.lang-select:focus-visible {
+.lang-toggle:hover,
+.lang-toggle:focus-visible,
+.lang-toggle[aria-expanded="true"] {
   border-bottom-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+.lang-code {
+  line-height: 1;
+}
+
+.lang-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  min-width: 132px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 12px 28px rgba(23, 49, 59, 0.16);
+}
+
+.lang-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+}
+
+.lang-menu button:hover,
+.lang-menu button:focus-visible,
+.lang-menu button.active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
   outline: none;
 }
