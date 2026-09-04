@@ -17,7 +17,7 @@ import {
   snapLatticePoint,
   validateDesign,
 } from "../features/studio/einsteinGeometry.js";
-import { getEinsteinStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns, readStudioLibrary, writeStudioLibrary } from "../features/studio/patternLibrary.js";
+import { getEinsteinStudioPatterns, getPenroseStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns, readStudioLibrary, writeStudioLibrary } from "../features/studio/patternLibrary.js";
 import { SPECTRE_POINTS, spectreEdgeControl, spectrePath } from "../features/studio/spectreGeometry.js";
 import { cartesianGridLines, geometryAdapterFor, snapCartesianPoint } from "../features/studio/studioGeometryAdapters.js";
 
@@ -185,6 +185,24 @@ test("Studio pattern consumers receive only their geometry family", async () => 
   const fetcher = async () => ({ ok: false });
   assert.deepEqual(await getEinsteinStudioPatterns(storage, fetcher), []);
   assert.equal((await getSpectreStudioPatterns(storage, fetcher))[0].tile, "spectre");
+  assert.deepEqual(await getPenroseStudioPatterns(storage, fetcher), []);
+});
+
+test("Studio exposes all Penrose tile combinations", () => {
+  for (const [family, tileMode, shapeCount] of [["penrose-kite-dart", "kite-dart", 2], ["penrose-rhombs", "rhombs", 2], ["penrose-p1", "p1", 4]]) {
+    const adapter = geometryAdapterFor(family);
+    assert.equal(adapter.tile, "penrose");
+    assert.equal(adapter.tileMode, tileMode);
+    assert.equal(adapter.shapes.length, shapeCount);
+    assert.ok(adapter.shapes.every((shape) => shape.points.length >= 4));
+  }
+});
+
+test("Penrose Studio designs retain their tile combination", () => {
+  const design = createEmptyDesign("penrose");
+  design.tileMode = "p1";
+  design.lines = [{ id: "line", width: 0.2, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }];
+  assert.equal(validateDesign(design).tileMode, "p1");
 });
 
 test("Spectre designs persist in the local Studio library", () => {

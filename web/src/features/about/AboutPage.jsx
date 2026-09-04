@@ -46,7 +46,9 @@ function createAboutFallback(t) {
 
 export default function AboutPage() {
   const { t, i18n } = useTranslation("common");
-  const language = i18n.resolvedLanguage === "en" ? "en" : "de";
+  const language = ["de", "en", "el"].includes(i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : "de";
   const [content, setContent] = useState(() => createAboutFallback(t));
 
   useEffect(() => {

@@ -105,7 +105,8 @@ function coerceStudioPattern(payload, tile = "einstein-hat") {
     throw new ApiError("'studio_pattern' must be a Studio pattern document smaller than 64 KB.");
   }
   if (pattern.schema !== "aperiodos.material-design" || pattern.version !== 1 || pattern.tile !== tile) {
-    throw new ApiError(`'studio_pattern' must be a version 1 ${tile === "spectre" ? "Spectre" : "Einstein"} material design.`);
+    const tileName = tile === "spectre" ? "Spectre" : tile === "penrose" ? "Penrose" : "Einstein";
+    throw new ApiError(`'studio_pattern' must be a version 1 ${tileName} material design.`);
   }
   const paths = Array.isArray(pattern.paths) ? pattern.paths : [];
   const lines = Array.isArray(pattern.lines) ? pattern.lines : [];
@@ -425,6 +426,7 @@ export async function renderPenrose(payload) {
   const outline = String(payload.outline || "black");
   const strokeWidth = coerceFloat(payload, "stroke_width", 1.0, { minimum: 0.0, maximum: 20.0 });
   const materialMode = coerceOneOf(payload, "material_mode", "solid", ["solid", "pattern"]);
+  const studioPattern = materialMode === "pattern" ? coerceStudioPattern(payload, "penrose") : null;
   const palette = coercePalette(payload);
   let buildLogic = coerceOneOf(payload, "build_logic", "default", ["default", "cartwheel"]);
   const tileMode = coerceOneOf(payload, "tile_mode", "kite-dart", ["kite-dart", "rhombs", "p1"]);
@@ -472,6 +474,7 @@ export async function renderPenrose(payload) {
       "--tile-mode",
       tileMode,
       ...(palette ? ["--palette", palette.join(",")] : []),
+      ...(studioPattern ? ["--studio-pattern", JSON.stringify(studioPattern)] : []),
     ],
   });
 }

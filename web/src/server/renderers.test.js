@@ -157,3 +157,21 @@ test("Penrose pattern material is rendered natively and clipped per tile", async
   assert.match(svg, /clip-path="url\(#studio-penrose-tile-/);
   assert.match(svg, /id="aperiodos-render"/);
 });
+
+test("Penrose accepts Studio material for every tile combination", async () => {
+  const studioPattern = {
+    schema: "aperiodos.material-design",
+    version: 1,
+    tile: "penrose",
+    tileMode: "p1",
+    colors: { base: "#ffffff", ink: "#d81b60" },
+    paths: [],
+    lines: [{ id: "line", width: 0.2, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }],
+    circles: [],
+    circularPaths: [],
+  };
+  for (const tile_mode of ["kite-dart", "rhombs", "p1"]) {
+    const result = await renderPenrose({ width: 128, height: 128, iterations: 1, scale: 40, format: "svg", tile_mode, material_mode: "pattern", studio_pattern: studioPattern });
+    assert.match(result.buffer.toString("utf8"), /stroke="#d81b60"/);
+  }
+});

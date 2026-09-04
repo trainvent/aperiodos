@@ -61,7 +61,7 @@ function fromCanvas(point) {
 
 function canvasOffsetFor(geometry) {
   if (!geometry.centerCanvas) return { x: 0, y: 0 };
-  const points = geometry.points.map((point) => toCanvas(cartesianToLattice(point)));
+  const points = (geometry.allPoints || geometry.points).map((point) => toCanvas(cartesianToLattice(point)));
   const bounds = points.reduce((result, point) => ({
     minX: Math.min(result.minX, point.x),
     maxX: Math.max(result.maxX, point.x),
@@ -159,7 +159,7 @@ function fittedClusterMappers(transforms, geometry) {
       y: previewSin * reflected.x + previewCos * reflected.y,
     };
   };
-  const transformedPoints = transforms.flatMap((transform) => geometry.points.map((point) => (
+  const transformedPoints = transforms.flatMap((transform) => (geometry.allPoints || geometry.points).map((point) => (
     project(transformCartesian(cartesianToLattice(point), transform))
   )));
   const bounds = transformedPoints.reduce((result, point) => ({
@@ -212,6 +212,8 @@ function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectr
   const tilePoints = pointsAttribute(geometry.points.map(cartesianToLattice));
   const tileShape = geometry.outlineD
     ? `<path d="${geometry.outlineD(design, mapper)}"`
+    : geometry.shapes
+      ? `<g>${geometry.shapes.map((shape) => `<polygon points="${pointsAttribute(shape.points.map(cartesianToLattice))}" />`).join("")}</g>`
     : `<polygon points="${tilePoints}"`;
   const layers = getDesignLayers(design).map(({ kind, item }) => {
     if (kind === "circle") {
@@ -228,7 +230,7 @@ function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectr
 export default function StudioPage() {
   const [family, setFamily] = useState("einstein");
   const [drafts, setDrafts] = useState({});
-  const [lineWidths, setLineWidths] = useState({ einstein: 0.7, spectre: 0.7 });
+  const [lineWidths, setLineWidths] = useState({ einstein: 0.7, spectre: 0.7, "penrose-kite-dart": 0.7, "penrose-rhombs": 0.7, "penrose-p1": 0.7 });
   const cacheDraft = useCallback((draftFamily, design) => {
     setDrafts((current) => current[draftFamily] === design ? current : { ...current, [draftFamily]: design });
   }, []);
@@ -242,7 +244,11 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const { t } = useTranslation("common");
   const geometry = useMemo(() => geometryAdapterFor(family), [family]);
   const mapToCanvas = useMemo(() => canvasMapperFor(geometry), [geometry]);
-  const emptyDesign = () => ({ ...createEmptyDesign(geometry.tile), name: family === "spectre" ? t("studio.spectre.untitled") : t("studio.templates.untitled") });
+  const emptyDesign = () => ({
+    ...createEmptyDesign(geometry.tile),
+    ...(geometry.tileMode ? { tileMode: geometry.tileMode } : {}),
+    name: family === "spectre" ? t("studio.spectre.untitled") : geometry.tile === "penrose" ? `Untitled ${geometry.label} pattern` : t("studio.templates.untitled"),
+  });
   const [design, setDesign] = useState(() => cachedDesign ? cloneDesign(cachedDesign) : emptyDesign());
   const [selectedPathId, setSelectedPathId] = useState(null);
   const [selectedLineId, setSelectedLineId] = useState(null);
@@ -250,7 +256,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const [selectedCircularPathId, setSelectedCircularPathId] = useState(null);
   const [snapMode, setSnapMode] = useState("half");
   const [showGrid, setShowGrid] = useState(true);
-  const [gridMode, setGridMode] = useState(family === "spectre" ? "cartesian" : "construction");
+  const [gridMode, setGridMode] = useState(geometry.defaultGridMode || (family === "spectre" ? "cartesian" : "construction"));
   const [showHandles, setShowHandles] = useState(true);
   const [showEdgeNumbers, setShowEdgeNumbers] = useState(false);
   const [bindEndpoints, setBindEndpoints] = useState(true);
@@ -270,7 +276,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const selectedPath = !selectedLine && !selectedCircle && !selectedCircularPath
     ? design.paths.find((path) => path.id === selectedPathId) || (selectedPathId ? design.paths[0] : null)
     : null;
-  const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile);
+  const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile && (geometry.tile !== "penrose" || item.tileMode === geometry.tileMode));
   const selectedExportDesign = familyDesigns.find((item) => item.id === selectedExportId) || null;
 
   useEffect(() => {
@@ -783,7 +789,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
               <button type="button" onClick={addCircle}><span>○</span>{t("studio.circles.title")}</button>
               <button type="button" onClick={addLine}><span>╱</span>{t("studio.lines.title")}</button>
             </div>
-            <div className="studio-toolbar-group studio-toolbar-templates">
+            {geometry.tile !== "penrose" ? <div className="studio-toolbar-group studio-toolbar-templates">
               <span className="studio-toolbar-label">{t("studio.templates.title")}</span>
               <label>
                 <span>▧</span>
@@ -796,7 +802,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                   )}
                 </select>
               </label>
-            </div>
+            </div> : null}
             <div className="studio-toolbar-group studio-toolbar-settings">
               <span className="studio-toolbar-label">{t("studio.toolbar.appearance")}</span>
               <label className="studio-toolbar-color" title={t("studio.controls.baseColor")}><span>{t("studio.toolbar.tile")}</span><input type="color" value={design.colors.base} onChange={(event) => setDesign((current) => ({ ...current, colors: { ...current.colors, base: event.target.value } }))} /></label>
@@ -1056,6 +1062,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 function TileShape({ design, geometry, mapper, ...props }) {
   const resolvedMapper = mapper || canvasMapperFor(geometry);
   if (geometry.outlineD) return <path d={geometry.outlineD(design, resolvedMapper)} {...props} />;
+  if (geometry.shapes) return <g {...props}>{geometry.shapes.map((shape) => <polygon key={shape.name} points={pointsAttribute(shape.points.map(cartesianToLattice), resolvedMapper)} />)}</g>;
   return <polygon points={pointsAttribute(geometry.points.map(cartesianToLattice), resolvedMapper)} {...props} />;
 }
 
