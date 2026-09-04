@@ -16,7 +16,9 @@ import StudioPage from "./features/studio/StudioPage";
 export default function App() {
   const { t, i18n } = useTranslation("common");
   const router = useRouter();
-  const language = i18n.resolvedLanguage === "en" ? "en" : "de";
+  const language = ["de", "en", "el"].includes(i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : "de";
   const currentPath = normalizePath(router.asPath);
   const pageTitle = getPageTitle(currentPath, t);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -99,17 +101,20 @@ export default function App() {
           </nav>
           <div className="global-controls">
             <ThemeToggle />
-            <div className="lang-switch" role="group" aria-label={t("language.label")}>
+            <div className="lang-switch">
+              <label className="sr-only" htmlFor="language-select">{t("language.label")}</label>
               <span className="lang-switch-control">
-                <button
-                  className="lang-toggle"
-                  type="button"
-                  onClick={() => i18n.changeLanguage(language === "de" ? "en" : "de")}
-                  aria-label="Toggle language"
+                <span className="lang-flag" aria-hidden="true">{LANGUAGES[language].flag}</span>
+                <select
+                  className="lang-select"
+                  id="language-select"
+                  value={language}
+                  onChange={(event) => i18n.changeLanguage(event.target.value)}
                 >
-                  <span className="lang-flag" aria-hidden="true">{language === "de" ? "🇩🇪" : "🇬🇧"}</span>
-                  <span className="lang-code">{language.toUpperCase()}</span>
-                </button>
+                  {Object.entries(LANGUAGES).map(([code, { label }]) => (
+                    <option key={code} value={code}>{label}</option>
+                  ))}
+                </select>
               </span>
             </div>
           </div>
@@ -131,6 +136,12 @@ export default function App() {
     </div>
   );
 }
+
+const LANGUAGES = {
+  de: { flag: "🇩🇪", label: "Deutsch" },
+  en: { flag: "🇬🇧", label: "English" },
+  el: { flag: "🇬🇷", label: "Ελληνικά" }
+};
 
 function TopNavLink({ to, children }) {
   const router = useRouter();
