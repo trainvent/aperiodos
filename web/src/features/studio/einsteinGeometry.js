@@ -300,6 +300,21 @@ export function elementMaterialColor(design, element) {
   return typeof element?.color === "string" && element.color.trim() ? element.color : design.colors.ink;
 }
 
+export function setDefaultMaterialColor(design, color) {
+  const preserveMaterialColor = (element) => ({
+    ...element,
+    color: elementMaterialColor(design, element),
+  });
+  return {
+    ...design,
+    colors: { ...design.colors, ink: color },
+    paths: (design.paths || []).map(preserveMaterialColor),
+    lines: (design.lines || []).map(preserveMaterialColor),
+    circles: (design.circles || []).map(preserveMaterialColor),
+    circularPaths: (design.circularPaths || []).map(preserveMaterialColor),
+  };
+}
+
 export function validateDesign(value) {
   if (!value || value.schema !== "aperiodos.material-design" || value.version !== 1) {
     throw new Error("This is not a supported Aperiodos material design.");

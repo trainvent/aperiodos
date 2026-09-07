@@ -744,6 +744,25 @@ select {
   background: #fffdf8;
 }
 
+.studio-generated-penrose-preview {
+  display: grid;
+  width: 100%;
+  min-height: 116px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fffdf8;
+  color: #58707a;
+  font-size: 0.66rem;
+}
+
+img.studio-generated-penrose-preview {
+  display: block;
+  height: auto;
+  max-height: 430px;
+  object-fit: contain;
+}
+
 .studio-mirror-label {
   fill: white;
   stroke: var(--accent);
@@ -1057,7 +1076,8 @@ html[data-theme="dark"] .panel.studio-surface {
 }
 
 .studio-family-switch {
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: 3px;
   color: #9fb0b8;
   font-size: 0.62rem;
@@ -1068,6 +1088,10 @@ html[data-theme="dark"] .panel.studio-surface {
 .studio-family-switch select {
   min-width: 116px;
   height: 34px;
+}
+
+.studio-family-switch select + select {
+  min-width: 142px;
 }
 
 .studio-toolbar-group {

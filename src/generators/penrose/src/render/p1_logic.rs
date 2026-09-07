@@ -24,9 +24,12 @@ struct Frame {
 pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTile> {
     let iterations = iterations.min(6);
     let rules = pentagon_rules();
+    // Start from one coherent P1 supertile. Combining independently rotated
+    // pentagons and stars creates overlapping rhombs at their joins, which
+    // show up as the triangular slivers in the rendered patch.
     let seed_word = match seed {
-        PenroseSeed::Sun => "[P][+P][*P][-P][_P][G][+G][*G][-G][_G]",
-        PenroseSeed::Star => "[G][+G][*G][-G][_G]",
+        PenroseSeed::Sun => "P",
+        PenroseSeed::Star => "G",
     };
     let word = expand_lsystem(seed_word, iterations, &rules);
     let inflation = (2.0 + 2.0 * cos_deg(72.0)).powi(iterations as i32);
@@ -350,5 +353,10 @@ mod tests {
             .map(|tile| tile.fill_index)
             .collect::<std::collections::BTreeSet<_>>();
         assert!(distinct.len() >= 3);
+    }
+
+    #[test]
+    fn sun_seed_starts_from_one_coherent_pentagonal_supertile() {
+        assert_eq!(render_tiles(PenroseSeed::Sun, 1).len(), 6);
     }
 }

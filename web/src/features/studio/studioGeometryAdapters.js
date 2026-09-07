@@ -119,6 +119,66 @@ function translatePoints(points, x, y) {
   return points.map(([pointX, pointY]) => [pointX + x, pointY + y]);
 }
 
+function cosDegrees(degrees) {
+  return Math.cos(degrees * Math.PI / 180);
+}
+
+function sinDegrees(degrees) {
+  return Math.sin(degrees * Math.PI / 180);
+}
+
+const PENROSE_RHOMB_POINTS = {
+  thin: [
+    [0, 0],
+    [cosDegrees(18), -sinDegrees(18)],
+    [2 * cosDegrees(18), 0],
+    [cosDegrees(18), sinDegrees(18)],
+  ],
+  thick: [
+    [0, 0],
+    [cosDegrees(54), sinDegrees(54)],
+    [cosDegrees(54) + cosDegrees(18), sinDegrees(54) - sinDegrees(18)],
+    [cosDegrees(18), -sinDegrees(18)],
+  ],
+};
+
+const PENROSE_P1_POINTS = {
+  pentagon: [
+    [0, 0],
+    [cosDegrees(108), sinDegrees(108)],
+    [1 + cosDegrees(72) + cosDegrees(144), sinDegrees(72) + sinDegrees(144)],
+    [1 + cosDegrees(72), sinDegrees(72)],
+    [1, 0],
+  ],
+  star: [
+    [1, 0],
+    [1 - cosDegrees(36), -sinDegrees(36)],
+    [1 - cosDegrees(36) - cosDegrees(108), -sinDegrees(36) - sinDegrees(108)],
+    [cosDegrees(108), -sinDegrees(108)],
+    [-1 + 3 * cosDegrees(108) + cosDegrees(36), -sinDegrees(36) - sinDegrees(108)],
+    [-1 + 2 * cosDegrees(108) + cosDegrees(36), -sinDegrees(36)],
+    [-1 + 2 * cosDegrees(108), 0],
+    [2 * cosDegrees(108), 0],
+    [cosDegrees(108), sinDegrees(108)],
+    [0, 0],
+  ],
+  boat: [
+    [-1 + 2 * cosDegrees(108), 0],
+    [2 * cosDegrees(108), 0],
+    [cosDegrees(108), sinDegrees(108)],
+    [0, 0],
+    [1, 0],
+    [1 - cosDegrees(36), -sinDegrees(36)],
+    [-1 + 2 * cosDegrees(108) + cosDegrees(36), -sinDegrees(36)],
+  ],
+  diamond: [
+    [0, 0],
+    [cosDegrees(18), sinDegrees(18)],
+    [2 * cosDegrees(18), 0],
+    [cosDegrees(18), -sinDegrees(18)],
+  ],
+};
+
 function penroseAdapter({ family, label, tileMode, shapes }) {
   const resolvedShapes = shapes.map((shape) => ({
     ...shape,
@@ -195,21 +255,20 @@ const GEOMETRY_ADAPTERS = {
     label: "Penrose P3 · Rhombs",
     tileMode: "rhombs",
     shapes: [
-      { name: "Thin rhomb", points: translatePoints([[0, 0], [0.9510565163, -0.3090169944], [1.9021130326, 0], [0.9510565163, 0.3090169944]], -1.2, 0) },
-      { name: "Thick rhomb", points: translatePoints([[0, 0], [0.5877852523, 0.8090169944], [1.5388417686, 0.5], [0.9510565163, -0.3090169944]], 0.15, 0) },
+      { name: "Thin rhomb", points: translatePoints(PENROSE_RHOMB_POINTS.thin, -1.4, 0) },
+      { name: "Thick rhomb", points: translatePoints(PENROSE_RHOMB_POINTS.thick, 0.55, 0) },
     ],
   }),
   "penrose-p1": penroseAdapter({
     family: "penrose-p1",
     label: "Penrose P1 · Stars",
     tileMode: "p1",
-    // The current P1 renderer produces four primitive forms, not two. Keep
-    // the Studio reference honest by displaying every form it actually draws.
+    // These point sequences match the native P1 renderer's four primitives.
     shapes: [
-      { name: "Pentagon", points: translatePoints([[0, 0], [-0.3090169944, 0.9510565163], [0.5, 1.5388417686], [1.3090169944, 0.9510565163], [1, 0]], -1.9, 0.9) },
-      { name: "Star", points: translatePoints([[1, 0], [0.1909830056, -0.5877852523], [0.5, -1.5388417686], [-0.3090169944, -0.9510565163], [-1.2360679775, -0.5877852523], [-1.0450849719, 0], [-1.6180339887, 0], [-0.6180339887, 0], [-0.3090169944, 0.9510565163], [0, 0]], 1.4, 0.9) },
-      { name: "Boat", points: translatePoints([[-1.6180339887, 0], [-0.6180339887, 0], [-0.3090169944, 0.9510565163], [0, 0], [1, 0], [0.1909830056, -0.5877852523], [-1.0450849719, -0.5877852523]], -1.1, -1.5) },
-      { name: "Diamond", points: translatePoints([[0, 0], [0.9510565163, 0.3090169944], [1.9021130326, 0], [0.9510565163, -0.3090169944]], 1.2, -1.5) },
+      { name: "Pentagon", points: translatePoints(PENROSE_P1_POINTS.pentagon, -1.9, 0.9) },
+      { name: "Star", points: translatePoints(PENROSE_P1_POINTS.star, 1.4, 0.9) },
+      { name: "Boat", points: translatePoints(PENROSE_P1_POINTS.boat, -1.1, -1.5) },
+      { name: "Diamond", points: translatePoints(PENROSE_P1_POINTS.diamond, 1.2, -1.5) },
     ],
   }),
 };

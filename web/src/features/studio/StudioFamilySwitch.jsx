@@ -1,13 +1,25 @@
 export default function StudioFamilySwitch({ family, onChange }) {
+  const isPenrose = family.startsWith("penrose-");
+  const editorFamily = isPenrose ? "penrose" : family;
+
   return (
-    <label className="studio-family-switch">
-      <select value={family} onChange={(event) => onChange(event.target.value)} aria-label="Tile editor">
+    <div className="studio-family-switch">
+      <select
+        value={editorFamily}
+        onChange={(event) => onChange(event.target.value === "penrose" ? (isPenrose ? family : "penrose-kite-dart") : event.target.value)}
+        aria-label="Tile editor"
+      >
         <option value="einstein">Einstein</option>
         <option value="spectre">Spectre</option>
-        <option value="penrose-kite-dart">Penrose P2 · Kite & Dart</option>
-        <option value="penrose-rhombs">Penrose P3 · Rhombs</option>
-        <option value="penrose-p1">Penrose P1 · Stars</option>
+        <option value="penrose">Penrose</option>
       </select>
-    </label>
+      {isPenrose ? (
+        <select value={family} onChange={(event) => onChange(event.target.value)} aria-label="Penrose pattern">
+          <option value="penrose-kite-dart">P2 · Kite & Dart</option>
+          <option value="penrose-rhombs">P3 · Rhombs</option>
+          <option value="penrose-p1">P1 · Stars</option>
+        </select>
+      ) : null}
+    </div>
   );
 }

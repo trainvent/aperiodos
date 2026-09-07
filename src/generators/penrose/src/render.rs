@@ -234,9 +234,26 @@ fn tile_visible(tile: &RenderTile, config: &PenroseSvgConfig) -> bool {
     let min_y = config.center_y - half_height - 1.0;
     let max_y = config.center_y + half_height + 1.0;
 
-    tile.points
-        .iter()
-        .any(|point| point.x >= min_x && point.x <= max_x && point.y >= min_y && point.y <= max_y)
+    // Checking only vertices leaves holes when a large or concave tile crosses
+    // the viewport but all of its vertices lie just outside it. Rendering an
+    // intersecting bounding box is safe: SVG clips the excess at the viewBox.
+    let (tile_min_x, tile_max_x, tile_min_y, tile_max_y) = tile.points.iter().fold(
+        (
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+        ),
+        |(min_tile_x, max_tile_x, min_tile_y, max_tile_y), point| {
+            (
+                min_tile_x.min(point.x),
+                max_tile_x.max(point.x),
+                min_tile_y.min(point.y),
+                max_tile_y.max(point.y),
+            )
+        },
+    );
+    tile_max_x >= min_x && tile_min_x <= max_x && tile_max_y >= min_y && tile_min_y <= max_y
 }
 
 pub(super) fn polar(radius: f64, angle: f64) -> Vec2 {
@@ -256,4 +273,38 @@ fn svg_point(point: Vec2, config: &PenroseSvgConfig) -> (f64, f64) {
     let x = (point.x - config.center_x) * config.scale + config.width as f64 / 2.0;
     let y = config.height as f64 / 2.0 - (point.y - config.center_y) * config.scale;
     (x, y)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn retains_tiles_that_cross_the_viewport_without_an_internal_vertex() {
+        let config = PenroseSvgConfig {
+            width: 100,
+            height: 100,
+            scale: 1.0,
+            ..PenroseSvgConfig::default()
+        };
+        let crossing_tile = RenderTile {
+            points: vec![
+                Vec2::new(-60.0, 0.0),
+                Vec2::new(60.0, 0.0),
+                Vec2::new(0.0, 60.0),
+            ],
+            fill_index: 0,
+        };
+        let distant_tile = RenderTile {
+            points: vec![
+                Vec2::new(70.0, 70.0),
+                Vec2::new(80.0, 70.0),
+                Vec2::new(70.0, 80.0),
+            ],
+            fill_index: 0,
+        };
+
+        assert!(tile_visible(&crossing_tile, &config));
+        assert!(!tile_visible(&distant_tile, &config));
+    }
 }

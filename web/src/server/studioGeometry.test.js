@@ -15,6 +15,7 @@ import {
   nearestBoundaryPoint,
   snapCircleHandle,
   snapLatticePoint,
+  setDefaultMaterialColor,
   validateDesign,
 } from "../features/studio/einsteinGeometry.js";
 import { getEinsteinStudioPatterns, getPenroseStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns, readStudioLibrary, writeStudioLibrary } from "../features/studio/patternLibrary.js";
@@ -198,6 +199,21 @@ test("Studio exposes all Penrose tile combinations", () => {
   }
 });
 
+test("Penrose Studio P3 and P1 shapes retain their native unit edges", () => {
+  for (const family of ["penrose-rhombs", "penrose-p1"]) {
+    const adapter = geometryAdapterFor(family);
+    adapter.shapes.forEach((shape) => {
+      shape.points.forEach((point, index) => {
+        const next = shape.points[(index + 1) % shape.points.length];
+        assert.ok(Math.abs(Math.hypot(next.x - point.x, next.y - point.y) - 1) < 1e-9, `${family} ${shape.name} has a non-unit edge`);
+      });
+    });
+  }
+
+  const [thin, thick] = geometryAdapterFor("penrose-rhombs").shapes;
+  assert.ok(Math.max(...thin.points.map((point) => point.x)) < Math.min(...thick.points.map((point) => point.x)));
+});
+
 test("Penrose Studio designs retain their tile combination", () => {
   const design = createEmptyDesign("penrose");
   design.tileMode = "p1";
@@ -246,6 +262,19 @@ test("Studio elements can override the document color", () => {
   element.color = "#123456";
   assert.equal(validateDesign(design).circularPaths[0].color, "#123456");
   assert.equal(elementMaterialColor(design, element), "#123456");
+});
+
+test("Changing the default material color preserves existing element colors", () => {
+  const design = createDesignWithCircularPath();
+  design.lines = [{ id: "line", width: 0.2, color: "#123456", points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }];
+  design.circles = [{ id: "circle", center: { u: 0, v: 0 }, radius: 1, operation: "ink" }];
+
+  const updated = setDefaultMaterialColor(design, "#abcdef");
+
+  assert.equal(updated.colors.ink, "#abcdef");
+  assert.equal(updated.circularPaths[0].color, "#00c200");
+  assert.equal(updated.circles[0].color, "#00c200");
+  assert.equal(updated.lines[0].color, "#123456");
 });
 
 test("Studio templates append without replacing existing canvas elements", () => {

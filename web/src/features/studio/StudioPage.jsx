@@ -13,10 +13,12 @@ import {
   insertHexagonalizationTemplate,
   latticeToCartesian,
   normalizeLayerOrder,
+  setDefaultMaterialColor,
   snapCircleHandle,
   validateDesign,
 } from "./einsteinGeometry";
 import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
+import { renderBrowserPreview } from "../../lib/rendererPreview";
 import StudioFamilySwitch from "./StudioFamilySwitch";
 import MaterialLayerShapes from "./MaterialLayerShapes";
 import { geometryAdapterFor, snapCartesianPoint } from "./studioGeometryAdapters";
@@ -264,7 +266,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const [selectedExportId, setSelectedExportId] = useState(null);
   const [drag, setDrag] = useState(null);
   const [status, setStatus] = useState("");
-  const [treeMode, setTreeMode] = useState("categories");
+  const [treeMode, setTreeMode] = useState("layers");
   const [transformExpanded, setTransformExpanded] = useState(false);
   const importRef = useRef(null);
   const grid = useMemo(() => gridMode === "cartesian"
@@ -806,7 +808,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             <div className="studio-toolbar-group studio-toolbar-settings">
               <span className="studio-toolbar-label">{t("studio.toolbar.appearance")}</span>
               <label className="studio-toolbar-color" title={t("studio.controls.baseColor")}><span>{t("studio.toolbar.tile")}</span><input type="color" value={design.colors.base} onChange={(event) => setDesign((current) => ({ ...current, colors: { ...current.colors, base: event.target.value } }))} /></label>
-              <label className="studio-toolbar-color" title={t("studio.controls.curveColor")}><span>{t("studio.toolbar.material")}</span><input type="color" value={design.colors.ink} onChange={(event) => setDesign((current) => ({ ...current, colors: { ...current.colors, ink: event.target.value } }))} /></label>
+              <label className="studio-toolbar-color" title={t("studio.controls.curveColor")}><span>{t("studio.toolbar.material")}</span><input type="color" value={design.colors.ink} onChange={(event) => setDesign((current) => setDefaultMaterialColor(current, event.target.value))} /></label>
             </div>
             <div className="studio-toolbar-group studio-toolbar-settings">
               <span className="studio-toolbar-label">{t("studio.toolbar.precision")}</span>
@@ -827,8 +829,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           <div className="studio-tree-header">
             <div><span>{t("studio.toolbar.navigator")}</span><h2>{t(treeMode === "categories" ? "studio.layers.categorized" : "studio.layers.layered")}</h2></div>
             <div className="studio-tree-mode" role="group" aria-label={t("studio.layers.viewMode")}>
-              <button type="button" className={treeMode === "categories" ? "active" : ""} onClick={() => setTreeMode("categories")} title={t("studio.layers.categories")}>▦</button>
               <button type="button" className={treeMode === "layers" ? "active" : ""} onClick={() => setTreeMode("layers")} title={t("studio.layers.layers")}>▤</button>
+              <button type="button" className={treeMode === "categories" ? "active" : ""} onClick={() => setTreeMode("categories")} title={t("studio.layers.categories")}>▦</button>
             </div>
           </div>
           <div className="studio-tree" role="tree">
@@ -1067,6 +1069,8 @@ function TileShape({ design, geometry, mapper, ...props }) {
 }
 
 function ClusterPreview({ design, geometry }) {
+  if (geometry.tile === "penrose") return <GeneratedPenrosePreview design={design} geometry={geometry} />;
+
   const transforms = geometry.previewTransforms || H_CLUSTER_TRANSFORMS;
   const fittedMappers = geometry.previewTransforms ? fittedClusterMappers(transforms, geometry) : null;
   const previewDesign = geometry.previewDesign ? geometry.previewDesign(design) : design;
@@ -1093,6 +1097,51 @@ function ClusterPreview({ design, geometry }) {
       })}
     </svg>
   );
+}
+
+function GeneratedPenrosePreview({ design, geometry }) {
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    let url = "";
+    const timer = window.setTimeout(async () => {
+      try {
+        const svg = await renderBrowserPreview("penrose", {
+          width: 640,
+          height: 432,
+          // A third generation provides a clean guard ring around the visible
+          // patch; two P1 generations expose the incomplete construction edge.
+          iterations: 3,
+          scale: geometry.tileMode === "p1" ? 640 : 400,
+          center_x: 0,
+          center_y: 0,
+          tile_mode: geometry.tileMode,
+          seed: "sun",
+          palette: [design.colors.base, design.colors.base, design.colors.base, design.colors.base],
+          background: "#fffdf8",
+          outline: design.outline || "#17313b",
+          stroke_width: design.strokeWidth ?? 1.5,
+          material_mode: "pattern",
+          studio_pattern: design,
+        });
+        if (!active) return;
+        url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+        setPreviewUrl(url);
+      } catch {
+        if (active) setPreviewUrl("");
+      }
+    }, 120);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [design, geometry.tileMode]);
+
+  return previewUrl
+    ? <img className="studio-cluster-preview studio-generated-penrose-preview" src={previewUrl} alt="Generated first-generation Penrose preview" />
+    : <div className="studio-generated-penrose-preview studio-preview-loading">Generating first generation…</div>;
 }
 
 function MiniDesign({ design, geometry }) {
