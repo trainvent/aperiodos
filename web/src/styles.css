@@ -2178,7 +2178,7 @@ html[data-theme="dark"] .panel.studio-surface {
   }
 }
 
-@media (max-width: 780px) {
+@media (max-width: 650px) {
   .studio-layout.studio-builder-shell,
   .studio-intro {
     grid-template-columns: 1fr;
@@ -2239,6 +2239,8 @@ html[data-theme="dark"] .panel.studio-surface {
 }
 
 .topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   margin-bottom: 34px;
 }
 
@@ -2247,6 +2249,8 @@ html[data-theme="dark"] .panel.studio-surface {
   align-items: center;
   gap: 12px;
   min-width: 0;
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .brand {
@@ -2301,12 +2305,36 @@ html[data-theme="dark"] .panel.studio-surface {
   gap: 14px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  margin-left: 0;
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .global-controls {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  grid-column: 3;
+  grid-row: 1;
+}
+
+/* The complete navigation no longer fits beside the identity at this width.
+   Keep the global controls in place and give navigation its own row. */
+@media (max-width: 900px) {
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .topbar .topbar-right {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+
+  .topbar .global-controls {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }
 
 .theme-toggle {
@@ -3654,16 +3682,21 @@ select {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 680px) {
   .topbar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
+  }
+
+  .global-controls {
+    margin-left: auto;
   }
 
   .mobile-menu-toggle {
     display: inline-flex;
     width: 40px;
     height: 40px;
-    margin-left: auto;
+    margin-left: 0;
     padding: 10px;
     border: 1px solid var(--line);
     border-radius: 12px;
@@ -3674,6 +3707,8 @@ select {
     gap: 4px;
     color: var(--ink);
     cursor: pointer;
+    grid-column: 3;
+    grid-row: 1;
   }
 
   .mobile-menu-toggle span {
@@ -3700,6 +3735,8 @@ select {
   .topbar-right {
     display: none;
     width: 100%;
+    grid-column: 1 / -1;
+    grid-row: 2;
     padding: 8px 14px;
     border: 1px solid var(--line);
     border-radius: 18px;
@@ -3726,13 +3763,12 @@ select {
   }
 
   .lang-switch {
-    padding: 10px 2px 4px;
+    padding: 0;
   }
 
   .global-controls {
-    width: 100%;
-    justify-content: space-between;
-    padding-top: 6px;
+    width: auto;
+    padding: 0;
   }
 
   .monotile-inner {

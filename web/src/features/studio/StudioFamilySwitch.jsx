@@ -11,7 +11,7 @@ export default function StudioFamilySwitch({ family, onChange }) {
       >
         <option value="einstein">Einstein</option>
         <option value="spectre">Spectre</option>
-        <option value="penrose">Penrose</option>
+        <option value="penrose">Penrose (experimental)</option>
       </select>
       {isPenrose ? (
         <select value={family} onChange={(event) => onChange(event.target.value)} aria-label="Penrose pattern">

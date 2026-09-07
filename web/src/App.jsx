@@ -58,6 +58,43 @@ export default function App() {
           <span />
           <span />
         </button>
+        <div className="global-controls">
+          <ThemeToggle />
+          <div className="lang-switch" role="group" aria-label={t("language.label")}>
+            <span className="lang-switch-control">
+              <button
+                className="lang-toggle"
+                type="button"
+                onClick={() => setLanguageMenuOpen((open) => !open)}
+                aria-label={t("language.label")}
+                aria-expanded={languageMenuOpen}
+                aria-haspopup="menu"
+              >
+                <span className="lang-flag" aria-hidden="true">{LANGUAGES[language].flag}</span>
+                <span className="lang-code">{language.toUpperCase()}</span>
+              </button>
+              {languageMenuOpen ? (
+                <span className="lang-menu" role="menu">
+                  {Object.entries(LANGUAGES).map(([code, { flag, label }]) => (
+                    <button
+                      key={code}
+                      type="button"
+                      role="menuitem"
+                      className={code === language ? "active" : ""}
+                      onClick={() => {
+                        void i18n.changeLanguage(code);
+                        setLanguageMenuOpen(false);
+                      }}
+                    >
+                      <span aria-hidden="true">{flag}</span>
+                      {label}
+                    </button>
+                  ))}
+                </span>
+              ) : null}
+            </span>
+          </div>
+        </div>
         <div className={`topbar-right${mobileMenuOpen ? " open" : ""}`} id="primary-navigation">
           <nav className="topnav" onClick={() => setMobileMenuOpen(false)}>
             <TopNavLink to="/">{t("nav.home")}</TopNavLink>
@@ -100,43 +137,6 @@ export default function App() {
             </TopNavLink>
             <TopNavLink to="/about">{t("nav.about")}</TopNavLink>
           </nav>
-          <div className="global-controls">
-            <ThemeToggle />
-            <div className="lang-switch" role="group" aria-label={t("language.label")}>
-              <span className="lang-switch-control">
-                <button
-                  className="lang-toggle"
-                  type="button"
-                  onClick={() => setLanguageMenuOpen((open) => !open)}
-                  aria-label={t("language.label")}
-                  aria-expanded={languageMenuOpen}
-                  aria-haspopup="menu"
-                >
-                  <span className="lang-flag" aria-hidden="true">{LANGUAGES[language].flag}</span>
-                  <span className="lang-code">{language.toUpperCase()}</span>
-                </button>
-                {languageMenuOpen ? (
-                  <span className="lang-menu" role="menu">
-                    {Object.entries(LANGUAGES).map(([code, { flag, label }]) => (
-                      <button
-                        key={code}
-                        type="button"
-                        role="menuitem"
-                        className={code === language ? "active" : ""}
-                        onClick={() => {
-                          void i18n.changeLanguage(code);
-                          setLanguageMenuOpen(false);
-                        }}
-                      >
-                        <span aria-hidden="true">{flag}</span>
-                        {label}
-                      </button>
-                    ))}
-                  </span>
-                ) : null}
-              </span>
-            </div>
-          </div>
         </div>
       </header>
 
