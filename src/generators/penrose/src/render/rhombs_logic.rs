@@ -128,6 +128,10 @@ fn assemble_rhombs(triangles: &[Triangle]) -> Vec<RenderTile> {
                     TriangleKind::Thin => 0,
                     TriangleKind::Thick => 1,
                 },
+                tile_type: match left.kind {
+                    TriangleKind::Thin => "thin-rhomb",
+                    TriangleKind::Thick => "thick-rhomb",
+                },
             });
         }
     }

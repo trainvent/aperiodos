@@ -286,6 +286,7 @@ fn pattern_defs(pattern: Option<&Value>, fallback_color: &str) -> String {
             "var(--einstein-tile-fill)",
             Affine::IDENTITY,
             1.0,
+            None,
         ),
         None => concat!(
             "<path d=\"M 0.00 1.53 C 0.45 1.52 1.10 1.95 1.67 2.50\" stroke-width=\"1.3200\" />",

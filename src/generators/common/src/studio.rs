@@ -15,6 +15,7 @@ pub fn render_studio_elements(
     base_fill: &str,
     transform: Affine,
     width_scale: f64,
+    tile_type: Option<&str>,
 ) -> String {
     let kinds = [
         ("path", "paths"),
@@ -72,6 +73,14 @@ pub fn render_studio_elements(
     let mut output = String::new();
     for (kind, id) in order {
         let item = collections[kind][id];
+        // Untagged material is deliberately global for compatibility with
+        // existing Studio designs. Tagged material is rendered only by its
+        // matching Penrose prototile.
+        if let Some(scope) = item.get("tileType").and_then(Value::as_str) {
+            if Some(scope) != tile_type {
+                continue;
+            }
+        }
         let color = escape_xml(
             item.get("color")
                 .and_then(Value::as_str)
@@ -218,9 +227,41 @@ mod tests {
             "white",
             Affine::translation(3.0, 4.0),
             2.0,
+            None,
         );
         assert!(svg.contains("M 3.0000 4.0000 L 4.0000 4.0000"));
         assert!(svg.contains("stroke=\"&lt;&amp;\""));
         assert!(svg.contains("stroke-width=\"4.0000\""));
+    }
+
+    #[test]
+    fn renders_scoped_material_only_for_its_matching_tile_type() {
+        let pattern = serde_json::json!({
+            "lines": [
+                {"id":"star","tileType":"star","points":[{"u":0,"v":0},{"u":1,"v":0}],"width":1},
+                {"id":"all","points":[{"u":0,"v":1},{"u":1,"v":1}],"width":1}
+            ]
+        });
+        let svg = render_studio_elements(
+            &pattern,
+            "black",
+            "white",
+            Affine::IDENTITY,
+            1.0,
+            Some("star"),
+        );
+        assert!(svg.contains("M 0.0000 0.0000 L 1.0000 0.0000"));
+        assert!(svg.contains("M 0.5000 0.8660 L 1.5000 0.8660"));
+
+        let svg = render_studio_elements(
+            &pattern,
+            "black",
+            "white",
+            Affine::IDENTITY,
+            1.0,
+            Some("boat"),
+        );
+        assert!(!svg.contains("M 0.0000 0.0000 L 1.0000 0.0000"));
+        assert!(svg.contains("M 0.5000 0.8660 L 1.5000 0.8660"));
     }
 }

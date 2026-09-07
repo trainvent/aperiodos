@@ -81,6 +81,7 @@ impl Default for PenroseSvgConfig {
 pub(super) struct RenderTile {
     pub(super) points: Vec<Vec2>,
     pub(super) fill_index: usize,
+    pub(super) tile_type: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -146,6 +147,7 @@ impl Renderer for PenroseRenderer {
                 config,
                 material,
                 tile.fill_index,
+                tile.tile_type,
             );
         }
         Ok(scene)
@@ -159,6 +161,7 @@ fn push_tile(
     config: &PenroseSvgConfig,
     material: Option<&Value>,
     palette_index: usize,
+    tile_type: &str,
 ) {
     scene.push_polygon(Polygon::new(
         points.clone(),
@@ -194,7 +197,7 @@ fn push_tile(
         .pointer("/colors/ink")
         .and_then(Value::as_str)
         .unwrap_or(&config.outline);
-    let motif = render_studio_elements(pattern, ink, fill, transform, a.hypot(b));
+    let motif = render_studio_elements(pattern, ink, fill, transform, a.hypot(b), Some(tile_type));
     scene.push_raw(format!("<g clip-path=\"url(#{clip_id})\">{motif}</g>"));
 }
 
@@ -294,6 +297,7 @@ mod tests {
                 Vec2::new(0.0, 60.0),
             ],
             fill_index: 0,
+            tile_type: "test",
         };
         let distant_tile = RenderTile {
             points: vec![
@@ -302,6 +306,7 @@ mod tests {
                 Vec2::new(70.0, 80.0),
             ],
             fill_index: 0,
+            tile_type: "test",
         };
 
         assert!(tile_visible(&crossing_tile, &config));

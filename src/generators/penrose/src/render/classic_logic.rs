@@ -167,6 +167,10 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
         tiles.push(RenderTile {
             points: merged_polygon_points(left, right),
             fill_index: tile_fill_index(left.kind),
+            tile_type: match left.kind {
+                TriangleKind::Acute => "dart",
+                TriangleKind::Obtuse => "kite",
+            },
         });
     }
 

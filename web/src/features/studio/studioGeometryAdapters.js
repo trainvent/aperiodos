@@ -246,8 +246,8 @@ const GEOMETRY_ADAPTERS = {
     label: "Penrose P2 · Kite & Dart",
     tileMode: "kite-dart",
     shapes: [
-      { name: "Dart", points: translatePoints([[0, 0], [0.3090169944, -0.9510565163], [0.8090169944, -0.5877852523], [1, 0]], -1.25, 0.6) },
-      { name: "Kite", points: translatePoints([[0, 0], [0.1909830056, -0.5877852523], [0, -1.1755705046], [0.8090169944, -0.5877852523]], 0.25, 0.6) },
+      { name: "Dart", tileType: "dart", points: translatePoints([[0, 0], [0.3090169944, -0.9510565163], [0.8090169944, -0.5877852523], [1, 0]], -1.25, 0.6) },
+      { name: "Kite", tileType: "kite", points: translatePoints([[0, 0], [0.1909830056, -0.5877852523], [0, -1.1755705046], [0.8090169944, -0.5877852523]], 0.25, 0.6) },
     ],
   }),
   "penrose-rhombs": penroseAdapter({
@@ -255,8 +255,8 @@ const GEOMETRY_ADAPTERS = {
     label: "Penrose P3 · Rhombs",
     tileMode: "rhombs",
     shapes: [
-      { name: "Thin rhomb", points: translatePoints(PENROSE_RHOMB_POINTS.thin, -1.4, 0) },
-      { name: "Thick rhomb", points: translatePoints(PENROSE_RHOMB_POINTS.thick, 0.55, 0) },
+      { name: "Thin rhomb", tileType: "thin-rhomb", points: translatePoints(PENROSE_RHOMB_POINTS.thin, -1.4, 0) },
+      { name: "Thick rhomb", tileType: "thick-rhomb", points: translatePoints(PENROSE_RHOMB_POINTS.thick, 0.55, 0) },
     ],
   }),
   "penrose-p1": penroseAdapter({
@@ -265,10 +265,10 @@ const GEOMETRY_ADAPTERS = {
     tileMode: "p1",
     // These point sequences match the native P1 renderer's four primitives.
     shapes: [
-      { name: "Pentagon", points: translatePoints(PENROSE_P1_POINTS.pentagon, -1.9, 0.9) },
-      { name: "Star", points: translatePoints(PENROSE_P1_POINTS.star, 1.4, 0.9) },
-      { name: "Boat", points: translatePoints(PENROSE_P1_POINTS.boat, -1.1, -1.5) },
-      { name: "Diamond", points: translatePoints(PENROSE_P1_POINTS.diamond, 1.2, -1.5) },
+      { name: "Pentagon", tileType: "pentagon", points: translatePoints(PENROSE_P1_POINTS.pentagon, -1.9, 0.9) },
+      { name: "Star", tileType: "star", points: translatePoints(PENROSE_P1_POINTS.star, 1.4, 0.9) },
+      { name: "Boat", tileType: "boat", points: translatePoints(PENROSE_P1_POINTS.boat, -1.1, -1.5) },
+      { name: "Diamond", tileType: "diamond", points: translatePoints(PENROSE_P1_POINTS.diamond, 1.2, -1.5) },
     ],
   }),
 };

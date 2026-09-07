@@ -140,6 +140,7 @@ fn draw_pentagon(tiles: &mut Vec<RenderTile>, frame: Frame) {
             .map(|point| transform.apply(point))
             .collect(),
         fill_index: 0,
+        tile_type: "pentagon",
     });
 }
 
@@ -157,6 +158,7 @@ fn draw_star(tiles: &mut Vec<RenderTile>, frame: Frame) {
             .map(|point| transform.apply(point))
             .collect(),
         fill_index: 1,
+        tile_type: "star",
     });
 }
 
@@ -174,6 +176,7 @@ fn draw_boat(tiles: &mut Vec<RenderTile>, frame: Frame) {
             .map(|point| transform.apply(point))
             .collect(),
         fill_index: 2,
+        tile_type: "boat",
     });
 }
 
@@ -189,6 +192,7 @@ fn draw_diamond(tiles: &mut Vec<RenderTile>, frame: Frame) {
             .map(|point| transform.apply(point))
             .collect(),
         fill_index: 3,
+        tile_type: "diamond",
     });
 }
 

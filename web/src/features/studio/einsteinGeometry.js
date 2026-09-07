@@ -341,6 +341,11 @@ export function validateDesign(value) {
     throw new Error("Pattern outline colors must be non-empty color values.");
   }
   value.strokeWidth = value.strokeWidth === undefined ? (value.tile === "spectre" ? 1 : 2) : Number(value.strokeWidth);
+  const validateTileScope = (element) => {
+    if (element.tileType !== undefined && (typeof element.tileType !== "string" || !element.tileType.trim())) {
+      throw new Error("Tile-specific material must name a target tile type.");
+    }
+  };
   value.paths.forEach((path) => {
     if (!Array.isArray(path.points) || path.points.length < 4 || (path.points.length - 1) % 3 !== 0) {
       throw new Error("Every path must contain complete cubic Bézier segments.");
@@ -356,6 +361,7 @@ export function validateDesign(value) {
     if (path.color !== undefined && (typeof path.color !== "string" || !path.color.trim())) {
       throw new Error("Path colors must be non-empty color values.");
     }
+    validateTileScope(path);
   });
   lines.forEach((line) => {
     if (!Array.isArray(line.points) || line.points.length !== 2) {
@@ -372,6 +378,7 @@ export function validateDesign(value) {
     if (line.color !== undefined && (typeof line.color !== "string" || !line.color.trim())) {
       throw new Error("Line colors must be non-empty color values.");
     }
+    validateTileScope(line);
   });
   circles.forEach((circle) => {
     if (!circle.center || !Number.isFinite(Number(circle.center.u)) || !Number.isFinite(Number(circle.center.v))) {
@@ -389,6 +396,7 @@ export function validateDesign(value) {
     if (circle.color !== undefined && (typeof circle.color !== "string" || !circle.color.trim())) {
       throw new Error("Circle colors must be non-empty color values.");
     }
+    validateTileScope(circle);
   });
   circularPaths.forEach((path) => {
     if (!Array.isArray(path.points) || path.points.length !== 3) {
@@ -408,6 +416,7 @@ export function validateDesign(value) {
     if (path.color !== undefined && (typeof path.color !== "string" || !path.color.trim())) {
       throw new Error("Circular path colors must be non-empty color values.");
     }
+    validateTileScope(path);
   });
   if (!Array.isArray(value.circles)) value.circles = circles;
   if (!Array.isArray(value.lines)) value.lines = lines;

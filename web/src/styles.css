@@ -1094,6 +1094,10 @@ html[data-theme="dark"] .panel.studio-surface {
   min-width: 142px;
 }
 
+.studio-penrose-tile-switch select {
+  min-width: 112px;
+}
+
 .studio-toolbar-group {
   display: flex;
   position: relative;

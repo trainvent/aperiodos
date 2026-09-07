@@ -267,6 +267,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const [drag, setDrag] = useState(null);
   const [status, setStatus] = useState("");
   const [treeMode, setTreeMode] = useState("layers");
+  const [activePenroseTileType, setActivePenroseTileType] = useState(() => geometry.shapes?.[0]?.tileType || "");
   const [transformExpanded, setTransformExpanded] = useState(false);
   const importRef = useRef(null);
   const grid = useMemo(() => gridMode === "cartesian"
@@ -280,6 +281,9 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     : null;
   const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile && (geometry.tile !== "penrose" || item.tileMode === geometry.tileMode));
   const selectedExportDesign = familyDesigns.find((item) => item.id === selectedExportId) || null;
+  const scopeNewElement = (element) => geometry.tile === "penrose" && activePenroseTileType
+    ? { ...element, tileType: activePenroseTileType }
+    : element;
 
   useEffect(() => {
     onDraftChange(family, design);
@@ -494,7 +498,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     const points = [...draft.points];
     points[0] = geometry.nearestBoundary(points[0]).point;
     points[points.length - 1] = geometry.nearestBoundary(points[points.length - 1]).point;
-    const path = { ...draft, points };
+    const path = scopeNewElement({ ...draft, points });
     setDesign((current) => ({ ...current, paths: [...current.paths, path] }));
     setSelectedPathId(id);
     setSelectedLineId(null);
@@ -508,26 +512,26 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       geometry.nearestBoundary({ u: -0.5, v: 1 }).point,
       geometry.nearestBoundary({ u: 2.5, v: -1 }).point,
     ];
-    const line = {
+    const line = scopeNewElement({
       id,
       name: t("studio.lines.newName", { count: (design.lines || []).length + 1 }),
       width: cachedLineWidth,
       points,
-    };
+    });
     setDesign((current) => ({ ...current, lines: [...(current.lines || []), line] }));
     selectLayer("line", id);
   }
 
   function addCircle() {
     const id = `circle-${Date.now()}`;
-    const circle = {
+    const circle = scopeNewElement({
       id,
       name: t("studio.circles.newName", { count: (design.circles || []).length + 1 }),
       center: { u: 1, v: 1 },
       radius: 1,
       handleAngle: 0,
       operation: "ink",
-    };
+    });
     setDesign((current) => ({ ...current, circles: [...(current.circles || []), circle] }));
     setSelectedPathId(null);
     setSelectedLineId(null);
@@ -544,13 +548,13 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 
   function addCircularPath() {
     const id = `circular-path-${Date.now()}`;
-    const circularPath = {
+    const circularPath = scopeNewElement({
       id,
       name: t("studio.circularPaths.newName", { count: (design.circularPaths || []).length + 1 }),
       width: 0.7,
       side: "left",
       points: [{ u: 0, v: 1 }, { u: 1, v: 1 }, { u: 1, v: 0 }],
-    };
+    });
     setDesign((current) => ({ ...current, circularPaths: [...(current.circularPaths || []), circularPath] }));
     setSelectedPathId(null);
     setSelectedLineId(null);
@@ -661,6 +665,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       <InspectorGroup>
         <InspectorTextField label={t("studio.paths.pathName")} value={selectedPath.name} onChange={(name) => updateSelectedPath({ name })} />
         {renderElementColorControl(selectedPath, updateSelectedPath)}
+        {renderElementTileTypeControl(selectedPath, updateSelectedPath)}
         <InspectorRangeField label={t("studio.paths.width")} value={selectedPath.width} min="0.1" max="1.6" step="0.02" onChange={(width) => updateSelectedPath({ width })} />
         <InspectorToggleField label={t("studio.controls.bindEndpoints")} checked={bindEndpoints} onChange={setBindEndpoints} />
         <InspectorActions>
@@ -678,6 +683,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       <InspectorGroup>
         <InspectorTextField label={t("studio.circles.circleName")} value={selectedCircle.name} onChange={(name) => updateCircle(selectedCircle.id, { name })} />
         {renderElementColorControl(selectedCircle, (changes) => updateCircle(selectedCircle.id, changes))}
+        {renderElementTileTypeControl(selectedCircle, (changes) => updateCircle(selectedCircle.id, changes))}
         <InspectorSelectField label={t("studio.circles.operation")} value={selectedCircle.operation} onChange={(operation) => updateCircle(selectedCircle.id, { operation })}>
           <option value="ink">{t("studio.circles.addColor")}</option>
           <option value="base">{t("studio.circles.cutColor")}</option>
@@ -700,6 +706,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       <InspectorGroup>
         <InspectorTextField label={t("studio.lines.lineName")} value={selectedLine.name} onChange={(name) => updateLine(selectedLine.id, { name })} />
         {renderElementColorControl(selectedLine, (changes) => updateLine(selectedLine.id, changes))}
+        {renderElementTileTypeControl(selectedLine, (changes) => updateLine(selectedLine.id, changes))}
         <InspectorRangeField label={t("studio.lines.width")} value={selectedLine.width} min="0.1" max="1.6" step="0.02" editable onChange={updateWidth} />
         <InspectorToggleField label={t("studio.controls.bindEndpoints")} checked={bindEndpoints} onChange={setBindEndpoints} />
         <InspectorActions><button type="button" className="danger" onClick={removeLine}>{t("studio.lines.remove")}</button></InspectorActions>
@@ -713,6 +720,16 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     );
   }
 
+  function renderElementTileTypeControl(element, update) {
+    if (geometry.tile !== "penrose") return null;
+    return (
+      <InspectorSelectField label={t("studio.controls.tileScope")} value={element.tileType || "all"} onChange={(tileType) => update({ tileType: tileType === "all" ? undefined : tileType })}>
+        <option value="all">{t("studio.controls.allPenroseTiles")}</option>
+        {geometry.shapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name}</option>)}
+      </InspectorSelectField>
+    );
+  }
+
   function renderCircularPathControls() {
     if (!selectedCircularPath) return null;
     const geometry = circularPathGeometry(selectedCircularPath);
@@ -720,6 +737,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       <InspectorGroup>
         <InspectorTextField label={t("studio.circularPaths.pathName")} value={selectedCircularPath.name} onChange={(name) => updateCircularPath(selectedCircularPath.id, { name })} />
         {renderElementColorControl(selectedCircularPath, (changes) => updateCircularPath(selectedCircularPath.id, changes))}
+        {renderElementTileTypeControl(selectedCircularPath, (changes) => updateCircularPath(selectedCircularPath.id, changes))}
         <InspectorRangeField label={t("studio.circularPaths.width")} value={selectedCircularPath.width} min="0.1" max="1.6" step="0.02" onChange={(width) => updateCircularPath(selectedCircularPath.id, { width })} />
         <InspectorSelectField label={t("studio.circularPaths.side")} value={selectedCircularPath.side} onChange={(side) => updateCircularPath(selectedCircularPath.id, { side })}>
           <option value="left">{t("studio.circularPaths.left")}</option>
@@ -774,6 +792,12 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
         <div className="studio-top-toolbar" role="toolbar" aria-label={t("studio.toolbar.aria")}>
           <div className="studio-toolbar-row studio-toolbar-main">
             <StudioFamilySwitch family={family} onChange={onFamilyChange} />
+            {geometry.tile === "penrose" ? <label className="studio-family-switch studio-penrose-tile-switch">
+              <span>{t("studio.toolbar.tileType")}</span>
+              <select value={activePenroseTileType} onChange={(event) => setActivePenroseTileType(event.target.value)}>
+                {geometry.shapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name}</option>)}
+              </select>
+            </label> : null}
             <label className="studio-toolbar-name">
               <span>{t("studio.controls.name")}</span>
               <input value={design.name} onChange={(event) => setDesign((current) => ({ ...current, name: event.target.value }))} />
@@ -1064,7 +1088,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 function TileShape({ design, geometry, mapper, ...props }) {
   const resolvedMapper = mapper || canvasMapperFor(geometry);
   if (geometry.outlineD) return <path d={geometry.outlineD(design, resolvedMapper)} {...props} />;
-  if (geometry.shapes) return <g {...props}>{geometry.shapes.map((shape) => <polygon key={shape.name} points={pointsAttribute(shape.points.map(cartesianToLattice), resolvedMapper)} />)}</g>;
+  if (geometry.shapes) return geometry.shapes.map((shape) => <polygon key={shape.name} points={pointsAttribute(shape.points.map(cartesianToLattice), resolvedMapper)} {...props} />);
   return <polygon points={pointsAttribute(geometry.points.map(cartesianToLattice), resolvedMapper)} {...props} />;
 }
 
