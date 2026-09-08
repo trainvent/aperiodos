@@ -2319,6 +2319,14 @@ html[data-theme="dark"] .panel.studio-surface {
 .footer-nav {
   display: flex;
   gap: 14px;
+}
+
+.topnav {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.footer-nav {
   flex-wrap: wrap;
 }
 
@@ -2343,7 +2351,7 @@ html[data-theme="dark"] .panel.studio-surface {
 
 /* The complete navigation no longer fits beside the identity at this width.
    Keep the global controls in place and give navigation its own row. */
-@media (max-width: 900px) {
+@media (max-width: 1050px) {
   .topbar {
     grid-template-columns: minmax(0, 1fr) auto;
   }
