@@ -227,15 +227,44 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
       assert.ok(matches(editor.shapeToMaterial(third), { x: 0.5, y: Math.sqrt(3) / 2 }));
       assert.ok(matches(editor.materialToShape({ x: 0, y: 0 }), origin));
       assert.ok(matches(editor.materialToShape({ x: 1, y: 0 }), unit));
+      assert.ok(Math.abs(editor.materialScale - Math.hypot(unit.x - origin.x, unit.y - origin.y)) < 1e-9);
+      assert.equal(editor.defaultElements.pathPoints.length, 4);
+      assert.equal(editor.defaultElements.linePoints.length, 2);
+      assert.equal(editor.defaultElements.circularPathPoints.length, 3);
+      assert.ok(editor.defaultElements.circleRadius >= 0.125);
+      assert.ok(matches(
+        editor.materialToShape(latticeToCartesian(editor.defaultElements.linePoints[0])),
+        editor.points[0],
+      ));
+
+      const center = editor.points.reduce((sum, point) => ({ x: sum.x + point.x / editor.points.length, y: sum.y + point.y / editor.points.length }), { x: 0, y: 0 });
+      assert.ok(matches(editor.materialToShape(latticeToCartesian(editor.defaultElements.circleCenter)), center));
+      const centerMaterial = editor.shapeToMaterial(center);
+      const nearest = editor.nearestBoundary(cartesianToLattice(centerMaterial));
+      const snappedShape = editor.materialToShape(latticeToCartesian(nearest.point));
+      const edgeStart = editor.points[nearest.edge];
+      const edgeEnd = editor.points[(nearest.edge + 1) % editor.points.length];
+      assert.ok(matches(snappedShape, {
+        x: edgeStart.x + (edgeEnd.x - edgeStart.x) * nearest.t,
+        y: edgeStart.y + (edgeEnd.y - edgeStart.y) * nearest.t,
+      }));
     });
   }
 });
 
-test("Penrose Studio designs retain their tile combination", () => {
+test("Penrose Studio designs retain their tile combination and per-tool tile scopes", () => {
   const design = createEmptyDesign("penrose");
   design.tileMode = "p1";
-  design.lines = [{ id: "line", width: 0.2, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }];
-  assert.equal(validateDesign(design).tileMode, "p1");
+  design.paths = [{ id: "path", tileType: "star", width: 0.2, points: [{ u: 0, v: 0 }, { u: 0.25, v: 0 }, { u: 0.75, v: 0 }, { u: 1, v: 0 }] }];
+  design.lines = [{ id: "line", tileType: "pentagon", width: 0.2, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }];
+  design.circles = [{ id: "circle", tileType: "boat", center: { u: 0, v: 0 }, radius: 0.25, operation: "ink" }];
+  design.circularPaths = [{ id: "arc", tileType: "diamond", width: 0.2, side: "left", points: [{ u: 0, v: 0 }, { u: 1, v: 0 }, { u: 2, v: 0 }] }];
+  const validated = validateDesign(design);
+  assert.equal(validated.tileMode, "p1");
+  assert.equal(validated.paths[0].tileType, "star");
+  assert.equal(validated.lines[0].tileType, "pentagon");
+  assert.equal(validated.circles[0].tileType, "boat");
+  assert.equal(validated.circularPaths[0].tileType, "diamond");
 });
 
 test("Spectre designs persist in the local Studio library", () => {

@@ -97,7 +97,7 @@ function canvasMapperFor(geometry) {
     const mapped = toCanvas(point, scale, geometry);
     return { x: mapped.x + offset.x, y: mapped.y + offset.y };
   };
-  mapper.scale = scale;
+  mapper.scale = scale * (geometry.materialScale || 1);
   return mapper;
 }
 
@@ -110,6 +110,16 @@ function fromGeometryCanvas(point, geometry) {
   };
   const materialPoint = geometry.shapeToMaterial ? geometry.shapeToMaterial(shapePoint) : shapePoint;
   return cartesianToLattice(materialPoint);
+}
+
+function circleHandleCanvas(circle, geometry, mapper) {
+  if (!geometry.materialToShape) return mapper(circleHandlePoint(circle));
+  const center = mapper(circle.center);
+  const angle = (circle.handleAngle ?? 0) * Math.PI / 180;
+  return {
+    x: center.x - Math.cos(angle) * circle.radius * mapper.scale,
+    y: center.y + Math.sin(angle) * circle.radius * mapper.scale,
+  };
 }
 
 function pointsAttribute(points, mapper = toCanvas) {
@@ -315,11 +325,29 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const visibleMaterialLayers = useMemo(() => getDesignLayers(design).filter(({ item }) => (
     geometry.tile !== "penrose" || !item.tileType || item.tileType === activePenroseTileType
   )), [design, geometry.tile, activePenroseTileType]);
+  const navigatorLayersByKind = useMemo(() => Object.fromEntries(
+    ["path", "line", "circle", "circularPath"].map((kind) => [kind, visibleMaterialLayers.filter((layer) => layer.kind === kind)]),
+  ), [visibleMaterialLayers]);
+  const penroseTileLayerCounts = useMemo(() => Object.fromEntries(
+    (familyGeometry.editorShapes || []).map((shape) => [
+      shape.tileType,
+      getDesignLayers(design).filter(({ item }) => !item.tileType || item.tileType === shape.tileType).length,
+    ]),
+  ), [design, familyGeometry.editorShapes]);
   const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile && (geometry.tile !== "penrose" || item.tileMode === geometry.tileMode));
   const selectedExportDesign = familyDesigns.find((item) => item.id === selectedExportId) || null;
   const scopeNewElement = (element) => geometry.tile === "penrose" && activePenroseTileType
     ? { ...element, tileType: activePenroseTileType }
     : element;
+
+  function selectPenroseTileType(tileType) {
+    setActivePenroseTileType(tileType);
+    setSelectedPathId(null);
+    setSelectedLineId(null);
+    setSelectedCircleId(null);
+    setSelectedCircularPathId(null);
+    setDrag(null);
+  }
 
   useEffect(() => {
     onDraftChange(family, design);
@@ -342,12 +370,12 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     getStudioLibraryDesigns().then(setSavedDesigns).catch(() => setStatus(t("studio.status.libraryFailed")));
   }
 
-  function moveLayer(kind, id, direction) {
+  function swapLayerPositions(kind, id, neighborKind, neighborId) {
     setDesign((current) => {
       const order = normalizeLayerOrder(current);
       const index = order.findIndex((entry) => entry.kind === kind && entry.id === id);
-      const target = index + direction;
-      if (index < 0 || target < 0 || target >= order.length) return current;
+      const target = order.findIndex((entry) => entry.kind === neighborKind && entry.id === neighborId);
+      if (index < 0 || target < 0) return current;
       const next = [...order];
       [next[index], next[target]] = [next[target], next[index]];
       return { ...current, layerOrder: next };
@@ -431,7 +459,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 
   function handlePointerMove(event) {
     if (!drag || event.pointerId !== drag.pointerId) return;
-    let point = fromGeometryCanvas(pointerPosition(event), geometry);
+    const canvasPoint = pointerPosition(event);
+    let point = fromGeometryCanvas(canvasPoint, geometry);
     const snapStep = snapMode === "grid" ? 1 : snapMode === "half" ? 0.5 : snapMode === "quarter" ? 0.25 : 0;
     if (drag.kind === "circle-center") {
       updateCircle(drag.circleId, { center: snapEditorPoint(point, snapStep) });
@@ -441,6 +470,15 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       const circle = (design.circles || []).find((candidate) => candidate.id === drag.circleId);
       const latticeStep = snapMode === "grid" ? 1 : snapMode === "half" ? 0.5 : snapMode === "quarter" ? 0.25 : 0;
       const angleStep = snapMode === "free" ? 0 : 30;
+      if (geometry.materialToShape) {
+        const center = mapToCanvas(circle.center);
+        const rawRadius = Math.hypot(canvasPoint.x - center.x, canvasPoint.y - center.y) / mapToCanvas.scale;
+        const rawAngle = Math.atan2(canvasPoint.y - center.y, center.x - canvasPoint.x) * 180 / Math.PI;
+        const handleAngle = ((angleStep ? Math.round(rawAngle / angleStep) * angleStep : rawAngle) % 360 + 360) % 360;
+        const radius = latticeStep ? Math.round(rawRadius / latticeStep) * latticeStep : rawRadius;
+        updateCircle(drag.circleId, { radius: Math.max(0.125, radius), handleAngle });
+        return;
+      }
       updateCircle(drag.circleId, snapCircleHandle(circle.center, point, latticeStep, angleStep));
       return;
     }
@@ -520,11 +558,12 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 
   function addPath() {
     const id = `curve-${Date.now()}`;
+    const defaultPoints = geometry.defaultElements?.pathPoints;
     const draft = {
       id,
       name: t("studio.paths.newName", { count: design.paths.length + 1 }),
       width: 0.7,
-      points: [
+      points: defaultPoints || [
         { u: -0.5, v: 1 },
         { u: 0.5, v: 1 },
         { u: 1.5, v: 0 },
@@ -544,7 +583,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 
   function addLine() {
     const id = `line-${Date.now()}`;
-    const points = [
+    const points = geometry.defaultElements?.linePoints || [
       geometry.nearestBoundary({ u: -0.5, v: 1 }).point,
       geometry.nearestBoundary({ u: 2.5, v: -1 }).point,
     ];
@@ -563,8 +602,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     const circle = scopeNewElement({
       id,
       name: t("studio.circles.newName", { count: (design.circles || []).length + 1 }),
-      center: { u: 1, v: 1 },
-      radius: 1,
+      center: geometry.defaultElements?.circleCenter || { u: 1, v: 1 },
+      radius: geometry.defaultElements?.circleRadius || 1,
       handleAngle: 0,
       operation: "ink",
     });
@@ -589,7 +628,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       name: t("studio.circularPaths.newName", { count: (design.circularPaths || []).length + 1 }),
       width: 0.7,
       side: "left",
-      points: [{ u: 0, v: 1 }, { u: 1, v: 1 }, { u: 1, v: 0 }],
+      points: geometry.defaultElements?.circularPathPoints || [{ u: 0, v: 1 }, { u: 1, v: 1 }, { u: 1, v: 0 }],
     });
     setDesign((current) => ({ ...current, circularPaths: [...(current.circularPaths || []), circularPath] }));
     setSelectedPathId(null);
@@ -759,7 +798,10 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   function renderElementTileTypeControl(element, update) {
     if (geometry.tile !== "penrose") return null;
     return (
-      <InspectorSelectField label={t("studio.controls.tileScope")} value={element.tileType || "all"} onChange={(tileType) => update({ tileType: tileType === "all" ? undefined : tileType })}>
+      <InspectorSelectField label={t("studio.controls.tileScope")} value={element.tileType || "all"} onChange={(tileType) => {
+        update({ tileType: tileType === "all" ? undefined : tileType });
+        if (tileType !== "all") setActivePenroseTileType(tileType);
+      }}>
         <option value="all">{t("studio.controls.allPenroseTiles")}</option>
         {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name}</option>)}
       </InspectorSelectField>
@@ -890,34 +932,34 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           <div className="studio-tree" role="tree">
             {geometry.tile === "penrose" ? <label className="studio-navigator-tile-selector">
               <span>{t("studio.toolbar.tileType")}</span>
-              <select value={activePenroseTileType} onChange={(event) => setActivePenroseTileType(event.target.value)}>
-                {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name}</option>)}
+              <select value={activePenroseTileType} onChange={(event) => selectPenroseTileType(event.target.value)}>
+                {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name} · {penroseTileLayerCounts[shape.tileType] || 0}</option>)}
               </select>
             </label> : null}
             <button type="button" className={`studio-tree-root${!selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={() => { setSelectedPathId(null); setSelectedLineId(null); setSelectedCircleId(null); setSelectedCircularPathId(null); }}><span>◇</span><strong>{design.name}</strong><small>{geometry.label}</small></button>
             {treeMode === "categories" ? (
               <>
                 <details open>
-                  <summary><span>⌁</span><strong>{t("studio.circularPaths.title")}</strong><small>{(design.circularPaths || []).length}</small></summary>
-                  <div className="studio-tree-children">{(design.circularPaths || []).map((path) => <button key={path.id} type="button" className={path.id === selectedCircularPathId ? "active" : ""} onClick={() => selectLayer("circularPath", path.id)}><span>⌁</span><span>{path.name}</span><small>r {circularPathGeometry(path).radius.toFixed(2)}</small></button>)}</div>
+                  <summary><span>⌁</span><strong>{t("studio.circularPaths.title")}</strong><small>{navigatorLayersByKind.circularPath.length}</small></summary>
+                  <div className="studio-tree-children">{navigatorLayersByKind.circularPath.map(({ id, item: path }) => <button key={id} type="button" className={id === selectedCircularPathId ? "active" : ""} onClick={() => selectLayer("circularPath", id)}><span>⌁</span><span>{path.name}</span><small>r {circularPathGeometry(path).radius.toFixed(2)}</small></button>)}</div>
                 </details>
                 <details open>
-                  <summary><span>⌇</span><strong>{t("studio.paths.title")}</strong><small>{design.paths.length}</small></summary>
-                  <div className="studio-tree-children">{design.paths.map((path, index) => <button key={path.id} type="button" className={path.id === selectedPathId && !selectedCircleId && !selectedCircularPathId ? "active" : ""} onClick={() => selectLayer("path", path.id)}><span>⌇</span><span>{path.name || t("studio.paths.newName", { count: index + 1 })}</span><small>{(path.points.length - 1) / 3}C</small></button>)}</div>
+                  <summary><span>⌇</span><strong>{t("studio.paths.title")}</strong><small>{navigatorLayersByKind.path.length}</small></summary>
+                  <div className="studio-tree-children">{navigatorLayersByKind.path.map(({ id, item: path }, index) => <button key={id} type="button" className={id === selectedPathId && !selectedCircleId && !selectedCircularPathId ? "active" : ""} onClick={() => selectLayer("path", id)}><span>⌇</span><span>{path.name || t("studio.paths.newName", { count: index + 1 })}</span><small>{(path.points.length - 1) / 3}C</small></button>)}</div>
                 </details>
                 <details open>
-                  <summary><span>○</span><strong>{t("studio.circles.title")}</strong><small>{(design.circles || []).length}</small></summary>
-                  <div className="studio-tree-children">{(design.circles || []).map((circle) => <button key={circle.id} type="button" className={circle.id === selectedCircleId ? "active" : ""} onClick={() => selectLayer("circle", circle.id)}><span>○</span><span>{circle.name}</span><small>r {circle.radius.toFixed(2)}</small></button>)}</div>
+                  <summary><span>○</span><strong>{t("studio.circles.title")}</strong><small>{navigatorLayersByKind.circle.length}</small></summary>
+                  <div className="studio-tree-children">{navigatorLayersByKind.circle.map(({ id, item: circle }) => <button key={id} type="button" className={id === selectedCircleId ? "active" : ""} onClick={() => selectLayer("circle", id)}><span>○</span><span>{circle.name}</span><small>r {circle.radius.toFixed(2)}</small></button>)}</div>
                 </details>
                 <details open>
-                  <summary><span>╱</span><strong>{t("studio.lines.title")}</strong><small>{(design.lines || []).length}</small></summary>
-                  <div className="studio-tree-children">{(design.lines || []).map((line) => <button key={line.id} type="button" className={line.id === selectedLineId ? "active" : ""} onClick={() => selectLayer("line", line.id)}><span>╱</span><span>{line.name}</span><small>{line.width.toFixed(2)}</small></button>)}</div>
+                  <summary><span>╱</span><strong>{t("studio.lines.title")}</strong><small>{navigatorLayersByKind.line.length}</small></summary>
+                  <div className="studio-tree-children">{navigatorLayersByKind.line.map(({ id, item: line }) => <button key={id} type="button" className={id === selectedLineId ? "active" : ""} onClick={() => selectLayer("line", id)}><span>╱</span><span>{line.name}</span><small>{line.width.toFixed(2)}</small></button>)}</div>
                 </details>
               </>
             ) : (
               <div className="studio-layer-stack">
                 <div className="studio-layer-stack-label"><span>{t("studio.layers.top")}</span><small>{t("studio.layers.orderHelp")}</small></div>
-                {[...getDesignLayers(design)].reverse().map(({ kind, id, item }, displayIndex, layers) => {
+                {[...visibleMaterialLayers].reverse().map(({ kind, id, item }, displayIndex, layers) => {
                   const active = (kind === "path" && id === selectedPathId && !selectedCircle && !selectedCircularPath)
                     || (kind === "line" && id === selectedLineId)
                     || (kind === "circle" && id === selectedCircleId)
@@ -926,8 +968,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                     <div className={`studio-layer-row${active ? " active" : ""}`} key={`${kind}:${id}`}>
                       <button type="button" className="studio-layer-select" onClick={() => selectLayer(kind, id)}><span>{kind === "path" ? "⌇" : kind === "line" ? "╱" : kind === "circle" ? "○" : "⌁"}</span><span>{item.name}</span><small>{t(`studio.layers.${kind}`)}</small></button>
                       <div className="studio-layer-actions">
-                        <button type="button" onClick={() => moveLayer(kind, id, 1)} disabled={displayIndex === 0} title={t("studio.layers.moveUp")}>↑</button>
-                        <button type="button" onClick={() => moveLayer(kind, id, -1)} disabled={displayIndex === layers.length - 1} title={t("studio.layers.moveDown")}>↓</button>
+                        <button type="button" onClick={() => swapLayerPositions(kind, id, layers[displayIndex - 1].kind, layers[displayIndex - 1].id)} disabled={displayIndex === 0} title={t("studio.layers.moveUp")}>↑</button>
+                        <button type="button" onClick={() => swapLayerPositions(kind, id, layers[displayIndex + 1].kind, layers[displayIndex + 1].id)} disabled={displayIndex === layers.length - 1} title={t("studio.layers.moveDown")}>↓</button>
                       </div>
                     </div>
                   );
@@ -1009,7 +1051,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             ) : null}
             {showHandles && selectedCircle ? (() => {
               const center = mapToCanvas(selectedCircle.center);
-              const radiusHandle = mapToCanvas(circleHandlePoint(selectedCircle));
+              const radiusHandle = circleHandleCanvas(selectedCircle, geometry, mapToCanvas);
               return (
                 <g className="studio-handles studio-circle-handles">
                   <line x1={center.x} y1={center.y} x2={radiusHandle.x} y2={radiusHandle.y} />
@@ -1182,7 +1224,7 @@ function GeneratedPenrosePreview({ design, geometry }) {
           // A third generation provides a clean guard ring around the visible
           // patch; two P1 generations expose the incomplete construction edge.
           iterations: 3,
-          scale: geometry.tileMode === "p1" ? 640 : 400,
+          scale: 400,
           center_x: 0,
           center_y: 0,
           tile_mode: geometry.tileMode,

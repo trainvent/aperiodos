@@ -82,6 +82,7 @@ pub(super) struct RenderTile {
     pub(super) points: Vec<Vec2>,
     pub(super) fill_index: usize,
     pub(super) tile_type: &'static str,
+    pub(super) material_basis: [Vec2; 3],
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -132,7 +133,7 @@ impl Renderer for PenroseRenderer {
             if !tile_visible(&tile, config) {
                 continue;
             }
-            let points = tile
+            let points: Vec<ScenePoint> = tile
                 .points
                 .iter()
                 .map(|point| {
@@ -140,6 +141,10 @@ impl Renderer for PenroseRenderer {
                     ScenePoint::new(x, y)
                 })
                 .collect();
+            let material_basis = tile.material_basis.map(|point| {
+                let (x, y) = svg_point(point, config);
+                ScenePoint::new(x, y)
+            });
             push_tile(
                 &mut scene,
                 points,
@@ -148,6 +153,7 @@ impl Renderer for PenroseRenderer {
                 material,
                 tile.fill_index,
                 tile.tile_type,
+                material_basis,
             );
         }
         Ok(scene)
@@ -162,6 +168,7 @@ fn push_tile(
     material: Option<&Value>,
     palette_index: usize,
     tile_type: &str,
+    material_basis: [ScenePoint; 3],
 ) {
     scene.push_polygon(Polygon::new(
         points.clone(),
@@ -173,7 +180,7 @@ fn push_tile(
     if points.len() < 3 {
         return;
     }
-    let (p0, p1, p2) = (points[0], points[1], points[2]);
+    let [p0, p1, p2] = material_basis;
     let root = 3.0_f64.sqrt() / 2.0;
     let (a, b) = (p1.x - p0.x, p1.y - p0.y);
     let (c, d) = (
@@ -272,6 +279,94 @@ pub(super) fn approx_eq(left: f64, right: f64) -> bool {
     (left - right).abs() <= 1e-6
 }
 
+pub(super) fn canonical_material_basis(points: &[Vec2], tile_type: &str) -> [Vec2; 3] {
+    let canonical = canonical_tile_points(tile_type);
+    if canonical.len() != points.len() || points.len() < 3 {
+        return [points[0], points[1], points[2]];
+    }
+
+    let mut best = ([points[0], points[1], points[2]], f64::INFINITY);
+    for start in 0..points.len() {
+        for direction in [1_isize, -1] {
+            let ordered = (0..points.len())
+                .map(|offset| {
+                    let index = (start as isize + direction * offset as isize)
+                        .rem_euclid(points.len() as isize) as usize;
+                    points[index]
+                })
+                .collect::<Vec<_>>();
+            let basis = [ordered[0], ordered[1], ordered[2]];
+            let error = canonical
+                .iter()
+                .zip(&ordered)
+                .map(|(source, target)| distance(map_triangle(&canonical, basis, *source), *target))
+                .sum::<f64>();
+            if error < best.1 {
+                best = (basis, error);
+            }
+        }
+    }
+    let scale = points
+        .iter()
+        .enumerate()
+        .map(|(index, point)| distance(*point, points[(index + 1) % points.len()]))
+        .fold(0.0_f64, f64::max)
+        .max(1e-9);
+    debug_assert!(
+        best.1 / scale < 1e-5,
+        "{tile_type} polygon does not match its canonical Studio geometry"
+    );
+    best.0
+}
+
+fn map_triangle(source: &[Vec2], target: [Vec2; 3], point: Vec2) -> Vec2 {
+    let source_x = source[1] - source[0];
+    let source_y = source[2] - source[0];
+    let delta = point - source[0];
+    let determinant = source_x.x * source_y.y - source_x.y * source_y.x;
+    let u = (delta.x * source_y.y - delta.y * source_y.x) / determinant;
+    let v = (source_x.x * delta.y - source_x.y * delta.x) / determinant;
+    target[0] + (target[1] - target[0]) * u + (target[2] - target[0]) * v
+}
+
+fn canonical_tile_points(tile_type: &str) -> Vec<Vec2> {
+    let degrees = |value: f64| value.to_radians();
+    match tile_type {
+        "dart" => vec![
+            Vec2::new(0.0, 0.0),
+            Vec2::new(0.309_016_994_4, -0.951_056_516_3),
+            Vec2::new(0.809_016_994_4, -0.587_785_252_3),
+            Vec2::new(1.0, 0.0),
+        ],
+        "kite" => vec![
+            Vec2::new(0.0, 0.0),
+            Vec2::new(0.190_983_005_6, -0.587_785_252_3),
+            Vec2::new(0.0, -1.175_570_504_6),
+            Vec2::new(0.809_016_994_4, -0.587_785_252_3),
+        ],
+        "thin-rhomb" => vec![
+            Vec2::new(0.0, 0.0),
+            Vec2::new(degrees(18.0).cos(), -degrees(18.0).sin()),
+            Vec2::new(2.0 * degrees(18.0).cos(), 0.0),
+            Vec2::new(degrees(18.0).cos(), degrees(18.0).sin()),
+        ],
+        "thick-rhomb" => vec![
+            Vec2::new(0.0, 0.0),
+            Vec2::new(degrees(54.0).cos(), degrees(54.0).sin()),
+            Vec2::new(
+                degrees(54.0).cos() + degrees(18.0).cos(),
+                degrees(54.0).sin() - degrees(18.0).sin(),
+            ),
+            Vec2::new(degrees(18.0).cos(), -degrees(18.0).sin()),
+        ],
+        _ => points_fallback(),
+    }
+}
+
+fn points_fallback() -> Vec<Vec2> {
+    Vec::new()
+}
+
 fn svg_point(point: Vec2, config: &PenroseSvgConfig) -> (f64, f64) {
     let x = (point.x - config.center_x) * config.scale + config.width as f64 / 2.0;
     let y = config.height as f64 / 2.0 - (point.y - config.center_y) * config.scale;
@@ -280,7 +375,49 @@ fn svg_point(point: Vec2, config: &PenroseSvgConfig) -> (f64, f64) {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
+
+    fn assert_material_basis_matches_polygon(tile: &RenderTile) {
+        let canonical = canonical_tile_points(tile.tile_type);
+        assert_eq!(canonical.len(), tile.points.len());
+        for point in canonical {
+            let mapped = map_triangle(
+                &canonical_tile_points(tile.tile_type),
+                tile.material_basis,
+                point,
+            );
+            assert!(
+                tile.points
+                    .iter()
+                    .any(|candidate| distance(mapped, *candidate) < 1e-6),
+                "{} material point ({}, {}) missed its generated polygon",
+                tile.tile_type,
+                mapped.x,
+                mapped.y,
+            );
+        }
+    }
+
+    #[test]
+    fn generated_p2_and_p3_tiles_use_stable_studio_material_bases() {
+        let cases = [
+            classic_logic::render_tiles(PenroseSeed::Sun, 3),
+            rhombs_logic::render_tiles(PenroseSeed::Sun, 3),
+        ];
+        let mut tile_types = HashSet::new();
+        for tiles in cases {
+            for tile in &tiles {
+                tile_types.insert(tile.tile_type);
+                assert_material_basis_matches_polygon(tile);
+            }
+        }
+        assert_eq!(
+            tile_types,
+            HashSet::from(["dart", "kite", "thin-rhomb", "thick-rhomb"])
+        );
+    }
 
     #[test]
     fn retains_tiles_that_cross_the_viewport_without_an_internal_vertex() {
@@ -298,6 +435,11 @@ mod tests {
             ],
             fill_index: 0,
             tile_type: "test",
+            material_basis: [
+                Vec2::new(-60.0, 0.0),
+                Vec2::new(60.0, 0.0),
+                Vec2::new(0.0, 60.0),
+            ],
         };
         let distant_tile = RenderTile {
             points: vec![
@@ -307,6 +449,11 @@ mod tests {
             ],
             fill_index: 0,
             tile_type: "test",
+            material_basis: [
+                Vec2::new(70.0, 70.0),
+                Vec2::new(80.0, 70.0),
+                Vec2::new(70.0, 80.0),
+            ],
         };
 
         assert!(tile_visible(&crossing_tile, &config));

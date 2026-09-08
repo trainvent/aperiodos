@@ -100,6 +100,11 @@ function snapToSpectreConstruction(point, step) {
 
 function nearestPolygonBoundary(point, cartesianPoints) {
   const target = latticeToCartesian(point);
+  const nearest = nearestPolygonBoundaryCartesian(target, cartesianPoints);
+  return { ...nearest, point: cartesianToLattice(nearest.point) };
+}
+
+function nearestPolygonBoundaryCartesian(target, cartesianPoints) {
   let nearest = null;
   cartesianPoints.forEach((start, edge) => {
     const end = cartesianPoints[(edge + 1) % cartesianPoints.length];
@@ -110,7 +115,7 @@ function nearestPolygonBoundary(point, cartesianPoints) {
     const t = Math.max(0, Math.min(1, rawT));
     const projected = { x: start.x + dx * t, y: start.y + dy * t };
     const distance = Math.hypot(projected.x - target.x, projected.y - target.y);
-    if (!nearest || distance < nearest.distance) nearest = { point: cartesianToLattice(projected), edge, t, distance };
+    if (!nearest || distance < nearest.distance) nearest = { point: projected, edge, t, distance };
   });
   return nearest;
 }
@@ -219,6 +224,7 @@ function penroseMaterialTransform(points) {
   const cy = (third.y - origin.y - ay / 2) / root;
   const determinant = ax * cy - ay * cx;
   return {
+    materialScale: Math.hypot(ax, ay),
     materialToShape: (point) => ({
       x: origin.x + ax * point.x + cx * point.y,
       y: origin.y + ay * point.x + cy * point.y,
@@ -238,6 +244,26 @@ export function penroseTileEditorGeometry(geometry, tileType) {
   const shape = geometry.editorShapes?.find((candidate) => candidate.tileType === tileType) || geometry.editorShapes?.[0];
   if (!shape) return geometry;
   const materialTransform = penroseMaterialTransform(shape.points);
+  const materialPoints = shape.points.map((point) => cartesianToLattice(materialTransform.shapeToMaterial(point)));
+  const centerShape = shape.points.reduce((sum, point) => ({
+    x: sum.x + point.x / shape.points.length,
+    y: sum.y + point.y / shape.points.length,
+  }), { x: 0, y: 0 });
+  const centerMaterial = materialTransform.shapeToMaterial(centerShape);
+  const center = cartesianToLattice(centerMaterial);
+  const centerBoundary = nearestPolygonBoundaryCartesian(centerShape, shape.points);
+  const boundaryMaterial = materialTransform.shapeToMaterial(centerBoundary.point);
+  const insetRadius = Math.max(0.125, Math.hypot(
+    boundaryMaterial.x - centerMaterial.x,
+    boundaryMaterial.y - centerMaterial.y,
+  ) * 0.35);
+  const start = materialPoints[0];
+  const end = materialPoints[Math.floor(materialPoints.length / 2)];
+  const interpolate = (from, to, amount) => ({
+    u: from.u + (to.u - from.u) * amount,
+    v: from.v + (to.v - from.v) * amount,
+  });
+  const arcOffset = insetRadius * 0.8;
   return {
     ...geometry,
     label: `${geometry.label} · ${shape.name}`,
@@ -245,11 +271,29 @@ export function penroseTileEditorGeometry(geometry, tileType) {
     allPoints: shape.points,
     fitCanvas: true,
     ...materialTransform,
+    defaultElements: {
+      pathPoints: [start, interpolate(start, end, 1 / 3), interpolate(start, end, 2 / 3), end],
+      linePoints: [start, end],
+      circleCenter: center,
+      circleRadius: insetRadius,
+      circularPathPoints: [
+        cartesianToLattice({ x: centerMaterial.x - arcOffset, y: centerMaterial.y }),
+        center,
+        cartesianToLattice({ x: centerMaterial.x + arcOffset, y: centerMaterial.y }),
+      ],
+    },
     // A Penrose material layer is authored against exactly one prototile.
     // Deliberately omit the reference-shape collection so TileShape clips to
     // just this selected shape rather than the whole family at once.
     shapes: null,
-    nearestBoundary: (point) => nearestPolygonBoundary(point, shape.points),
+    nearestBoundary: (point) => {
+      const shapePoint = materialTransform.materialToShape(latticeToCartesian(point));
+      const nearest = nearestPolygonBoundaryCartesian(shapePoint, shape.points);
+      return {
+        ...nearest,
+        point: cartesianToLattice(materialTransform.shapeToMaterial(nearest.point)),
+      };
+    },
   };
 }
 

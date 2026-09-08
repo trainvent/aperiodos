@@ -3,7 +3,10 @@ use std::f64::consts::PI;
 
 use crate::math::Vec2;
 
-use super::{approx_eq, distance, polar, PenroseSeed, PenroseTileMode, RenderTile, PHI};
+use super::{
+    approx_eq, canonical_material_basis, distance, polar, PenroseSeed, PenroseTileMode, RenderTile,
+    PHI,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum TriangleKind {
@@ -164,13 +167,16 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
             continue;
         }
 
+        let points = merged_polygon_points(left, right);
+        let tile_type = match left.kind {
+            TriangleKind::Acute => "dart",
+            TriangleKind::Obtuse => "kite",
+        };
         tiles.push(RenderTile {
-            points: merged_polygon_points(left, right),
+            material_basis: canonical_material_basis(&points, tile_type),
+            points,
             fill_index: tile_fill_index(left.kind),
-            tile_type: match left.kind {
-                TriangleKind::Acute => "dart",
-                TriangleKind::Obtuse => "kite",
-            },
+            tile_type,
         });
     }
 

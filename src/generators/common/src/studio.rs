@@ -264,4 +264,38 @@ mod tests {
         assert!(!svg.contains("M 0.0000 0.0000 L 1.0000 0.0000"));
         assert!(svg.contains("M 0.5000 0.8660 L 1.5000 0.8660"));
     }
+
+    #[test]
+    fn applies_tile_scope_to_every_studio_tool_kind() {
+        let pattern = serde_json::json!({
+            "paths": [{"id":"path","tileType":"star","color":"#110001","width":0.1,"points":[{"u":0,"v":0},{"u":0.25,"v":0},{"u":0.75,"v":0},{"u":1,"v":0}]}],
+            "lines": [{"id":"line","tileType":"star","color":"#220002","width":0.1,"points":[{"u":0,"v":0},{"u":1,"v":0}]}],
+            "circles": [{"id":"circle","tileType":"star","color":"#330003","operation":"ink","radius":0.2,"center":{"u":0,"v":0}}],
+            "circularPaths": [{"id":"arc","tileType":"star","color":"#440004","width":0.1,"side":"left","points":[{"u":0,"v":0},{"u":1,"v":0},{"u":2,"v":0}]}]
+        });
+
+        let star = render_studio_elements(
+            &pattern,
+            "black",
+            "white",
+            Affine::IDENTITY,
+            1.0,
+            Some("star"),
+        );
+        for color in ["#110001", "#220002", "#330003", "#440004"] {
+            assert!(star.contains(color), "missing scoped {color} material");
+        }
+
+        let boat = render_studio_elements(
+            &pattern,
+            "black",
+            "white",
+            Affine::IDENTITY,
+            1.0,
+            Some("boat"),
+        );
+        for color in ["#110001", "#220002", "#330003", "#440004"] {
+            assert!(!boat.contains(color), "leaked {color} material onto boat");
+        }
+    }
 }

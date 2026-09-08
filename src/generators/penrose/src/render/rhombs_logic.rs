@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 
 use crate::math::Vec2;
 
-use super::{polar, PenroseSeed, RenderTile, PHI};
+use super::{canonical_material_basis, polar, PenroseSeed, RenderTile, PHI};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum TriangleKind {
@@ -122,16 +122,19 @@ fn assemble_rhombs(triangles: &[Triangle]) -> Vec<RenderTile> {
                 continue;
             }
 
+            let points = merged_polygon_points(left, right);
+            let tile_type = match left.kind {
+                TriangleKind::Thin => "thin-rhomb",
+                TriangleKind::Thick => "thick-rhomb",
+            };
             tiles.push(RenderTile {
-                points: merged_polygon_points(left, right),
+                material_basis: canonical_material_basis(&points, tile_type),
+                points,
                 fill_index: match left.kind {
                     TriangleKind::Thin => 0,
                     TriangleKind::Thick => 1,
                 },
-                tile_type: match left.kind {
-                    TriangleKind::Thin => "thin-rhomb",
-                    TriangleKind::Thick => "thick-rhomb",
-                },
+                tile_type,
             });
         }
     }

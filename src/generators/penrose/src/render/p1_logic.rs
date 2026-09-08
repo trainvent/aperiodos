@@ -134,11 +134,13 @@ fn draw_pentagon(tiles: &mut Vec<RenderTile>, frame: Frame) {
             -frame.step * tan_deg(54.0) / 2.0,
         ))
         .then(Transform::scale(frame.step));
+    let points = pentagon_points()
+        .into_iter()
+        .map(|point| transform.apply(point))
+        .collect::<Vec<_>>();
     tiles.push(RenderTile {
-        points: pentagon_points()
-            .into_iter()
-            .map(|point| transform.apply(point))
-            .collect(),
+        material_basis: [points[0], points[1], points[2]],
+        points,
         fill_index: 0,
         tile_type: "pentagon",
     });
@@ -152,11 +154,13 @@ fn draw_star(tiles: &mut Vec<RenderTile>, frame: Frame) {
             frame.step * tan_deg(54.0) * cos_deg(72.0),
         ))
         .then(Transform::scale(frame.step));
+    let points = star_points()
+        .into_iter()
+        .map(|point| transform.apply(point))
+        .collect::<Vec<_>>();
     tiles.push(RenderTile {
-        points: star_points()
-            .into_iter()
-            .map(|point| transform.apply(point))
-            .collect(),
+        material_basis: [points[0], points[1], points[2]],
+        points,
         fill_index: 1,
         tile_type: "star",
     });
@@ -170,11 +174,13 @@ fn draw_boat(tiles: &mut Vec<RenderTile>, frame: Frame) {
             frame.step * tan_deg(54.0) * cos_deg(72.0),
         ))
         .then(Transform::scale(frame.step));
+    let points = boat_points()
+        .into_iter()
+        .map(|point| transform.apply(point))
+        .collect::<Vec<_>>();
     tiles.push(RenderTile {
-        points: boat_points()
-            .into_iter()
-            .map(|point| transform.apply(point))
-            .collect(),
+        material_basis: [points[0], points[1], points[2]],
+        points,
         fill_index: 2,
         tile_type: "boat",
     });
@@ -186,11 +192,13 @@ fn draw_diamond(tiles: &mut Vec<RenderTile>, frame: Frame) {
         .then(Transform::rotate_deg(90.0))
         .then(Transform::translate(-frame.step * cos_deg(18.0), 0.0))
         .then(Transform::scale(frame.step));
+    let points = diamond_points()
+        .into_iter()
+        .map(|point| transform.apply(point))
+        .collect::<Vec<_>>();
     tiles.push(RenderTile {
-        points: diamond_points()
-            .into_iter()
-            .map(|point| transform.apply(point))
-            .collect(),
+        material_basis: [points[0], points[1], points[2]],
+        points,
         fill_index: 3,
         tile_type: "diamond",
     });
