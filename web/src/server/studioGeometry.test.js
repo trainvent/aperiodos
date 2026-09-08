@@ -236,6 +236,17 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
         editor.materialToShape(latticeToCartesian(editor.defaultElements.linePoints[0])),
         editor.points[0],
       ));
+      editor.materialVertices.forEach((vertex, index) => {
+        assert.ok(matches(editor.materialToShape(latticeToCartesian(vertex)), editor.points[index]));
+      });
+      editor.cartesianGridLines.forEach(([startPoint, endPoint]) => {
+        const gridStart = editor.materialToShape(latticeToCartesian(startPoint));
+        const gridEnd = editor.materialToShape(latticeToCartesian(endPoint));
+        assert.ok(
+          Math.abs(gridStart.x - gridEnd.x) < 1e-8 || Math.abs(gridStart.y - gridEnd.y) < 1e-8,
+          `${family} ${shape.name} has a diagonal Cartesian grid line`,
+        );
+      });
 
       const center = editor.points.reduce((sum, point) => ({ x: sum.x + point.x / editor.points.length, y: sum.y + point.y / editor.points.length }), { x: 0, y: 0 });
       assert.ok(matches(editor.materialToShape(latticeToCartesian(editor.defaultElements.circleCenter)), center));

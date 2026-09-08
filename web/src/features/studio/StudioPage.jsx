@@ -454,7 +454,18 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 
   function snapEditorPoint(point, step) {
     if (!step) return point;
-    return gridMode === "cartesian" ? snapCartesianPoint(point) : geometry.snapPoint(point, step);
+    return gridMode === "cartesian"
+      ? (geometry.snapCartesianPoint || snapCartesianPoint)(point, step)
+      : geometry.snapPoint(point, step);
+  }
+
+  function snapTileVertex(point, canvasPoint) {
+    if (!geometry.materialVertices?.length) return point;
+    const nearest = geometry.materialVertices
+      .map((vertex) => ({ vertex, screen: mapToCanvas(vertex) }))
+      .map(({ vertex, screen }) => ({ vertex, distance: Math.hypot(screen.x - canvasPoint.x, screen.y - canvasPoint.y) }))
+      .reduce((best, candidate) => candidate.distance < best.distance ? candidate : best);
+    return nearest.distance <= 18 ? nearest.vertex : point;
   }
 
   function handlePointerMove(event) {
@@ -463,7 +474,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     let point = fromGeometryCanvas(canvasPoint, geometry);
     const snapStep = snapMode === "grid" ? 1 : snapMode === "half" ? 0.5 : snapMode === "quarter" ? 0.25 : 0;
     if (drag.kind === "circle-center") {
-      updateCircle(drag.circleId, { center: snapEditorPoint(point, snapStep) });
+      updateCircle(drag.circleId, { center: snapTileVertex(snapEditorPoint(point, snapStep), canvasPoint) });
       return;
     }
     if (drag.kind === "circle-radius") {
@@ -484,13 +495,14 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     }
     if (drag.kind === "circular-path") {
       const circularPath = (design.circularPaths || []).find((candidate) => candidate.id === drag.pathId);
-      const points = circularPath.points.map((existing, index) => index === drag.pointIndex ? snapEditorPoint(point, snapStep) : existing);
+      point = snapTileVertex(snapEditorPoint(point, snapStep), canvasPoint);
+      const points = circularPath.points.map((existing, index) => index === drag.pointIndex ? point : existing);
       updateCircularPath(drag.pathId, { points });
       return;
     }
     if (drag.kind === "line") {
       const line = (design.lines || []).find((candidate) => candidate.id === drag.lineId);
-      point = snapEditorPoint(point, snapStep);
+      point = snapTileVertex(snapEditorPoint(point, snapStep), canvasPoint);
       if (bindEndpoints && gridMode !== "cartesian") point = geometry.nearestBoundary(point).point;
       const points = line.points.map((existing, index) => index === drag.pointIndex ? point : existing);
       updateLine(drag.lineId, { points });
@@ -498,7 +510,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     }
     const path = design.paths.find((candidate) => candidate.id === drag.pathId);
     const isEndpoint = drag.pointIndex === 0 || drag.pointIndex === path.points.length - 1;
-    point = snapEditorPoint(point, snapStep);
+    point = snapTileVertex(snapEditorPoint(point, snapStep), canvasPoint);
     if (bindEndpoints && isEndpoint) {
       point = geometry.nearestBoundary(point).point;
     }

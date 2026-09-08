@@ -124,6 +124,24 @@ function translatePoints(points, x, y) {
   return points.map(([pointX, pointY]) => [pointX + x, pointY + y]);
 }
 
+function rotatePoints(points, degrees) {
+  const radians = degrees * Math.PI / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const center = points.reduce((sum, [x, y]) => ({
+    x: sum.x + x / points.length,
+    y: sum.y + y / points.length,
+  }), { x: 0, y: 0 });
+  return points.map(([x, y]) => {
+    const dx = x - center.x;
+    const dy = y - center.y;
+    return [
+      center.x + dx * cosine - dy * sine,
+      center.y + dx * sine + dy * cosine,
+    ];
+  });
+}
+
 function cosDegrees(degrees) {
   return Math.cos(degrees * Math.PI / 180);
 }
@@ -264,6 +282,9 @@ export function penroseTileEditorGeometry(geometry, tileType) {
     v: from.v + (to.v - from.v) * amount,
   });
   const arcOffset = insetRadius * 0.8;
+  const screenCartesianGridLines = geometry.cartesianGridLines.map(([startPoint, endPoint]) => [startPoint, endPoint].map((point) => (
+    cartesianToLattice(materialTransform.shapeToMaterial(latticeToCartesian(point)))
+  )));
   return {
     ...geometry,
     label: `${geometry.label} · ${shape.name}`,
@@ -271,6 +292,16 @@ export function penroseTileEditorGeometry(geometry, tileType) {
     allPoints: shape.points,
     fitCanvas: true,
     ...materialTransform,
+    materialVertices: materialPoints,
+    cartesianGridLines: screenCartesianGridLines,
+    snapCartesianPoint: (point, step) => {
+      if (!step) return point;
+      const shapePoint = materialTransform.materialToShape(latticeToCartesian(point));
+      return cartesianToLattice(materialTransform.shapeToMaterial({
+        x: Math.round(shapePoint.x / step) * step,
+        y: Math.round(shapePoint.y / step) * step,
+      }));
+    },
     defaultElements: {
       pathPoints: [start, interpolate(start, end, 1 / 3), interpolate(start, end, 2 / 3), end],
       linePoints: [start, end],
@@ -335,7 +366,7 @@ const GEOMETRY_ADAPTERS = {
     label: "Penrose P2 · Kite & Dart",
     tileMode: "kite-dart",
     shapes: [
-      { name: "Dart", tileType: "dart", points: translatePoints([[0, 0], [0.3090169944, -0.9510565163], [0.8090169944, -0.5877852523], [1, 0]], -1.25, 0.6) },
+      { name: "Dart", tileType: "dart", points: translatePoints(rotatePoints([[0, 0], [0.3090169944, -0.9510565163], [0.8090169944, -0.5877852523], [1, 0]], -18), -1.25, 0.6) },
       { name: "Kite", tileType: "kite", points: translatePoints([[0, 0], [0.1909830056, -0.5877852523], [0, -1.1755705046], [0.8090169944, -0.5877852523]], 0.25, 0.6) },
     ],
   }),
