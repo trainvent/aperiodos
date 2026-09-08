@@ -6,11 +6,19 @@
  */
 export function render_preview(generator: string, recipe_json: string): string;
 
+/**
+ * Executes a synchronous Studio authoring operation after the WASM module has
+ * been initialized. Keeping this JSON boundary shared with native tests makes
+ * browser/native parity directly golden-testable.
+ */
+export function studio_call(operation: string, input_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly render_preview: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly studio_call: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

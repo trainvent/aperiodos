@@ -3,7 +3,8 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
-use aperiodos_render_core::{escape_xml, render_studio_elements, Affine, Renderer, Scene, Vec2};
+use aperiodos_render_core::{escape_xml, Affine, Renderer, Scene, Vec2};
+use aperiodos_studio::render_studio_elements;
 use serde_json::{json, Value};
 
 use crate::coloring::four_color_indices;

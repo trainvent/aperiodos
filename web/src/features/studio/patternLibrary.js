@@ -1,4 +1,5 @@
 import { cloneDesign, validateDesign } from "./einsteinGeometry.js";
+import { loadStudioRuntime, studioRuntimeReady } from "./studioRuntime.js";
 
 export const STUDIO_LIBRARY_KEY = "aperiodos-studio-designs-v1";
 export const STUDIO_LIBRARY_EVENT = "aperiodos:studio-library-changed";
@@ -24,6 +25,7 @@ export function writeStudioLibrary(designs, storage = globalThis.window?.localSt
 }
 
 export async function getPublicStudioDesigns(fetcher = globalThis.fetch) {
+  if (!studioRuntimeReady()) await loadStudioRuntime();
   if (typeof fetcher !== "function") return [];
   const results = await Promise.allSettled(PUBLIC_STUDIO_PATTERN_ASSETS.map(async (asset) => {
     const response = await fetcher(asset);

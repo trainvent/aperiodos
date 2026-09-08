@@ -4,7 +4,7 @@ use std::fmt::Write as _;
 
 use serde_json::Value;
 
-use crate::{escape_xml, Affine, Vec2};
+use aperiodos_render_core::{escape_xml, Affine, Vec2};
 
 /// Renders a Studio material document through an affine mapping. This is the
 /// shared material engine used by every tiling renderer; the Studio UI remains

@@ -3,10 +3,7 @@
 use std::ops::{Add, Sub};
 
 pub mod scene;
-pub mod studio;
-
 pub use scene::{Polygon, Renderer, Scene, SvgElement};
-pub use studio::render_studio_elements;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vec2 {

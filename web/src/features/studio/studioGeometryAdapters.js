@@ -1,398 +1,68 @@
-import {
-  HAT_CARTESIAN,
-  cartesianToLattice,
-  latticeToCartesian,
-  nearestBoundaryPoint,
-  snapLatticePoint,
-} from "./einsteinGeometry.js";
-import { SPECTRE_POINTS, spectrePath } from "./spectreGeometry.js";
+import { cartesianToLattice } from "./einsteinGeometry.js";
+import { spectrePath } from "./spectreGeometry.js";
+import { studioCall } from "./studioRuntime.js";
 
-const SPECTRE_CARTESIAN = SPECTRE_POINTS.map(([x, y]) => ({ x, y }));
 export const CARTESIAN_GRID_STEP = 0.125;
 
 export function cartesianGridLines(min = -10, max = 10, step = CARTESIAN_GRID_STEP) {
-  const lines = [];
-  for (let value = min; value <= max + 1e-9; value += step) {
-    const coordinate = Math.round(value / step) * step;
-    lines.push([
-      cartesianToLattice({ x: coordinate, y: min }),
-      cartesianToLattice({ x: coordinate, y: max }),
-    ]);
-    lines.push([
-      cartesianToLattice({ x: min, y: coordinate }),
-      cartesianToLattice({ x: max, y: coordinate }),
-    ]);
-  }
-  return lines;
+  return studioCall("cartesianGridLines", { min, max, step });
 }
 
 export function snapCartesianPoint(point, step = CARTESIAN_GRID_STEP) {
-  if (!step) return point;
-  const cartesian = latticeToCartesian(point);
-  return cartesianToLattice({
-    x: Math.round(cartesian.x / step) * step,
-    y: Math.round(cartesian.y / step) * step,
+  return studioCall("snapCartesianPoint", { point, step });
+}
+
+function applyTransform(transform, point) {
+  const [a, b, x, c, d, y] = transform;
+  return { x: a * point.x + b * point.y + x, y: c * point.x + d * point.y + y };
+}
+
+function hydrateGeometry(raw) {
+  const geometry = { ...raw };
+  geometry.nearestBoundary = (point) => studioCall("nearestBoundary", {
+    family: geometry.family,
+    point,
   });
-}
-
-function spectrePreviewTransforms() {
-  const h = Math.sqrt(3) / 2;
-  return [
-    [1, 0, 0, 0, 1, 0],
-    // The tight three-tile surround from the straight-edge reference. Each
-    // neighbor follows four consecutive center edges (twelve altogether).
-    [h, -0.5, -0.5 - h, 0.5, h, h - 0.5],
-    [0, -1, 2.5 + 3 * h, 1, 0, 0.5 + h],
-    [h, 0.5, 1, -0.5, h, -1],
-  ];
-}
-
-function spectreConstructionLines() {
-  const families = new Map();
-  SPECTRE_CARTESIAN.forEach((start, index) => {
-    const end = SPECTRE_CARTESIAN[(index + 1) % SPECTRE_CARTESIAN.length];
-    let dx = end.x - start.x;
-    let dy = end.y - start.y;
-    const length = Math.hypot(dx, dy) || 1;
-    dx /= length;
-    dy /= length;
-    if (dx < -1e-6 || (Math.abs(dx) < 1e-6 && dy < 0)) {
-      dx *= -1;
-      dy *= -1;
-    }
-    const nx = -dy;
-    const ny = dx;
-    const angle = Math.round(Math.atan2(dy, dx) * 180 / Math.PI);
-    const offset = nx * start.x + ny * start.y;
-    const family = families.get(angle) || { dx, dy, nx, ny, offsets: [] };
-    if (!family.offsets.some((candidate) => Math.abs(candidate - offset) < 1e-6)) family.offsets.push(offset);
-    families.set(angle, family);
-  });
-
-  return [...families.values()].flatMap(({ dx, dy, nx, ny, offsets }) => offsets.map((offset) => {
-      const center = { x: nx * offset, y: ny * offset };
-      return [
-        cartesianToLattice({ x: center.x - dx * 12, y: center.y - dy * 12 }),
-        cartesianToLattice({ x: center.x + dx * 12, y: center.y + dy * 12 }),
-      ];
-  }));
-}
-
-function snapToSpectreConstruction(point, step) {
-  if (!step) return point;
-  const target = latticeToCartesian(point);
-  let nearest = null;
-  SPECTRE_CARTESIAN.forEach((start, index) => {
-    const end = SPECTRE_CARTESIAN[(index + 1) % SPECTRE_CARTESIAN.length];
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const length = Math.hypot(dx, dy) || 1;
-    const ux = dx / length;
-    const uy = dy / length;
-    const along = (target.x - start.x) * ux + (target.y - start.y) * uy;
-    const snappedAlong = Math.round(along / step) * step;
-    const candidate = { x: start.x + ux * snappedAlong, y: start.y + uy * snappedAlong };
-    const distance = Math.hypot(candidate.x - target.x, candidate.y - target.y);
-    if (!nearest || distance < nearest.distance) nearest = { ...candidate, distance };
-  });
-  return cartesianToLattice(nearest);
-}
-
-function nearestPolygonBoundary(point, cartesianPoints) {
-  const target = latticeToCartesian(point);
-  const nearest = nearestPolygonBoundaryCartesian(target, cartesianPoints);
-  return { ...nearest, point: cartesianToLattice(nearest.point) };
-}
-
-function nearestPolygonBoundaryCartesian(target, cartesianPoints) {
-  let nearest = null;
-  cartesianPoints.forEach((start, edge) => {
-    const end = cartesianPoints[(edge + 1) % cartesianPoints.length];
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const lengthSquared = dx * dx + dy * dy;
-    const rawT = lengthSquared ? ((target.x - start.x) * dx + (target.y - start.y) * dy) / lengthSquared : 0;
-    const t = Math.max(0, Math.min(1, rawT));
-    const projected = { x: start.x + dx * t, y: start.y + dy * t };
-    const distance = Math.hypot(projected.x - target.x, projected.y - target.y);
-    if (!nearest || distance < nearest.distance) nearest = { point: projected, edge, t, distance };
-  });
-  return nearest;
-}
-
-function translatePoints(points, x, y) {
-  return points.map(([pointX, pointY]) => [pointX + x, pointY + y]);
-}
-
-function rotatePoints(points, degrees) {
-  const radians = degrees * Math.PI / 180;
-  const cosine = Math.cos(radians);
-  const sine = Math.sin(radians);
-  const center = points.reduce((sum, [x, y]) => ({
-    x: sum.x + x / points.length,
-    y: sum.y + y / points.length,
-  }), { x: 0, y: 0 });
-  return points.map(([x, y]) => {
-    const dx = x - center.x;
-    const dy = y - center.y;
-    return [
-      center.x + dx * cosine - dy * sine,
-      center.y + dx * sine + dy * cosine,
-    ];
-  });
-}
-
-function cosDegrees(degrees) {
-  return Math.cos(degrees * Math.PI / 180);
-}
-
-function sinDegrees(degrees) {
-  return Math.sin(degrees * Math.PI / 180);
-}
-
-const PENROSE_RHOMB_POINTS = {
-  thin: [
-    [0, 0],
-    [cosDegrees(18), -sinDegrees(18)],
-    [2 * cosDegrees(18), 0],
-    [cosDegrees(18), sinDegrees(18)],
-  ],
-  thick: [
-    [0, 0],
-    [cosDegrees(54), sinDegrees(54)],
-    [cosDegrees(54) + cosDegrees(18), sinDegrees(54) - sinDegrees(18)],
-    [cosDegrees(18), -sinDegrees(18)],
-  ],
-};
-
-const PENROSE_P1_POINTS = {
-  pentagon: [
-    [0, 0],
-    [cosDegrees(108), sinDegrees(108)],
-    [1 + cosDegrees(72) + cosDegrees(144), sinDegrees(72) + sinDegrees(144)],
-    [1 + cosDegrees(72), sinDegrees(72)],
-    [1, 0],
-  ],
-  star: [
-    [1, 0],
-    [1 - cosDegrees(36), -sinDegrees(36)],
-    [1 - cosDegrees(36) - cosDegrees(108), -sinDegrees(36) - sinDegrees(108)],
-    [cosDegrees(108), -sinDegrees(108)],
-    [-1 + 3 * cosDegrees(108) + cosDegrees(36), -sinDegrees(36) - sinDegrees(108)],
-    [-1 + 2 * cosDegrees(108) + cosDegrees(36), -sinDegrees(36)],
-    [-1 + 2 * cosDegrees(108), 0],
-    [2 * cosDegrees(108), 0],
-    [cosDegrees(108), sinDegrees(108)],
-    [0, 0],
-  ],
-  boat: [
-    [-1 + 2 * cosDegrees(108), 0],
-    [2 * cosDegrees(108), 0],
-    [cosDegrees(108), sinDegrees(108)],
-    [0, 0],
-    [1, 0],
-    [1 - cosDegrees(36), -sinDegrees(36)],
-    [-1 + 2 * cosDegrees(108) + cosDegrees(36), -sinDegrees(36)],
-  ],
-  diamond: [
-    [0, 0],
-    [cosDegrees(18), sinDegrees(18)],
-    [2 * cosDegrees(18), 0],
-    [cosDegrees(18), -sinDegrees(18)],
-  ],
-};
-
-function penroseAdapter({ family, label, tileMode, shapes }) {
-  const resolvedShapes = shapes.map((shape) => ({
-    ...shape,
-    points: shape.points.map(([x, y]) => ({ x, y })),
-  }));
-  const editorShapes = resolvedShapes;
-  const allPoints = resolvedShapes.flatMap((shape) => shape.points);
-  return {
-    family,
-    tile: "penrose",
-    tileMode,
-    label,
-    // `points` remains the primary editable shape for backwards-compatible
-    // tools; `shapes` is the complete, truthful tile combination preview.
-    points: resolvedShapes[0].points,
-    allPoints,
-    shapes: resolvedShapes,
-    editorShapes,
-    centerCanvas: true,
-    nearestBoundary: (point) => resolvedShapes
-      .map((shape) => nearestPolygonBoundary(point, shape.points))
-      .reduce((nearest, candidate) => candidate.distance < nearest.distance ? candidate : nearest),
-    snapPoint: snapCartesianPoint,
-    cartesianGridLines: cartesianGridLines(),
-    defaultGridMode: "cartesian",
-    previewTransforms: [[1, 0, 0, 0, 1, 0]],
-    previewStroke: "#050806",
-    outlineD: null,
-  };
-}
-
-function penroseMaterialTransform(points) {
-  const [origin, unit, third] = points;
-  const root = Math.sqrt(3) / 2;
-  const ax = unit.x - origin.x;
-  const ay = unit.y - origin.y;
-  const cx = (third.x - origin.x - ax / 2) / root;
-  const cy = (third.y - origin.y - ay / 2) / root;
-  const determinant = ax * cy - ay * cx;
-  return {
-    materialScale: Math.hypot(ax, ay),
-    materialToShape: (point) => ({
-      x: origin.x + ax * point.x + cx * point.y,
-      y: origin.y + ay * point.x + cy * point.y,
-    }),
-    shapeToMaterial: (point) => {
-      const dx = point.x - origin.x;
-      const dy = point.y - origin.y;
-      return {
-        x: (dx * cy - dy * cx) / determinant,
-        y: (ax * dy - ay * dx) / determinant,
-      };
-    },
-  };
-}
-
-export function penroseTileEditorGeometry(geometry, tileType) {
-  const shape = geometry.editorShapes?.find((candidate) => candidate.tileType === tileType) || geometry.editorShapes?.[0];
-  if (!shape) return geometry;
-  const materialTransform = penroseMaterialTransform(shape.points);
-  const materialPoints = shape.points.map((point) => cartesianToLattice(materialTransform.shapeToMaterial(point)));
-  const centerShape = shape.points.reduce((sum, point) => ({
-    x: sum.x + point.x / shape.points.length,
-    y: sum.y + point.y / shape.points.length,
-  }), { x: 0, y: 0 });
-  const centerMaterial = materialTransform.shapeToMaterial(centerShape);
-  const center = cartesianToLattice(centerMaterial);
-  const centerBoundary = nearestPolygonBoundaryCartesian(centerShape, shape.points);
-  const boundaryMaterial = materialTransform.shapeToMaterial(centerBoundary.point);
-  const insetRadius = Math.max(0.125, Math.hypot(
-    boundaryMaterial.x - centerMaterial.x,
-    boundaryMaterial.y - centerMaterial.y,
-  ) * 0.35);
-  const start = materialPoints[0];
-  const end = materialPoints[Math.floor(materialPoints.length / 2)];
-  const interpolate = (from, to, amount) => ({
-    u: from.u + (to.u - from.u) * amount,
-    v: from.v + (to.v - from.v) * amount,
-  });
-  const arcOffset = insetRadius * 0.8;
-  const screenCartesianGridLines = geometry.cartesianGridLines.map(([startPoint, endPoint]) => [startPoint, endPoint].map((point) => (
-    cartesianToLattice(materialTransform.shapeToMaterial(latticeToCartesian(point)))
-  )));
-  return {
-    ...geometry,
-    label: `${geometry.label} · ${shape.name}`,
-    points: shape.points,
-    allPoints: shape.points,
-    fitCanvas: true,
-    ...materialTransform,
-    materialVertices: materialPoints,
-    cartesianGridLines: screenCartesianGridLines,
-    snapCartesianPoint: (point, step) => {
-      if (!step) return point;
-      const shapePoint = materialTransform.materialToShape(latticeToCartesian(point));
-      return cartesianToLattice(materialTransform.shapeToMaterial({
-        x: Math.round(shapePoint.x / step) * step,
-        y: Math.round(shapePoint.y / step) * step,
-      }));
-    },
-    defaultElements: {
-      pathPoints: [start, interpolate(start, end, 1 / 3), interpolate(start, end, 2 / 3), end],
-      linePoints: [start, end],
-      circleCenter: center,
-      circleRadius: insetRadius,
-      circularPathPoints: [
-        cartesianToLattice({ x: centerMaterial.x - arcOffset, y: centerMaterial.y }),
-        center,
-        cartesianToLattice({ x: centerMaterial.x + arcOffset, y: centerMaterial.y }),
-      ],
-    },
-    // A Penrose material layer is authored against exactly one prototile.
-    // Deliberately omit the reference-shape collection so TileShape clips to
-    // just this selected shape rather than the whole family at once.
-    shapes: null,
-    nearestBoundary: (point) => {
-      const shapePoint = materialTransform.materialToShape(latticeToCartesian(point));
-      const nearest = nearestPolygonBoundaryCartesian(shapePoint, shape.points);
-      return {
-        ...nearest,
-        point: cartesianToLattice(materialTransform.shapeToMaterial(nearest.point)),
-      };
-    },
-  };
-}
-
-const GEOMETRY_ADAPTERS = {
-  einstein: {
-    family: "einstein",
-    tile: "einstein-hat",
-    label: "Einstein",
-    points: HAT_CARTESIAN,
-    nearestBoundary: nearestBoundaryPoint,
-    snapPoint: snapLatticePoint,
-    cartesianGridLines: cartesianGridLines(),
-    outlineD: null,
-  },
-  spectre: {
-    family: "spectre",
-    tile: "spectre",
-    label: "Spectre",
-    points: SPECTRE_CARTESIAN,
-    centerCanvas: true,
-    nearestBoundary: (point) => nearestPolygonBoundary(point, SPECTRE_CARTESIAN),
-    snapPoint: snapToSpectreConstruction,
-    gridLines: spectreConstructionLines(),
-    cartesianGridLines: cartesianGridLines(),
-    previewTransforms: spectrePreviewTransforms(),
-    previewReflectX: true,
-    previewRotation: 150,
-    previewStroke: "#050806",
-    outlineD: (design, mapper) => spectrePath(
-      SPECTRE_POINTS,
+  if (geometry.family === "einstein") {
+    geometry.snapPoint = (point, step) => studioCall("snapLatticePoint", { point, step });
+  } else if (geometry.family === "spectre") {
+    geometry.snapPoint = (point, step) => studioCall("snapSpectreConstruction", { point, step });
+    geometry.outlineD = (design, mapper) => spectrePath(
+      geometry.points.map(({ x, y }) => [x, y]),
       design.tileShape?.roundness ?? 0.18,
       design.tileShape?.lean ?? 1,
       design.tileShape?.weight ?? 0.5,
       ([x, y]) => mapper(cartesianToLattice({ x, y })),
-    ),
-  },
-  "penrose-kite-dart": penroseAdapter({
-    family: "penrose-kite-dart",
-    label: "Penrose P2 · Kite & Dart",
-    tileMode: "kite-dart",
-    shapes: [
-      { name: "Dart", tileType: "dart", points: translatePoints(rotatePoints([[0, 0], [0.3090169944, -0.9510565163], [0.8090169944, -0.5877852523], [1, 0]], -18), -1.25, 0.6) },
-      { name: "Kite", tileType: "kite", points: translatePoints([[0, 0], [0.1909830056, -0.5877852523], [0, -1.1755705046], [0.8090169944, -0.5877852523]], 0.25, 0.6) },
-    ],
-  }),
-  "penrose-rhombs": penroseAdapter({
-    family: "penrose-rhombs",
-    label: "Penrose P3 · Rhombs",
-    tileMode: "rhombs",
-    shapes: [
-      { name: "Thin rhomb", tileType: "thin-rhomb", points: translatePoints(PENROSE_RHOMB_POINTS.thin, -1.4, 0) },
-      { name: "Thick rhomb", tileType: "thick-rhomb", points: translatePoints(PENROSE_RHOMB_POINTS.thick, 0.55, 0) },
-    ],
-  }),
-  "penrose-p1": penroseAdapter({
-    family: "penrose-p1",
-    label: "Penrose P1 · Stars",
-    tileMode: "p1",
-    // These point sequences match the native P1 renderer's four primitives.
-    shapes: [
-      { name: "Pentagon", tileType: "pentagon", points: translatePoints(PENROSE_P1_POINTS.pentagon, -1.9, 0.9) },
-      { name: "Star", tileType: "star", points: translatePoints(PENROSE_P1_POINTS.star, 1.4, 0.9) },
-      { name: "Boat", tileType: "boat", points: translatePoints(PENROSE_P1_POINTS.boat, -1.1, -1.5) },
-      { name: "Diamond", tileType: "diamond", points: translatePoints(PENROSE_P1_POINTS.diamond, 1.2, -1.5) },
-    ],
-  }),
-};
+    );
+  } else {
+    geometry.snapPoint = snapCartesianPoint;
+  }
+  return geometry;
+}
+
+export function penroseTileEditorGeometry(geometry, tileType) {
+  if (geometry.tile !== "penrose") return geometry;
+  const raw = studioCall("penroseEditorGeometry", { family: geometry.family, tileType });
+  const hydrated = hydrateGeometry(raw);
+  hydrated.materialToShape = (point) => applyTransform(raw.materialTransform, point);
+  hydrated.shapeToMaterial = (point) => applyTransform(raw.shapeTransform, point);
+  hydrated.nearestBoundary = (point) => studioCall("penroseNearestBoundary", {
+    family: geometry.family,
+    tileType: raw.activeTileType,
+    point,
+  });
+  hydrated.snapCartesianPoint = (point, step) => studioCall("snapPenroseCartesian", {
+    family: geometry.family,
+    tileType: raw.activeTileType,
+    point,
+    step,
+  });
+  return hydrated;
+}
 
 export function geometryAdapterFor(family) {
-  return GEOMETRY_ADAPTERS[family] || GEOMETRY_ADAPTERS.einstein;
+  const supported = ["einstein", "spectre", "penrose-kite-dart", "penrose-rhombs", "penrose-p1"];
+  return hydrateGeometry(studioCall("geometryAdapter", {
+    family: supported.includes(family) ? family : "einstein",
+  }));
 }

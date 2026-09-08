@@ -5,9 +5,8 @@ mod rhombs_logic;
 use std::fs;
 use std::path::Path;
 
-use aperiodos_render_core::{
-    render_studio_elements, Affine, Polygon, Renderer, Scene, Vec2 as ScenePoint,
-};
+use aperiodos_render_core::{Affine, Polygon, Renderer, Scene, Vec2 as ScenePoint};
+use aperiodos_studio::render_studio_elements;
 use serde_json::{json, Value};
 
 use crate::math::Vec2;

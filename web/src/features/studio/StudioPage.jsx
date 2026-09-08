@@ -36,14 +36,9 @@ import {
   InspectorToggleField,
 } from "./widgets/InspectorFields";
 import StudioSurface from "./widgets/StudioSurface";
+import { loadStudioRuntime, studioCall } from "./studioRuntime";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
-const H_CLUSTER_TRANSFORMS = [
-  [0.25, 0.4330127019, 1.375, -0.4330127019, 0.25, -2.3815698598],
-  [0.25, 0.4330127019, 2.875, -0.4330127019, 0.25, 0.2165063516],
-  [-0.5, 0, 1.375, 0, -0.5, -0.6495190522],
-  [-0.5, 0, 2.875, 0, 0.5, -1.5155444562],
-];
 const H_CLUSTER_VIEWBOX = { x: -65.5, y: -86, width: 540, height: 432 };
 
 function canvasScaleFor(geometry) {
@@ -163,18 +158,6 @@ function circularPathD(path, mapper = toCanvas) {
   }).join(" ")).join(" ");
 }
 
-function latticeLines() {
-  const lines = [];
-  const low = -7;
-  const high = 8;
-  for (let index = low; index <= high; index += 1) {
-    lines.push([{ u: index, v: low }, { u: index, v: high }]);
-    lines.push([{ u: low, v: index }, { u: high, v: index }]);
-    lines.push([{ u: low, v: index - low }, { u: high, v: index - high }]);
-  }
-  return lines;
-}
-
 function transformCartesian(point, transform) {
   const cartesian = latticeToCartesian(point);
   return {
@@ -232,10 +215,6 @@ function fittedClusterMappers(transforms, geometry) {
   });
 }
 
-function xmlEscape(value) {
-  return String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
 function downloadBlob(filename, content, type) {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const link = document.createElement("a");
@@ -250,26 +229,25 @@ function safeFilename(name) {
 }
 
 function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectre" ? "spectre" : "einstein")) {
-  const mapper = canvasMapperFor(geometry);
-  const tilePoints = pointsAttribute(geometry.points.map(cartesianToLattice));
-  const tileShape = geometry.outlineD
-    ? `<path d="${geometry.outlineD(design, mapper)}"`
-    : geometry.shapes
-      ? `<g>${geometry.shapes.map((shape) => `<polygon points="${pointsAttribute(shape.points.map(cartesianToLattice))}" />`).join("")}</g>`
-    : `<polygon points="${tilePoints}"`;
-  const layers = getDesignLayers(design).map(({ kind, item }) => {
-    if (kind === "circle") {
-      const center = mapper(item.center);
-      const fill = item.operation === "ink" ? elementMaterialColor(design, item) : design.colors.base;
-      return `<circle cx="${center.x.toFixed(2)}" cy="${center.y.toFixed(2)}" r="${(item.radius * CANVAS.scale).toFixed(2)}" fill="${xmlEscape(fill)}" />`;
-    }
-    const pathData = kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper);
-    return `<path d="${pathData}" fill="none" stroke="${xmlEscape(elementMaterialColor(design, item))}" stroke-width="${(item.width * CANVAS.scale).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" />`;
-  }).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS.width} ${CANVAS.height}" width="${CANVAS.width}" height="${CANVAS.height}"><title>${xmlEscape(design.name)}</title><defs><clipPath id="tile">${tileShape} /></clipPath></defs><rect width="100%" height="100%" fill="white"/>${tileShape} fill="${xmlEscape(design.colors.base)}"/><g clip-path="url(#tile)">${layers}</g>${tileShape} fill="none" stroke="${xmlEscape(design.outline || "#17313b")}" stroke-width="${Number(design.strokeWidth ?? 2).toFixed(2)}" stroke-linejoin="round"/></svg>`;
+  return studioCall("exportSvg", { design, tileType: geometry.activeTileType });
 }
 
 export default function StudioPage() {
+  const [runtimeState, setRuntimeState] = useState("loading");
+  useEffect(() => {
+    let active = true;
+    loadStudioRuntime().then(
+      () => { if (active) setRuntimeState("ready"); },
+      () => { if (active) setRuntimeState("failed"); },
+    );
+    return () => { active = false; };
+  }, []);
+  if (runtimeState === "loading") return <div className="studio-preview-loading">Loading Studio geometry…</div>;
+  if (runtimeState === "failed") return <div className="studio-preview-loading">Studio geometry could not be loaded.</div>;
+  return <LoadedStudioPage />;
+}
+
+function LoadedStudioPage() {
   const [family, setFamily] = useState("einstein");
   const [drafts, setDrafts] = useState({});
   const [lineWidths, setLineWidths] = useState({ einstein: 0.7, spectre: 0.7, "penrose-kite-dart": 0.7, "penrose-rhombs": 0.7, "penrose-p1": 0.7 });
@@ -315,7 +293,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const importRef = useRef(null);
   const grid = useMemo(() => gridMode === "cartesian"
     ? geometry.cartesianGridLines
-    : geometry.gridLines || latticeLines(), [geometry, gridMode]);
+    : geometry.gridLines, [geometry, gridMode]);
   const selectedCircle = (design.circles || []).find((circle) => circle.id === selectedCircleId);
   const selectedCircularPath = (design.circularPaths || []).find((path) => path.id === selectedCircularPathId);
   const selectedLine = (design.lines || []).find((line) => line.id === selectedLineId);
@@ -1194,7 +1172,7 @@ function TileShape({ design, geometry, mapper, ...props }) {
 function ClusterPreview({ design, geometry }) {
   if (geometry.tile === "penrose") return <GeneratedPenrosePreview design={design} geometry={geometry} />;
 
-  const transforms = geometry.previewTransforms || H_CLUSTER_TRANSFORMS;
+  const transforms = geometry.previewTransforms;
   const fittedMappers = geometry.previewTransforms ? fittedClusterMappers(transforms, geometry) : null;
   const previewDesign = geometry.previewDesign ? geometry.previewDesign(design) : design;
   return (
