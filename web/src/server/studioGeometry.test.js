@@ -20,7 +20,7 @@ import {
 } from "../features/studio/einsteinGeometry.js";
 import { getEinsteinStudioPatterns, getPenroseStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns, readStudioLibrary, writeStudioLibrary } from "../features/studio/patternLibrary.js";
 import { SPECTRE_POINTS, spectreEdgeControl, spectrePath } from "../features/studio/spectreGeometry.js";
-import { cartesianGridLines, geometryAdapterFor, snapCartesianPoint } from "../features/studio/studioGeometryAdapters.js";
+import { cartesianGridLines, geometryAdapterFor, penroseTileEditorGeometry, snapCartesianPoint } from "../features/studio/studioGeometryAdapters.js";
 
 function createDesignWithCircularPath() {
   const design = createEmptyDesign();
@@ -212,6 +212,23 @@ test("Penrose Studio P3 and P1 shapes retain their native unit edges", () => {
 
   const [thin, thick] = geometryAdapterFor("penrose-rhombs").shapes;
   assert.ok(Math.max(...thin.points.map((point) => point.x)) < Math.min(...thick.points.map((point) => point.x)));
+});
+
+test("Penrose Studio isolates each prototile in the generator's coordinate system", () => {
+  for (const family of ["penrose-kite-dart", "penrose-rhombs", "penrose-p1"]) {
+    const adapter = geometryAdapterFor(family);
+    adapter.editorShapes.forEach((shape) => {
+      const editor = penroseTileEditorGeometry(adapter, shape.tileType);
+      assert.equal(editor.shapes, null);
+      const [origin, unit, third] = editor.points;
+      const matches = (left, right) => Math.hypot(left.x - right.x, left.y - right.y) < 1e-9;
+      assert.ok(matches(editor.shapeToMaterial(origin), { x: 0, y: 0 }));
+      assert.ok(matches(editor.shapeToMaterial(unit), { x: 1, y: 0 }));
+      assert.ok(matches(editor.shapeToMaterial(third), { x: 0.5, y: Math.sqrt(3) / 2 }));
+      assert.ok(matches(editor.materialToShape({ x: 0, y: 0 }), origin));
+      assert.ok(matches(editor.materialToShape({ x: 1, y: 0 }), unit));
+    });
+  }
 });
 
 test("Penrose Studio designs retain their tile combination", () => {

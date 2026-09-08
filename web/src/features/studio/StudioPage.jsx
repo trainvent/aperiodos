@@ -21,7 +21,7 @@ import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
 import { renderBrowserPreview } from "../../lib/rendererPreview";
 import StudioFamilySwitch from "./StudioFamilySwitch";
 import MaterialLayerShapes from "./MaterialLayerShapes";
-import { geometryAdapterFor, snapCartesianPoint } from "./studioGeometryAdapters";
+import { geometryAdapterFor, penroseTileEditorGeometry, snapCartesianPoint } from "./studioGeometryAdapters";
 import {
   InspectorActions,
   InspectorGroup,
@@ -46,24 +46,38 @@ const H_CLUSTER_TRANSFORMS = [
 ];
 const H_CLUSTER_VIEWBOX = { x: -65.5, y: -86, width: 540, height: 432 };
 
-function toCanvas(point) {
-  const cartesian = latticeToCartesian(point);
+function canvasScaleFor(geometry) {
+  if (!geometry.fitCanvas) return CANVAS.scale;
+  const points = geometry.allPoints || geometry.points;
+  const bounds = points.reduce((result, point) => ({
+    minX: Math.min(result.minX, point.x),
+    maxX: Math.max(result.maxX, point.x),
+    minY: Math.min(result.minY, point.y),
+    maxY: Math.max(result.maxY, point.y),
+  }), { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
+  const padding = 120;
+  return Math.min(
+    (CANVAS.width - padding * 2) / Math.max(bounds.maxX - bounds.minX, 0.5),
+    (CANVAS.height - padding * 2) / Math.max(bounds.maxY - bounds.minY, 0.5),
+  );
+}
+
+function toCanvasCartesian(cartesian, scale = CANVAS.scale) {
   return {
-    x: CANVAS.width - (CANVAS.originX + cartesian.x * CANVAS.scale),
-    y: CANVAS.height - (CANVAS.originY - cartesian.y * CANVAS.scale),
+    x: CANVAS.width - (CANVAS.originX + cartesian.x * scale),
+    y: CANVAS.height - (CANVAS.originY - cartesian.y * scale),
   };
 }
 
-function fromCanvas(point) {
-  return cartesianToLattice({
-    x: (CANVAS.width - point.x - CANVAS.originX) / CANVAS.scale,
-    y: (point.y + CANVAS.originY - CANVAS.height) / CANVAS.scale,
-  });
+function toCanvas(point, scale = CANVAS.scale, geometry) {
+  const materialPoint = latticeToCartesian(point);
+  return toCanvasCartesian(geometry?.materialToShape ? geometry.materialToShape(materialPoint) : materialPoint, scale);
 }
 
 function canvasOffsetFor(geometry) {
   if (!geometry.centerCanvas) return { x: 0, y: 0 };
-  const points = (geometry.allPoints || geometry.points).map((point) => toCanvas(cartesianToLattice(point)));
+  const scale = canvasScaleFor(geometry);
+  const points = (geometry.allPoints || geometry.points).map((point) => toCanvasCartesian(point, scale));
   const bounds = points.reduce((result, point) => ({
     minX: Math.min(result.minX, point.x),
     maxX: Math.max(result.maxX, point.x),
@@ -78,18 +92,34 @@ function canvasOffsetFor(geometry) {
 
 function canvasMapperFor(geometry) {
   const offset = canvasOffsetFor(geometry);
-  return (point) => {
-    const mapped = toCanvas(point);
+  const scale = canvasScaleFor(geometry);
+  const mapper = (point) => {
+    const mapped = toCanvas(point, scale, geometry);
     return { x: mapped.x + offset.x, y: mapped.y + offset.y };
   };
+  mapper.scale = scale;
+  return mapper;
 }
 
 function fromGeometryCanvas(point, geometry) {
   const offset = canvasOffsetFor(geometry);
-  return fromCanvas({ x: point.x - offset.x, y: point.y - offset.y });
+  const scale = canvasScaleFor(geometry);
+  const shapePoint = {
+    x: (CANVAS.width - (point.x - offset.x) - CANVAS.originX) / scale,
+    y: (point.y - offset.y + CANVAS.originY - CANVAS.height) / scale,
+  };
+  const materialPoint = geometry.shapeToMaterial ? geometry.shapeToMaterial(shapePoint) : shapePoint;
+  return cartesianToLattice(materialPoint);
 }
 
 function pointsAttribute(points, mapper = toCanvas) {
+  return points.map((point) => {
+    const mapped = mapper(point);
+    return `${mapped.x.toFixed(2)},${mapped.y.toFixed(2)}`;
+  }).join(" ");
+}
+
+function cartesianPointsAttribute(points, mapper) {
   return points.map((point) => {
     const mapped = mapper(point);
     return `${mapped.x.toFixed(2)},${mapped.y.toFixed(2)}`;
@@ -244,12 +274,16 @@ export default function StudioPage() {
 
 function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftChange, cachedLineWidth, onLineWidthChange }) {
   const { t } = useTranslation("common");
-  const geometry = useMemo(() => geometryAdapterFor(family), [family]);
+  const familyGeometry = useMemo(() => geometryAdapterFor(family), [family]);
+  const [activePenroseTileType, setActivePenroseTileType] = useState(() => familyGeometry.editorShapes?.[0]?.tileType || "");
+  const geometry = useMemo(() => familyGeometry.tile === "penrose"
+    ? penroseTileEditorGeometry(familyGeometry, activePenroseTileType)
+    : familyGeometry, [familyGeometry, activePenroseTileType]);
   const mapToCanvas = useMemo(() => canvasMapperFor(geometry), [geometry]);
   const emptyDesign = () => ({
     ...createEmptyDesign(geometry.tile),
     ...(geometry.tileMode ? { tileMode: geometry.tileMode } : {}),
-    name: family === "spectre" ? t("studio.spectre.untitled") : geometry.tile === "penrose" ? `Untitled ${geometry.label} pattern` : t("studio.templates.untitled"),
+    name: family === "spectre" ? t("studio.spectre.untitled") : geometry.tile === "penrose" ? `Untitled ${familyGeometry.label} pattern` : t("studio.templates.untitled"),
   });
   const [design, setDesign] = useState(() => cachedDesign ? cloneDesign(cachedDesign) : emptyDesign());
   const [selectedPathId, setSelectedPathId] = useState(null);
@@ -267,7 +301,6 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const [drag, setDrag] = useState(null);
   const [status, setStatus] = useState("");
   const [treeMode, setTreeMode] = useState("layers");
-  const [activePenroseTileType, setActivePenroseTileType] = useState(() => geometry.shapes?.[0]?.tileType || "");
   const [transformExpanded, setTransformExpanded] = useState(false);
   const importRef = useRef(null);
   const grid = useMemo(() => gridMode === "cartesian"
@@ -279,6 +312,9 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const selectedPath = !selectedLine && !selectedCircle && !selectedCircularPath
     ? design.paths.find((path) => path.id === selectedPathId) || (selectedPathId ? design.paths[0] : null)
     : null;
+  const visibleMaterialLayers = useMemo(() => getDesignLayers(design).filter(({ item }) => (
+    geometry.tile !== "penrose" || !item.tileType || item.tileType === activePenroseTileType
+  )), [design, geometry.tile, activePenroseTileType]);
   const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile && (geometry.tile !== "penrose" || item.tileMode === geometry.tileMode));
   const selectedExportDesign = familyDesigns.find((item) => item.id === selectedExportId) || null;
   const scopeNewElement = (element) => geometry.tile === "penrose" && activePenroseTileType
@@ -725,7 +761,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     return (
       <InspectorSelectField label={t("studio.controls.tileScope")} value={element.tileType || "all"} onChange={(tileType) => update({ tileType: tileType === "all" ? undefined : tileType })}>
         <option value="all">{t("studio.controls.allPenroseTiles")}</option>
-        {geometry.shapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name}</option>)}
+        {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name}</option>)}
       </InspectorSelectField>
     );
   }
@@ -792,12 +828,6 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
         <div className="studio-top-toolbar" role="toolbar" aria-label={t("studio.toolbar.aria")}>
           <div className="studio-toolbar-row studio-toolbar-main">
             <StudioFamilySwitch family={family} onChange={onFamilyChange} />
-            {geometry.tile === "penrose" ? <label className="studio-family-switch studio-penrose-tile-switch">
-              <span>{t("studio.toolbar.tileType")}</span>
-              <select value={activePenroseTileType} onChange={(event) => setActivePenroseTileType(event.target.value)}>
-                {geometry.shapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name}</option>)}
-              </select>
-            </label> : null}
             <label className="studio-toolbar-name">
               <span>{t("studio.controls.name")}</span>
               <input value={design.name} onChange={(event) => setDesign((current) => ({ ...current, name: event.target.value }))} />
@@ -858,6 +888,12 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             </div>
           </div>
           <div className="studio-tree" role="tree">
+            {geometry.tile === "penrose" ? <label className="studio-navigator-tile-selector">
+              <span>{t("studio.toolbar.tileType")}</span>
+              <select value={activePenroseTileType} onChange={(event) => setActivePenroseTileType(event.target.value)}>
+                {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name}</option>)}
+              </select>
+            </label> : null}
             <button type="button" className={`studio-tree-root${!selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={() => { setSelectedPathId(null); setSelectedLineId(null); setSelectedCircleId(null); setSelectedCircularPathId(null); }}><span>◇</span><strong>{design.name}</strong><small>{geometry.label}</small></button>
             {treeMode === "categories" ? (
               <>
@@ -938,12 +974,12 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             <TileShape design={design} geometry={geometry} className="studio-tile-fill" style={{ fill: design.colors.base }} />
             <g clipPath="url(#studio-tile-clip)">
               <MaterialLayerShapes
-                layers={getDesignLayers(design)}
+                layers={visibleMaterialLayers}
                 mapPoint={mapToCanvas}
                 colorFor={(item) => elementMaterialColor(design, item)}
                 baseColor={design.colors.base}
                 renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapToCanvas) : kind === "line" ? linePath(item.points, mapToCanvas) : circularPathD(item, mapToCanvas)}
-                strokeScale={CANVAS.scale}
+                strokeScale={mapToCanvas.scale}
                 onSelect={selectLayer}
                 selectedIds={{ path: selectedPathId, line: selectedLineId, circularPath: selectedCircularPathId }}
               />
@@ -1088,6 +1124,15 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 function TileShape({ design, geometry, mapper, ...props }) {
   const resolvedMapper = mapper || canvasMapperFor(geometry);
   if (geometry.outlineD) return <path d={geometry.outlineD(design, resolvedMapper)} {...props} />;
+  if (geometry.materialToShape && !mapper) {
+    const offset = canvasOffsetFor(geometry);
+    const scale = canvasScaleFor(geometry);
+    const shapeMapper = (point) => {
+      const mapped = toCanvasCartesian(point, scale);
+      return { x: mapped.x + offset.x, y: mapped.y + offset.y };
+    };
+    return <polygon points={cartesianPointsAttribute(geometry.points, shapeMapper)} {...props} />;
+  }
   if (geometry.shapes) return geometry.shapes.map((shape) => <polygon key={shape.name} points={pointsAttribute(shape.points.map(cartesianToLattice), resolvedMapper)} {...props} />);
   return <polygon points={pointsAttribute(geometry.points.map(cartesianToLattice), resolvedMapper)} {...props} />;
 }

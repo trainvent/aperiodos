@@ -184,6 +184,7 @@ function penroseAdapter({ family, label, tileMode, shapes }) {
     ...shape,
     points: shape.points.map(([x, y]) => ({ x, y })),
   }));
+  const editorShapes = resolvedShapes;
   const allPoints = resolvedShapes.flatMap((shape) => shape.points);
   return {
     family,
@@ -195,6 +196,7 @@ function penroseAdapter({ family, label, tileMode, shapes }) {
     points: resolvedShapes[0].points,
     allPoints,
     shapes: resolvedShapes,
+    editorShapes,
     centerCanvas: true,
     nearestBoundary: (point) => resolvedShapes
       .map((shape) => nearestPolygonBoundary(point, shape.points))
@@ -205,6 +207,49 @@ function penroseAdapter({ family, label, tileMode, shapes }) {
     previewTransforms: [[1, 0, 0, 0, 1, 0]],
     previewStroke: "#050806",
     outlineD: null,
+  };
+}
+
+function penroseMaterialTransform(points) {
+  const [origin, unit, third] = points;
+  const root = Math.sqrt(3) / 2;
+  const ax = unit.x - origin.x;
+  const ay = unit.y - origin.y;
+  const cx = (third.x - origin.x - ax / 2) / root;
+  const cy = (third.y - origin.y - ay / 2) / root;
+  const determinant = ax * cy - ay * cx;
+  return {
+    materialToShape: (point) => ({
+      x: origin.x + ax * point.x + cx * point.y,
+      y: origin.y + ay * point.x + cy * point.y,
+    }),
+    shapeToMaterial: (point) => {
+      const dx = point.x - origin.x;
+      const dy = point.y - origin.y;
+      return {
+        x: (dx * cy - dy * cx) / determinant,
+        y: (ax * dy - ay * dx) / determinant,
+      };
+    },
+  };
+}
+
+export function penroseTileEditorGeometry(geometry, tileType) {
+  const shape = geometry.editorShapes?.find((candidate) => candidate.tileType === tileType) || geometry.editorShapes?.[0];
+  if (!shape) return geometry;
+  const materialTransform = penroseMaterialTransform(shape.points);
+  return {
+    ...geometry,
+    label: `${geometry.label} · ${shape.name}`,
+    points: shape.points,
+    allPoints: shape.points,
+    fitCanvas: true,
+    ...materialTransform,
+    // A Penrose material layer is authored against exactly one prototile.
+    // Deliberately omit the reference-shape collection so TileShape clips to
+    // just this selected shape rather than the whole family at once.
+    shapes: null,
+    nearestBoundary: (point) => nearestPolygonBoundary(point, shape.points),
   };
 }
 
