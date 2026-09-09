@@ -1,15 +1,4 @@
-let rendererModulePromise;
-
-async function rendererModule() {
-  if (!rendererModulePromise) {
-    rendererModulePromise = import(/* webpackIgnore: true */ "/wasm/aperiodos_render.js")
-      .then(async (module) => {
-        await module.default("/wasm/aperiodos_render_bg.wasm");
-        return module;
-      });
-  }
-  return rendererModulePromise;
-}
+import { loadRendererModule } from "./wasmRendererRuntime.js";
 
 function previewRecipe(generator, payload) {
   const maxDimension = Math.max(Number(payload.width) || 1024, Number(payload.height) || 1024);
@@ -47,6 +36,6 @@ function previewRecipe(generator, payload) {
 }
 
 export async function renderBrowserPreview(generator, payload) {
-  const module = await rendererModule();
+  const module = await loadRendererModule();
   return module.render_preview(generator, JSON.stringify(previewRecipe(generator, payload)));
 }

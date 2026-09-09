@@ -1,3 +1,5 @@
+import { loadRendererModule } from "../../lib/wasmRendererRuntime.js";
+
 let runtime;
 let runtimePromise;
 
@@ -12,11 +14,8 @@ export function installStudioRuntime(module) {
 export async function loadStudioRuntime() {
   if (runtime) return runtime;
   if (!runtimePromise) {
-    runtimePromise = import(/* webpackIgnore: true */ "/wasm/aperiodos_render.js")
-      .then(async (module) => {
-        await module.default("/wasm/aperiodos_render_bg.wasm");
-        return installStudioRuntime(module);
-      })
+    runtimePromise = loadRendererModule()
+      .then(installStudioRuntime)
       .catch((error) => {
         runtimePromise = undefined;
         throw error;

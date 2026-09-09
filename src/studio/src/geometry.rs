@@ -246,6 +246,7 @@ pub fn penrose_editor_geometry(family: &str, tile_type: &str) -> Result<Value, G
     geometry["materialTransform"] = json!(forward);
     geometry["shapeTransform"] = json!(inverse);
     geometry["materialScale"] = json!(material_scale);
+    geometry["cartesianRadiusStep"] = json!(CARTESIAN_GRID_STEP / material_scale);
     geometry["materialVertices"] = json!(material_vertices);
     geometry["cartesianGridLines"] = json!(cartesian_grid_lines);
     geometry["activeTileType"] = json!(shape.tile_type);
@@ -291,6 +292,33 @@ fn snap_penrose_cartesian(
             y: (point.y / step).round() * step
         }
     ))))
+}
+
+fn circle_through_vertex(
+    family: &str,
+    tile_type: Option<&str>,
+    center: LatticePoint,
+    vertex: LatticePoint,
+) -> Result<Value, GeometryError> {
+    let center = lattice_to_cartesian(center);
+    let vertex = lattice_to_cartesian(vertex);
+    let (center, vertex, material_scale) = if family.starts_with("penrose") {
+        let shape = selected_shape(family, tile_type.unwrap_or_default())?;
+        let (transform, _, material_scale) = material_transform(&shape.points);
+        (
+            apply(transform, center),
+            apply(transform, vertex),
+            material_scale,
+        )
+    } else {
+        (center, vertex, 1.0)
+    };
+    let dx = vertex.x - center.x;
+    let dy = vertex.y - center.y;
+    Ok(json!({
+        "radius": (dx.hypot(dy) / material_scale).max(0.125),
+        "handleAngle": dy.atan2(dx).to_degrees().rem_euclid(360.0),
+    }))
 }
 
 pub fn nearest_boundary(
@@ -873,7 +901,7 @@ pub fn geometry_adapter(family: &str) -> Result<Value, GeometryError> {
     let mut adapter = match family {
         "einstein" => json!({
             "family":"einstein","tile":"einstein-hat","label":"Einstein","points":points,"allPoints":all_points,
-            "gridLines":lattice_lines(),"cartesianGridLines":grid,"outlineD":null,
+            "materialVertices":HAT_LATTICE,"gridLines":lattice_lines(),"cartesianGridLines":grid,"outlineD":null,
             "previewTransforms":[
                 [0.25,0.4330127019,1.375,-0.4330127019,0.25,-2.3815698598],
                 [0.25,0.4330127019,2.875,-0.4330127019,0.25,0.2165063516],
@@ -883,6 +911,7 @@ pub fn geometry_adapter(family: &str) -> Result<Value, GeometryError> {
         }),
         "spectre" => json!({
             "family":"spectre","tile":"spectre","label":"Spectre","points":points,"allPoints":all_points,
+            "materialVertices":points.iter().copied().map(cartesian_to_lattice).collect::<Vec<_>>(),
             "centerCanvas":true,"gridLines":spectre_construction_lines(),"cartesianGridLines":grid,
             "previewTransforms":[[1.0,0.0,0.0,0.0,1.0,0.0],[ROOT,-0.5,-0.5-ROOT,0.5,ROOT,ROOT-0.5],[0.0,-1.0,2.5+3.0*ROOT,1.0,0.0,0.5+ROOT],[ROOT,0.5,1.0,-0.5,ROOT,-1.0]],
             "previewReflectX":true,"previewRotation":150.0,"previewStroke":"#050806",
@@ -903,6 +932,8 @@ pub fn geometry_adapter(family: &str) -> Result<Value, GeometryError> {
         }
         _ => unreachable!(),
     };
+    adapter["cartesianGridStep"] = json!(CARTESIAN_GRID_STEP);
+    adapter["cartesianRadiusStep"] = json!(CARTESIAN_GRID_STEP);
     adapter["nativeStudioApiVersion"] = json!(1);
     Ok(adapter)
 }
@@ -973,6 +1004,12 @@ pub fn call(operation: &str, input: &Value) -> Result<Value, GeometryError> {
                 .unwrap_or_default(),
             required(input, "point")?,
             required(input, "step")?,
+        ),
+        "circleThroughVertex" => circle_through_vertex(
+            &required::<String>(input, "family")?,
+            input.get("tileType").and_then(Value::as_str),
+            required(input, "center")?,
+            required(input, "vertex")?,
         ),
         "snapSpectreConstruction" => Ok(json!(snap_to_spectre_construction(
             required(input, "point")?,
@@ -1063,5 +1100,79 @@ mod tests {
         let path = spectre_path(&spectre_points(), 0.2, 1.0, 0.5);
         assert!(path.starts_with("M 0.0000 0.0000 Q "));
         assert!(path.ends_with(" Z"));
+    }
+
+    #[test]
+    fn circle_radius_can_land_exactly_on_every_family_corner() {
+        for family in [
+            "einstein",
+            "spectre",
+            "penrose-kite-dart",
+            "penrose-rhombs",
+            "penrose-p1",
+        ] {
+            let adapter = geometry_adapter(family).unwrap();
+            let tile_type = adapter["editorShapes"]
+                .as_array()
+                .and_then(|shapes| shapes.first())
+                .and_then(|shape| shape["tileType"].as_str())
+                .map(str::to_owned);
+            let editor = if let Some(tile_type) = tile_type.as_deref() {
+                penrose_editor_geometry(family, tile_type).unwrap()
+            } else {
+                adapter
+            };
+            let material_vertices: Vec<LatticePoint> =
+                serde_json::from_value(editor["materialVertices"].clone()).unwrap();
+            let center_lattice = editor["defaultElements"]["circleCenter"]
+                .as_object()
+                .map(|_| {
+                    serde_json::from_value(editor["defaultElements"]["circleCenter"].clone())
+                        .unwrap()
+                })
+                .unwrap_or(LatticePoint { u: 1.0, v: 1.0 });
+            let center_cartesian = lattice_to_cartesian(center_lattice);
+            let (center, vertices, scale) = if let Some(tile_type) = tile_type.as_deref() {
+                let shape = selected_shape(family, tile_type).unwrap();
+                let (transform, _, scale) = material_transform(&shape.points);
+                (
+                    apply(transform, center_cartesian),
+                    material_vertices
+                        .iter()
+                        .copied()
+                        .map(lattice_to_cartesian)
+                        .map(|vertex| apply(transform, vertex))
+                        .collect::<Vec<_>>(),
+                    scale,
+                )
+            } else {
+                (
+                    center_cartesian,
+                    material_vertices
+                        .iter()
+                        .copied()
+                        .map(lattice_to_cartesian)
+                        .collect::<Vec<_>>(),
+                    1.0,
+                )
+            };
+            for (material_vertex, vertex) in material_vertices.iter().copied().zip(vertices) {
+                let result = circle_through_vertex(
+                    family,
+                    tile_type.as_deref(),
+                    center_lattice,
+                    material_vertex,
+                )
+                .unwrap();
+                let dx = vertex.x - center.x;
+                let dy = vertex.y - center.y;
+                let distance = dx.hypot(dy);
+                let radius = result["radius"].as_f64().unwrap();
+                let angle = result["handleAngle"].as_f64().unwrap().to_radians();
+                close(radius * scale, distance);
+                close(angle.cos(), dx / distance);
+                close(angle.sin(), dy / distance);
+            }
+        }
     }
 }

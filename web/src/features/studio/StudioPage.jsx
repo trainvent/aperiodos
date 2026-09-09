@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   cartesianToLattice,
   circleHandlePoint,
+  circleThroughVertex,
   circularPathGeometry,
   cloneDesign,
   createEmptyDesign,
@@ -433,17 +434,27 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   function snapEditorPoint(point, step) {
     if (!step) return point;
     return gridMode === "cartesian"
-      ? (geometry.snapCartesianPoint || snapCartesianPoint)(point, step)
+      ? (geometry.snapCartesianPoint || snapCartesianPoint)(point, step * geometry.cartesianGridStep)
       : geometry.snapPoint(point, step);
   }
 
-  function snapTileVertex(point, canvasPoint) {
-    if (!geometry.materialVertices?.length) return point;
+  function radiusSnapStep(step) {
+    return gridMode === "cartesian" ? step * geometry.cartesianRadiusStep : step;
+  }
+
+  function tileVertexSnap(point, canvasPoint) {
+    if (!geometry.materialVertices?.length) return { point, snapped: false };
     const nearest = geometry.materialVertices
       .map((vertex) => ({ vertex, screen: mapToCanvas(vertex) }))
       .map(({ vertex, screen }) => ({ vertex, distance: Math.hypot(screen.x - canvasPoint.x, screen.y - canvasPoint.y) }))
       .reduce((best, candidate) => candidate.distance < best.distance ? candidate : best);
-    return nearest.distance <= 18 ? nearest.vertex : point;
+    return nearest.distance <= 18
+      ? { point: nearest.vertex, snapped: true }
+      : { point, snapped: false };
+  }
+
+  function snapTileVertex(point, canvasPoint) {
+    return tileVertexSnap(point, canvasPoint).point;
   }
 
   function handlePointerMove(event) {
@@ -457,8 +468,18 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     }
     if (drag.kind === "circle-radius") {
       const circle = (design.circles || []).find((candidate) => candidate.id === drag.circleId);
-      const latticeStep = snapMode === "grid" ? 1 : snapMode === "half" ? 0.5 : snapMode === "quarter" ? 0.25 : 0;
+      const latticeStep = radiusSnapStep(snapStep);
       const angleStep = snapMode === "free" ? 0 : 30;
+      const corner = tileVertexSnap(point, canvasPoint);
+      if (corner.snapped) {
+        updateCircle(drag.circleId, circleThroughVertex(
+          geometry.family,
+          geometry.activeTileType,
+          circle.center,
+          corner.point,
+        ));
+        return;
+      }
       if (geometry.materialToShape) {
         const center = mapToCanvas(circle.center);
         const rawRadius = Math.hypot(canvasPoint.x - center.x, canvasPoint.y - center.y) / mapToCanvas.scale;

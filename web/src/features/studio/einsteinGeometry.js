@@ -16,6 +16,10 @@ export function snapCircleHandle(center, handle, latticeStep = 0, angleStep = 30
   return studioCall("snapCircleHandle", { center, handle, latticeStep, angleStep });
 }
 
+export function circleThroughVertex(family, tileType, center, vertex) {
+  return studioCall("circleThroughVertex", { family, tileType, center, vertex });
+}
+
 export function circleHandlePoint(circle) {
   return studioCall("circleHandlePoint", {
     center: circle.center,

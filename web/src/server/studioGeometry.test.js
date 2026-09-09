@@ -7,6 +7,7 @@ import { installStudioRuntime, studioCall } from "../features/studio/studioRunti
 import {
   cartesianToLattice,
   circleHandlePoint,
+  circleThroughVertex,
   circularPathGeometry,
   createEmptyDesign,
   elementMaterialColor,
@@ -63,6 +64,33 @@ test("Einstein studio endpoints bind to numbered tile edges", () => {
   assert.ok(port.edge >= 0 && port.edge < 13);
   assert.ok(port.t >= 0 && port.t <= 1);
   assert.ok(port.distance >= 0);
+});
+
+test("Circle radius handles snap exactly to native tile corners", () => {
+  for (const family of ["einstein", "spectre", "penrose-kite-dart", "penrose-rhombs", "penrose-p1"]) {
+    const familyGeometry = geometryAdapterFor(family);
+    const geometry = familyGeometry.tile === "penrose"
+      ? penroseTileEditorGeometry(familyGeometry, familyGeometry.editorShapes[0].tileType)
+      : familyGeometry;
+    assert.ok(geometry.materialVertices.length > 0);
+    const center = geometry.defaultElements?.circleCenter || { u: 1, v: 1 };
+    for (const vertex of geometry.materialVertices) {
+      const snapped = circleThroughVertex(geometry.family, geometry.activeTileType, center, vertex);
+      assert.ok(snapped.radius >= 0.125);
+      assert.ok(snapped.handleAngle >= 0 && snapped.handleAngle < 360);
+    }
+  }
+});
+
+test("Cartesian snapping units represent visible grid blocks", () => {
+  for (const family of ["einstein", "spectre", "penrose-kite-dart", "penrose-rhombs", "penrose-p1"]) {
+    const familyGeometry = geometryAdapterFor(family);
+    const geometry = familyGeometry.tile === "penrose"
+      ? penroseTileEditorGeometry(familyGeometry, familyGeometry.editorShapes[0].tileType)
+      : familyGeometry;
+    assert.equal(geometry.cartesianGridStep, 0.125);
+    assert.ok(geometry.cartesianRadiusStep > 0);
+  }
 });
 
 test("Studio can start with an empty editable document", () => {
