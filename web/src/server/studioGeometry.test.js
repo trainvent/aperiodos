@@ -319,12 +319,30 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
         assert.ok(matches(editor.materialToShape(latticeToCartesian(vertex)), editor.points[index]));
       });
       if (editor.points.length === 4) {
-        assert.equal(editor.gridLines.length, 1);
-        const [startPoint, endPoint] = editor.gridLines[0].map((point) => (
+        const shapeConstructionLines = editor.gridLines.map((line) => line.map((point) => (
           editor.materialToShape(latticeToCartesian(point))
-        ));
-        assert.ok(matches(startPoint, editor.points[0]));
-        assert.ok(matches(endPoint, editor.points[2]));
+        )));
+        assert.ok(matches(shapeConstructionLines[0][0], editor.points[0]));
+        assert.ok(matches(shapeConstructionLines[0][1], editor.points[2]));
+        if (shape.tileType === "dart") {
+          assert.equal(editor.gridLines.length, 3);
+          const rhombusCorner = {
+            x: editor.points[1].x + editor.points[3].x - editor.points[2].x,
+            y: editor.points[1].y + editor.points[3].y - editor.points[2].y,
+          };
+          assert.ok(matches(shapeConstructionLines[1][0], editor.points[3]));
+          assert.ok(matches(shapeConstructionLines[1][1], rhombusCorner));
+          assert.ok(matches(shapeConstructionLines[2][0], rhombusCorner));
+          assert.ok(matches(shapeConstructionLines[2][1], editor.points[1]));
+          const rhombus = [editor.points[1], editor.points[2], editor.points[3], rhombusCorner];
+          const sideLengths = rhombus.map((point, index) => {
+            const next = rhombus[(index + 1) % rhombus.length];
+            return Math.hypot(next.x - point.x, next.y - point.y);
+          });
+          sideLengths.forEach((length) => assert.ok(Math.abs(length - sideLengths[0]) < 1e-8));
+        } else {
+          assert.equal(editor.gridLines.length, 1);
+        }
 
         const diagonalMidpoint = {
           x: (editor.points[0].x + editor.points[2].x) / 2,

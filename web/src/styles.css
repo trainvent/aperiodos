@@ -598,6 +598,10 @@ select {
   box-shadow: 0 16px 34px rgba(5, 17, 23, 0.24);
 }
 
+.studio-lattice {
+  pointer-events: none;
+}
+
 .studio-lattice line {
   stroke: rgba(32, 79, 122, 0.105);
   stroke-width: 1;
@@ -608,10 +612,16 @@ select {
 }
 
 .studio-grid-construction line {
-  stroke: rgba(88, 105, 115, 0.72);
-  stroke-width: 1.2;
-  stroke-dasharray: 1.2 5;
+  stroke: rgba(73, 89, 98, 0.86);
+  stroke-width: 1.15;
+  stroke-dasharray: 1.5 4.5;
   stroke-linecap: round;
+}
+
+.studio-grid-construction .studio-construction-snap-point {
+  fill: #fffdf8;
+  stroke: rgba(73, 89, 98, 0.9);
+  stroke-width: 1.25;
 }
 
 .studio-lattice circle {

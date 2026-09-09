@@ -187,7 +187,19 @@ fn apply(transform: [f64; 6], point: Point) -> Point {
     }
 }
 
-fn penrose_construction_segments(points: &[Point]) -> Vec<[Point; 2]> {
+fn penrose_construction_segments(shape: &Shape) -> Vec<[Point; 2]> {
+    let points = &shape.points;
+    if shape.tile_type == "dart" {
+        let rhombus_corner = point(
+            points[1].x + points[3].x - points[2].x,
+            points[1].y + points[3].y - points[2].y,
+        );
+        return vec![
+            [points[0], points[2]],
+            [points[3], rhombus_corner],
+            [rhombus_corner, points[1]],
+        ];
+    }
     if points.len() == 4 {
         return vec![[points[0], points[2]]];
     }
@@ -258,7 +270,7 @@ pub fn penrose_editor_geometry(family: &str, tile_type: &str) -> Result<Value, G
             })
         })
         .collect::<Vec<_>>();
-    let construction_lines = penrose_construction_segments(&shape.points)
+    let construction_lines = penrose_construction_segments(&shape)
         .into_iter()
         .map(|line| line.map(|point| cartesian_to_lattice(apply(inverse, point))))
         .collect::<Vec<_>>();
@@ -345,7 +357,7 @@ fn snap_penrose_construction(
         .enumerate()
         .map(|(index, start)| [start, shape.points[(index + 1) % shape.points.len()]])
         .collect::<Vec<_>>();
-    segments.extend(penrose_construction_segments(&shape.points));
+    segments.extend(penrose_construction_segments(&shape));
 
     let mut nearest = (shape.points[0], f64::INFINITY);
     for [start, end] in segments {

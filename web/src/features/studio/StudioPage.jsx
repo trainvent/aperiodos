@@ -298,6 +298,13 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const grid = useMemo(() => (gridMode === "cartesian"
     ? geometry.cartesianGridLines
     : geometry.gridLines) || [], [geometry, gridMode]);
+  const constructionSnapFractions = gridMode !== "construction"
+    ? []
+    : snapMode === "quarter"
+      ? [0.25, 0.5, 0.75]
+      : snapMode === "half"
+        ? [0.5]
+        : [];
   const selectedCircle = (design.circles || []).find((circle) => circle.id === selectedCircleId);
   const selectedCircularPath = (design.circularPaths || []).find((path) => path.id === selectedCircularPathId);
   const selectedLine = (design.lines || []).find((line) => line.id === selectedLineId);
@@ -1035,7 +1042,16 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 {grid.map(([start, end], index) => {
                   const a = mapToCanvas(start);
                   const b = mapToCanvas(end);
-                  return <line key={index} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+                  return <g key={index}>
+                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+                    {constructionSnapFractions.map((amount) => <circle
+                      key={amount}
+                      className="studio-construction-snap-point"
+                      cx={a.x + (b.x - a.x) * amount}
+                      cy={a.y + (b.y - a.y) * amount}
+                      r="3"
+                    />)}
+                  </g>;
                 })}
                 {family === "einstein" ? Array.from({ length: 15 }, (_, uIndex) => Array.from({ length: 14 }, (_, vIndex) => {
                   const point = mapToCanvas({ u: uIndex - 6, v: vIndex - 6 });
