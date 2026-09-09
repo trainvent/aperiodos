@@ -1,5 +1,9 @@
 import { studioCall } from "./studioRuntime.js";
 
+export function affineLengthScale(transform) {
+  return studioCall("affineLengthScale", { transform });
+}
+
 export function latticeToCartesian(point) {
   return studioCall("latticeToCartesian", { point });
 }

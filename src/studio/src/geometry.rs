@@ -187,6 +187,21 @@ fn apply(transform: [f64; 6], point: Point) -> Point {
     }
 }
 
+fn penrose_construction_segments(points: &[Point]) -> Vec<[Point; 2]> {
+    if points.len() == 4 {
+        return vec![[points[0], points[2]]];
+    }
+    (2..points.len().saturating_sub(1))
+        .map(|index| [points[0], points[index]])
+        .collect()
+}
+
+pub fn affine_length_scale(transform: [f64; 6]) -> f64 {
+    (transform[0] * transform[4] - transform[1] * transform[3])
+        .abs()
+        .sqrt()
+}
+
 fn selected_shape(family: &str, tile_type: &str) -> Result<Shape, GeometryError> {
     let shapes = shapes_for_family(family)?;
     shapes
@@ -227,11 +242,25 @@ pub fn penrose_editor_geometry(family: &str, tile_type: &str) -> Result<Value, G
         v: start.v + (end.v - start.v) * amount,
     };
     let arc_offset = inset_radius * 0.8;
+    // Phase the Cartesian grid through the first canonical vertex. For the P2
+    // Dart this is the lower end of the long vertical edge, which keeps both
+    // that edge and anything snapped to its corner on the visible grid.
+    let grid_origin = shape.points[0];
     let cartesian_grid_lines = cartesian_grid_lines(-10.0, 10.0, CARTESIAN_GRID_STEP)
         .into_iter()
         .map(|line| {
-            line.map(|point| cartesian_to_lattice(apply(inverse, lattice_to_cartesian(point))))
+            line.map(|lattice_point| {
+                let offset = lattice_to_cartesian(lattice_point);
+                cartesian_to_lattice(apply(
+                    inverse,
+                    point(grid_origin.x + offset.x, grid_origin.y + offset.y),
+                ))
+            })
         })
+        .collect::<Vec<_>>();
+    let construction_lines = penrose_construction_segments(&shape.points)
+        .into_iter()
+        .map(|line| line.map(|point| cartesian_to_lattice(apply(inverse, point))))
         .collect::<Vec<_>>();
     let mut geometry = geometry_adapter(family)?;
     geometry["label"] = json!(format!(
@@ -246,8 +275,10 @@ pub fn penrose_editor_geometry(family: &str, tile_type: &str) -> Result<Value, G
     geometry["materialTransform"] = json!(forward);
     geometry["shapeTransform"] = json!(inverse);
     geometry["materialScale"] = json!(material_scale);
+    geometry["cartesianGridOrigin"] = json!(grid_origin);
     geometry["cartesianRadiusStep"] = json!(CARTESIAN_GRID_STEP / material_scale);
     geometry["materialVertices"] = json!(material_vertices);
+    geometry["gridLines"] = json!(construction_lines);
     geometry["cartesianGridLines"] = json!(cartesian_grid_lines);
     geometry["activeTileType"] = json!(shape.tile_type);
     geometry["defaultElements"] = json!({
@@ -285,13 +316,55 @@ fn snap_penrose_cartesian(
     let shape = selected_shape(family, tile_type)?;
     let (forward, inverse, _) = material_transform(&shape.points);
     let point = apply(forward, lattice_to_cartesian(target));
+    let grid_origin = shape.points[0];
     Ok(json!(cartesian_to_lattice(apply(
         inverse,
         Point {
-            x: (point.x / step).round() * step,
-            y: (point.y / step).round() * step
+            x: grid_origin.x + ((point.x - grid_origin.x) / step).round() * step,
+            y: grid_origin.y + ((point.y - grid_origin.y) / step).round() * step
         }
     ))))
+}
+
+fn snap_penrose_construction(
+    family: &str,
+    tile_type: &str,
+    target: LatticePoint,
+    step: f64,
+) -> Result<Value, GeometryError> {
+    if step == 0.0 {
+        return Ok(json!(target));
+    }
+    let shape = selected_shape(family, tile_type)?;
+    let (forward, inverse, _) = material_transform(&shape.points);
+    let target_shape = apply(forward, lattice_to_cartesian(target));
+    let mut segments = shape
+        .points
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(index, start)| [start, shape.points[(index + 1) % shape.points.len()]])
+        .collect::<Vec<_>>();
+    segments.extend(penrose_construction_segments(&shape.points));
+
+    let mut nearest = (shape.points[0], f64::INFINITY);
+    for [start, end] in segments {
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let length_squared = dx * dx + dy * dy;
+        if length_squared <= f64::EPSILON {
+            continue;
+        }
+        let projected =
+            ((target_shape.x - start.x) * dx + (target_shape.y - start.y) * dy) / length_squared;
+        let amount = ((projected.clamp(0.0, 1.0) / step).round() * step).clamp(0.0, 1.0);
+        let candidate = point(start.x + dx * amount, start.y + dy * amount);
+        let distance = (candidate.x - target_shape.x).hypot(candidate.y - target_shape.y);
+        if distance < nearest.1 {
+            nearest = (candidate, distance);
+        }
+    }
+    Ok(json!(cartesian_to_lattice(apply(inverse, nearest.0))))
 }
 
 fn circle_through_vertex(
@@ -957,6 +1030,7 @@ pub fn call(operation: &str, input: &Value) -> Result<Value, GeometryError> {
         "cartesianToLattice" => {
             Ok(serde_json::to_value(cartesian_to_lattice(required(input, "point")?)).unwrap())
         }
+        "affineLengthScale" => Ok(json!(affine_length_scale(required(input, "transform")?))),
         "snapLatticePoint" => Ok(serde_json::to_value(snap_lattice_point(
             required(input, "point")?,
             required(input, "step")?,
@@ -997,6 +1071,15 @@ pub fn call(operation: &str, input: &Value) -> Result<Value, GeometryError> {
             required(input, "point")?,
         ),
         "snapPenroseCartesian" => snap_penrose_cartesian(
+            &required::<String>(input, "family")?,
+            input
+                .get("tileType")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+            required(input, "point")?,
+            required(input, "step")?,
+        ),
+        "snapPenroseConstruction" => snap_penrose_construction(
             &required::<String>(input, "family")?,
             input
                 .get("tileType")
@@ -1076,6 +1159,24 @@ mod tests {
         let result = cartesian_to_lattice(lattice_to_cartesian(source));
         close(result.u, source.u);
         close(result.v, source.v);
+    }
+
+    #[test]
+    fn preview_similarity_transforms_preserve_material_proportions() {
+        for transform in geometry_adapter("einstein").unwrap()["previewTransforms"]
+            .as_array()
+            .unwrap()
+        {
+            let transform: [f64; 6] = serde_json::from_value(transform.clone()).unwrap();
+            close(affine_length_scale(transform), 0.5);
+        }
+        for transform in geometry_adapter("spectre").unwrap()["previewTransforms"]
+            .as_array()
+            .unwrap()
+        {
+            let transform: [f64; 6] = serde_json::from_value(transform.clone()).unwrap();
+            close(affine_length_scale(transform), 1.0);
+        }
     }
 
     #[test]

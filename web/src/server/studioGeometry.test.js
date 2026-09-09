@@ -5,6 +5,7 @@ import initWasm, * as studioWasm from "../../public/wasm/aperiodos_render.js";
 import { installStudioRuntime, studioCall } from "../features/studio/studioRuntime.js";
 
 import {
+  affineLengthScale,
   cartesianToLattice,
   circleHandlePoint,
   circleThroughVertex,
@@ -24,6 +25,7 @@ import {
 import { getEinsteinStudioPatterns, getPenroseStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns, readStudioLibrary, writeStudioLibrary } from "../features/studio/patternLibrary.js";
 import { spectreEdgeControl, spectrePath } from "../features/studio/spectreGeometry.js";
 import { cartesianGridLines, geometryAdapterFor, penroseTileEditorGeometry, snapCartesianPoint } from "../features/studio/studioGeometryAdapters.js";
+import { transformedMaterialScale } from "../features/studio/previewGeometry.js";
 
 await initWasm(await readFile(new URL("../../public/wasm/aperiodos_render_bg.wasm", import.meta.url)));
 installStudioRuntime(studioWasm);
@@ -57,6 +59,21 @@ test("WASM family descriptors match the established Einstein and Spectre coordin
     geometryAdapterFor("spectre").points.map(({ x, y }) => [x, y]),
     SPECTRE_POINTS,
   );
+});
+
+test("Editor material sizes retain their proportions in every transformed preview tile", () => {
+  const fitScale = 137;
+  const circleRadius = 0.625;
+  const pathWidth = 0.08;
+  for (const family of ["einstein", "spectre"]) {
+    for (const transform of geometryAdapterFor(family).previewTransforms) {
+      const tileScale = affineLengthScale(transform);
+      const materialScale = transformedMaterialScale(fitScale, transform);
+      assert.ok(Math.abs(materialScale - fitScale * tileScale) < 1e-10);
+      assert.ok(Math.abs(circleRadius * materialScale - circleRadius * fitScale * tileScale) < 1e-10);
+      assert.ok(Math.abs(pathWidth * materialScale - pathWidth * fitScale * tileScale) < 1e-10);
+    }
+  }
 });
 
 test("Einstein studio endpoints bind to numbered tile edges", () => {
@@ -280,6 +297,8 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
     adapter.editorShapes.forEach((shape) => {
       const editor = penroseTileEditorGeometry(adapter, shape.tileType);
       assert.equal(editor.shapes, null);
+      assert.ok(Array.isArray(editor.gridLines));
+      assert.ok(editor.gridLines.length > 0);
       const [origin, unit, third] = editor.points;
       const matches = (left, right) => Math.hypot(left.x - right.x, left.y - right.y) < 1e-9;
       assert.ok(matches(editor.shapeToMaterial(origin), { x: 0, y: 0 }));
@@ -299,6 +318,27 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
       editor.materialVertices.forEach((vertex, index) => {
         assert.ok(matches(editor.materialToShape(latticeToCartesian(vertex)), editor.points[index]));
       });
+      if (editor.points.length === 4) {
+        assert.equal(editor.gridLines.length, 1);
+        const [startPoint, endPoint] = editor.gridLines[0].map((point) => (
+          editor.materialToShape(latticeToCartesian(point))
+        ));
+        assert.ok(matches(startPoint, editor.points[0]));
+        assert.ok(matches(endPoint, editor.points[2]));
+
+        const diagonalMidpoint = {
+          x: (editor.points[0].x + editor.points[2].x) / 2,
+          y: (editor.points[0].y + editor.points[2].y) / 2,
+        };
+        const nearMidpoint = editor.shapeToMaterial({
+          x: diagonalMidpoint.x + 0.025,
+          y: diagonalMidpoint.y - 0.025,
+        });
+        const snappedMidpoint = editor.materialToShape(latticeToCartesian(
+          editor.snapPoint(cartesianToLattice(nearMidpoint), 0.5),
+        ));
+        assert.ok(matches(snappedMidpoint, diagonalMidpoint), `${family} ${shape.name} does not snap to its golden-triangle diagonal midpoint`);
+      }
       editor.cartesianGridLines.forEach(([startPoint, endPoint]) => {
         const gridStart = editor.materialToShape(latticeToCartesian(startPoint));
         const gridEnd = editor.materialToShape(latticeToCartesian(endPoint));
@@ -307,6 +347,30 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
           `${family} ${shape.name} has a diagonal Cartesian grid line`,
         );
       });
+
+      const gridOrigin = editor.cartesianGridOrigin;
+      assert.ok(matches(gridOrigin, editor.points[0]));
+      const shapeGridLines = editor.cartesianGridLines.map(([startPoint, endPoint]) => [
+        editor.materialToShape(latticeToCartesian(startPoint)),
+        editor.materialToShape(latticeToCartesian(endPoint)),
+      ]);
+      assert.ok(shapeGridLines.some(([startPoint, endPoint]) => (
+        Math.abs(startPoint.x - gridOrigin.x) < 1e-8
+        && Math.abs(endPoint.x - gridOrigin.x) < 1e-8
+      )), `${family} ${shape.name} does not anchor a vertical grid line to its first vertex`);
+      assert.ok(shapeGridLines.some(([startPoint, endPoint]) => (
+        Math.abs(startPoint.y - gridOrigin.y) < 1e-8
+        && Math.abs(endPoint.y - gridOrigin.y) < 1e-8
+      )), `${family} ${shape.name} does not anchor a horizontal grid line to its first vertex`);
+
+      const nearGridOrigin = editor.shapeToMaterial({
+        x: gridOrigin.x + 0.04,
+        y: gridOrigin.y - 0.04,
+      });
+      const snappedGridOrigin = editor.materialToShape(latticeToCartesian(
+        editor.snapCartesianPoint(cartesianToLattice(nearGridOrigin), editor.cartesianGridStep),
+      ));
+      assert.ok(matches(snappedGridOrigin, gridOrigin), `${family} ${shape.name} snaps against a different grid phase`);
 
       const center = editor.points.reduce((sum, point) => ({ x: sum.x + point.x / editor.points.length, y: sum.y + point.y / editor.points.length }), { x: 0, y: 0 });
       assert.ok(matches(editor.materialToShape(latticeToCartesian(editor.defaultElements.circleCenter)), center));

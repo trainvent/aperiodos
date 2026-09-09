@@ -38,6 +38,7 @@ import {
 } from "./widgets/InspectorFields";
 import StudioSurface from "./widgets/StudioSurface";
 import { loadStudioRuntime, studioCall } from "./studioRuntime";
+import { transformedMaterialScale } from "./previewGeometry";
 
 const CANVAS = { width: 760, height: 620, scale: 82, originX: 270, originY: 330 };
 const H_CLUSTER_VIEWBOX = { x: -65.5, y: -86, width: 540, height: 432 };
@@ -168,10 +169,12 @@ function transformCartesian(point, transform) {
 }
 
 function clusterMapper(transform) {
-  return (point) => {
+  const mapper = (point) => {
     const transformed = transformCartesian(point, transform);
     return { x: 68 + transformed.x * 78, y: 282 + transformed.y * 78 };
   };
+  mapper.scale = transformedMaterialScale(78, transform);
+  return mapper;
 }
 
 function fittedClusterMappers(transforms, geometry) {
@@ -211,7 +214,7 @@ function fittedClusterMappers(transforms, geometry) {
         y: startY + (transformed.y - bounds.minY) * scale,
       };
     };
-    mapper.scale = scale;
+    mapper.scale = transformedMaterialScale(scale, transform);
     return mapper;
   });
 }
@@ -292,9 +295,9 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const [treeMode, setTreeMode] = useState("layers");
   const [transformExpanded, setTransformExpanded] = useState(false);
   const importRef = useRef(null);
-  const grid = useMemo(() => gridMode === "cartesian"
+  const grid = useMemo(() => (gridMode === "cartesian"
     ? geometry.cartesianGridLines
-    : geometry.gridLines, [geometry, gridMode]);
+    : geometry.gridLines) || [], [geometry, gridMode]);
   const selectedCircle = (design.circles || []).find((circle) => circle.id === selectedCircleId);
   const selectedCircularPath = (design.circularPaths || []).find((path) => path.id === selectedCircularPathId);
   const selectedLine = (design.lines || []).find((line) => line.id === selectedLineId);
@@ -366,6 +369,14 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     setSelectedLineId(kind === "line" ? id : null);
     setSelectedCircleId(kind === "circle" ? id : null);
     setSelectedCircularPathId(kind === "circularPath" ? id : null);
+    setDrag(null);
+  }
+
+  function clearSelection() {
+    setSelectedPathId(null);
+    setSelectedLineId(null);
+    setSelectedCircleId(null);
+    setSelectedCircularPathId(null);
     setDrag(null);
   }
 
@@ -477,6 +488,16 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           geometry.activeTileType,
           circle.center,
           corner.point,
+        ));
+        return;
+      }
+      if (gridMode === "construction" && geometry.materialToShape && snapStep) {
+        const constructionPoint = snapEditorPoint(point, snapStep);
+        updateCircle(drag.circleId, circleThroughVertex(
+          geometry.family,
+          geometry.activeTileType,
+          circle.center,
+          constructionPoint,
         ));
         return;
       }
@@ -947,7 +968,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name} · {penroseTileLayerCounts[shape.tileType] || 0}</option>)}
               </select>
             </label> : null}
-            <button type="button" className={`studio-tree-root${!selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={() => { setSelectedPathId(null); setSelectedLineId(null); setSelectedCircleId(null); setSelectedCircularPathId(null); }}><span>◇</span><strong>{design.name}</strong><small>{geometry.label}</small></button>
+            <button type="button" className={`studio-tree-root${!selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={clearSelection}><strong>{t("studio.controls.outlineGroup")}</strong></button>
             {treeMode === "categories" ? (
               <>
                 <details open>
@@ -1007,7 +1028,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
               onPointerCancel={stopDragging}
             >
             <defs><clipPath id="studio-tile-clip"><TileShape design={design} geometry={geometry} /></clipPath></defs>
-            <rect width={CANVAS.width} height={CANVAS.height} className="studio-canvas-bg" />
+            <rect width={CANVAS.width} height={CANVAS.height} className="studio-canvas-bg" onPointerDown={clearSelection} />
+            <TileShape design={design} geometry={geometry} className="studio-tile-fill" style={{ fill: design.colors.base }} />
             {showGrid ? (
               <g className={`studio-lattice studio-${family}-grid studio-grid-${gridMode}`}>
                 {grid.map(([start, end], index) => {
@@ -1018,13 +1040,12 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 {family === "einstein" ? Array.from({ length: 15 }, (_, uIndex) => Array.from({ length: 14 }, (_, vIndex) => {
                   const point = mapToCanvas({ u: uIndex - 6, v: vIndex - 6 });
                   return <circle key={`${uIndex}-${vIndex}`} cx={point.x} cy={point.y} r="2.1" />;
-                })) : geometry.points.map((point, index) => {
-                  const screen = mapToCanvas(cartesianToLattice(point));
+                })) : geometry.materialVertices.map((point, index) => {
+                  const screen = mapToCanvas(point);
                   return <circle key={`spectre-${index}`} cx={screen.x} cy={screen.y} r="2.1" />;
                 })}
               </g>
             ) : null}
-            <TileShape design={design} geometry={geometry} className="studio-tile-fill" style={{ fill: design.colors.base }} />
             <g clipPath="url(#studio-tile-clip)">
               <MaterialLayerShapes
                 layers={visibleMaterialLayers}
@@ -1210,7 +1231,7 @@ function ClusterPreview({ design, geometry }) {
           <g key={index}>
             <TileShape design={previewDesign} geometry={geometry} mapper={mapper} fill={tileBase} />
             <g clipPath={`url(#cluster-clip-${index})`}>
-              <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={tileBase} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={mapper.scale || Math.sqrt(Math.abs(determinant)) * 78} />
+              <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={tileBase} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={mapper.scale} />
             </g>
             <TileShape design={previewDesign} geometry={geometry} mapper={mapper} fill="none" stroke={design.outline || "#17313b"} strokeWidth={geometry.previewStroke ? "3" : "1.5"} strokeLinejoin="round" />
             {geometry.family === "einstein" && determinant > 0 ? <text className="studio-mirror-label" x={mapper({ u: 1.5, v: 0 }).x} y={mapper({ u: 1.5, v: 0 }).y}>M</text> : null}

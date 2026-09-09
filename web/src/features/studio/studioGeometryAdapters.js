@@ -57,6 +57,12 @@ export function penroseTileEditorGeometry(geometry, tileType) {
     point,
     step,
   });
+  hydrated.snapPoint = (point, step) => studioCall("snapPenroseConstruction", {
+    family: geometry.family,
+    tileType: raw.activeTileType,
+    point,
+    step,
+  });
   return hydrated;
 }
 
