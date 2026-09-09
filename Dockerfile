@@ -3,7 +3,7 @@ FROM rust:1.93-slim AS generators-build
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
-COPY src/generators ./src/generators
+COPY src ./src
 RUN rustup target add wasm32-unknown-unknown \
     && cargo install wasm-bindgen-cli --locked --version 0.2.127 \
     && cargo build --release --workspace \
