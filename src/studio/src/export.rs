@@ -170,6 +170,7 @@ pub fn export_svg(design: &Value, tile_type: Option<&str>) -> Result<String, Str
         base,
         material_to_canvas,
         material_scale,
+        if fit { scale } else { material_scale },
         if fit { Some(shape.tile_type) } else { None },
     );
     Ok(format!(

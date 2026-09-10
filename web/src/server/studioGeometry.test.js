@@ -549,7 +549,7 @@ test("Studio accepts circle-only material designs", () => {
   assert.equal(validateDesign(design).circles[0].radius, 1.25);
 });
 
-test("Studio validates hollow circles with inward widths", () => {
+test("Studio validates hollow circles with centered stroke widths", () => {
   const design = createEmptyDesign();
   design.circles = [{
     id: "ring",
@@ -565,7 +565,7 @@ test("Studio validates hollow circles with inward widths", () => {
   assert.equal(validated.circles[0].width, 0.25);
 
   design.circles[0].width = 1.5;
-  assert.throws(() => validateDesign(design), /inward widths/);
+  assert.throws(() => validateDesign(design), /stroke widths/);
 });
 
 test("circle radius handles snap to 30 degree spokes around their center", () => {

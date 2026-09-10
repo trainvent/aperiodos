@@ -1078,7 +1078,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 colorFor={(item) => elementMaterialColor(design, item)}
                 baseColor={design.colors.base}
                 renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapToCanvas) : kind === "line" ? linePath(item.points, mapToCanvas) : circularPathD(item, mapToCanvas)}
-                strokeScale={mapToCanvas.scale}
+                radiusScale={mapToCanvas.scale}
+                strokeScale={geometry.tile === "penrose" ? canvasScaleFor(geometry) : mapToCanvas.scale}
                 onSelect={selectLayer}
                 selectedIds={{ path: selectedPathId, line: selectedLineId, circularPath: selectedCircularPathId }}
               />
@@ -1319,7 +1320,7 @@ function MiniDesign({ design, geometry }) {
       <defs><clipPath id={`mini-${design.id}`}><TileShape design={design} geometry={geometry} /></clipPath></defs>
       <TileShape design={design} geometry={geometry} fill={design.colors.base} />
       <g clipPath={`url(#mini-${design.id})`}>
-        <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} strokeScale={CANVAS.scale} />
+        <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} radiusScale={mapper.scale} strokeScale={geometry.tile === "penrose" ? canvasScaleFor(geometry) : mapper.scale} />
       </g>
       <TileShape design={design} geometry={geometry} fill="none" stroke={design.outline || "#17313b"} strokeWidth="4" strokeLinejoin="round" />
     </svg>

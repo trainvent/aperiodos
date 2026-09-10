@@ -118,7 +118,7 @@
 			"cutColor": "Tile color (cut out)",
 			"radius": "Radius",
 			"hollow": "Hollow",
-			"width": "Inward width",
+			"width": "Line width",
 			"remove": "Delete circle"
 		},
 		"circularPaths": {

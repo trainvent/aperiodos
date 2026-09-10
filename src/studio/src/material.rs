@@ -14,7 +14,8 @@ pub fn render_studio_elements(
     fallback_ink: &str,
     base_fill: &str,
     transform: Affine,
-    width_scale: f64,
+    geometry_scale: f64,
+    stroke_scale: f64,
     tile_type: Option<&str>,
 ) -> String {
     let kinds = [
@@ -92,7 +93,7 @@ pub fn render_studio_elements(
                     .into_iter()
                     .map(|p| transform.apply(p))
                     .collect::<Vec<_>>();
-                let _ = write!(output, "<path d=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{:.4}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" />", curve_path(&points), number(item, "width") * width_scale);
+                let _ = write!(output, "<path d=\"{}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{:.4}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" />", curve_path(&points), number(item, "width") * stroke_scale);
             }
             "line" => {
                 let points = item_points(item)
@@ -100,7 +101,7 @@ pub fn render_studio_elements(
                     .map(|p| transform.apply(p))
                     .collect::<Vec<_>>();
                 if points.len() == 2 {
-                    let _ = write!(output, "<path d=\"M {:.4} {:.4} L {:.4} {:.4}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{:.4}\" stroke-linecap=\"round\" />", points[0].x, points[0].y, points[1].x, points[1].y, number(item, "width") * width_scale);
+                    let _ = write!(output, "<path d=\"M {:.4} {:.4} L {:.4} {:.4}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{:.4}\" stroke-linecap=\"round\" />", points[0].x, points[0].y, points[1].x, points[1].y, number(item, "width") * stroke_scale);
                 }
             }
             "circle" => {
@@ -112,10 +113,10 @@ pub fn render_studio_elements(
                 };
                 let radius = number(item, "radius");
                 if item.get("hollow").and_then(Value::as_bool) == Some(true) {
-                    let inward_width = number(item, "width").min(radius);
-                    let _ = write!(output, "<circle cx=\"{:.4}\" cy=\"{:.4}\" r=\"{:.4}\" fill=\"none\" stroke=\"{paint}\" stroke-width=\"{:.4}\" />", center.x, center.y, (radius - inward_width / 2.0) * width_scale, inward_width * width_scale);
+                    let stroke_width = number(item, "width").min(radius);
+                    let _ = write!(output, "<circle cx=\"{:.4}\" cy=\"{:.4}\" r=\"{:.4}\" fill=\"none\" stroke=\"{paint}\" stroke-width=\"{:.4}\" />", center.x, center.y, radius * geometry_scale, stroke_width * stroke_scale);
                 } else {
-                    let _ = write!(output, "<circle cx=\"{:.4}\" cy=\"{:.4}\" r=\"{:.4}\" fill=\"{paint}\" stroke=\"none\" />", center.x, center.y, radius * width_scale);
+                    let _ = write!(output, "<circle cx=\"{:.4}\" cy=\"{:.4}\" r=\"{:.4}\" fill=\"{paint}\" stroke=\"none\" />", center.x, center.y, radius * geometry_scale);
                 }
             }
             "circularPath" => {
@@ -129,7 +130,7 @@ pub fn render_studio_elements(
                         for point in &points[1..] {
                             let _ = write!(path, " L {:.4} {:.4}", point.x, point.y);
                         }
-                        let _ = write!(output, "<path d=\"{path}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{:.4}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" />", number(item, "width") * width_scale);
+                        let _ = write!(output, "<path d=\"{path}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{:.4}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" />", number(item, "width") * stroke_scale);
                     }
                 }
             }
@@ -233,6 +234,7 @@ mod tests {
             "white",
             Affine::translation(3.0, 4.0),
             2.0,
+            2.0,
             None,
         );
         assert!(svg.contains("M 3.0000 4.0000 L 4.0000 4.0000"));
@@ -241,16 +243,25 @@ mod tests {
     }
 
     #[test]
-    fn hollow_circle_width_is_measured_inward_from_the_outer_radius() {
+    fn hollow_circle_strokes_are_centered_and_equal_widths_match() {
         let pattern = serde_json::json!({
-            "circles":[{
-                "id":"ring","center":{"u":0,"v":0},"radius":1.0,"hollow":true,
-                "width":0.2,"operation":"ink","color":"#123456"
-            }]
+            "circles":[
+                {
+                    "id":"ring-a","center":{"u":0,"v":0},"radius":1.0,"hollow":true,
+                    "width":0.2,"operation":"ink","color":"#123456"
+                },
+                {
+                    "id":"ring-b","center":{"u":1,"v":1},"radius":0.6,"hollow":true,
+                    "width":0.2,"operation":"ink","color":"#654321"
+                }
+            ]
         });
-        let svg = render_studio_elements(&pattern, "black", "white", Affine::IDENTITY, 2.0, None);
-        assert!(svg.contains("r=\"1.8000\""));
+        let svg =
+            render_studio_elements(&pattern, "black", "white", Affine::IDENTITY, 2.0, 2.0, None);
+        assert!(svg.contains("r=\"2.0000\""));
+        assert!(svg.contains("r=\"1.2000\""));
         assert!(svg.contains("fill=\"none\" stroke=\"#123456\" stroke-width=\"0.4000\""));
+        assert_eq!(svg.matches("stroke-width=\"0.4000\"").count(), 2);
     }
 
     #[test]
@@ -267,6 +278,7 @@ mod tests {
             "white",
             Affine::IDENTITY,
             1.0,
+            1.0,
             Some("star"),
         );
         assert!(svg.contains("M 0.0000 0.0000 L 1.0000 0.0000"));
@@ -277,6 +289,7 @@ mod tests {
             "black",
             "white",
             Affine::IDENTITY,
+            1.0,
             1.0,
             Some("boat"),
         );
@@ -299,6 +312,7 @@ mod tests {
             "white",
             Affine::IDENTITY,
             1.0,
+            1.0,
             Some("star"),
         );
         for color in ["#110001", "#220002", "#330003", "#440004"] {
@@ -310,6 +324,7 @@ mod tests {
             "black",
             "white",
             Affine::IDENTITY,
+            1.0,
             1.0,
             Some("boat"),
         );

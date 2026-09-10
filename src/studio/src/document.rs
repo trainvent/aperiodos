@@ -254,11 +254,11 @@ pub fn validate_design(input: &Value) -> Result<Value, String> {
             let radius = finite_number(circle.get("radius")).unwrap();
             if finite_number(Some(width)).is_none_or(|width| width <= 0.0 || width > radius) {
                 return fail(
-                    "Circle inward widths must be positive and no greater than the radius.",
+                    "Circle stroke widths must be positive and no greater than the radius.",
                 );
             }
         } else if circle.get("hollow").and_then(Value::as_bool) == Some(true) {
-            return fail("Hollow circles need an inward width.");
+            return fail("Hollow circles need a stroke width.");
         }
         if !matches!(
             circle.get("operation").and_then(Value::as_str),

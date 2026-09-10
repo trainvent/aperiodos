@@ -1,20 +1,20 @@
-export default function MaterialLayerShapes({ layers, colorFor, baseColor, mapPoint, renderPath, strokeScale, onSelect, selectedIds = {} }) {
+export default function MaterialLayerShapes({ layers, colorFor, baseColor, mapPoint, renderPath, strokeScale, radiusScale = strokeScale, onSelect, selectedIds = {} }) {
   return layers.map(({ kind, id, item }) => {
     if (kind === "circle") {
       const center = mapPoint(item.center);
       const color = item.operation === "ink" ? colorFor(item) : baseColor;
-      const radius = item.radius * strokeScale;
+      const radius = item.radius * radiusScale;
       const hollow = item.hollow === true;
-      const inwardWidth = Math.min(item.width ?? 0.05, item.radius) * strokeScale;
+      const strokeWidth = Math.min(item.width ?? 0.05, item.radius) * strokeScale;
       return <circle
         key={`${kind}:${id}`}
         className="studio-material-circle"
         cx={center.x}
         cy={center.y}
-        r={hollow ? Math.max(0, radius - inwardWidth / 2) : radius}
+        r={radius}
         fill={hollow ? "none" : color}
         stroke={hollow ? color : "none"}
-        strokeWidth={hollow ? inwardWidth : undefined}
+        strokeWidth={hollow ? strokeWidth : undefined}
         onPointerDown={onSelect ? () => onSelect(kind, id) : undefined}
       />;
     }

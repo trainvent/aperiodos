@@ -203,8 +203,32 @@ fn push_tile(
         .pointer("/colors/ink")
         .and_then(Value::as_str)
         .unwrap_or(&config.outline);
-    let motif = render_studio_elements(pattern, ink, fill, transform, a.hypot(b), Some(tile_type));
+    let geometry_scale = a.hypot(b);
+    let stroke_scale = shared_material_stroke_scale(geometry_scale, tile_type);
+    let motif = render_studio_elements(
+        pattern,
+        ink,
+        fill,
+        transform,
+        geometry_scale,
+        stroke_scale,
+        Some(tile_type),
+    );
     scene.push_raw(format!("<g clip-path=\"url(#{clip_id})\">{motif}</g>"));
+}
+
+fn shared_material_stroke_scale(geometry_scale: f64, tile_type: &str) -> f64 {
+    let canonical = canonical_tile_points(tile_type);
+    let canonical_edge = canonical
+        .get(0)
+        .zip(canonical.get(1))
+        .map(|(start, end)| distance(*start, *end))
+        .unwrap_or(1.0)
+        .max(f64::EPSILON);
+    // Radius coordinates stay local to each prototile, while a numeric stroke
+    // width is one shared Penrose unit. In particular, a Kite's first edge is
+    // 1/phi of a Dart's and must not make equal line widths look thinner.
+    geometry_scale / canonical_edge
 }
 
 pub fn render_svg(config: &PenroseSvgConfig) -> String {
@@ -416,6 +440,20 @@ mod tests {
             tile_types,
             HashSet::from(["dart", "kite", "thin-rhomb", "thick-rhomb"])
         );
+    }
+
+    #[test]
+    fn p2_prototiles_share_one_numeric_material_stroke_scale() {
+        let output_scale = 137.0;
+        for tile_type in ["dart", "kite"] {
+            let canonical = canonical_tile_points(tile_type);
+            let local_geometry_scale = distance(canonical[0], canonical[1]) * output_scale;
+            assert!(
+                (shared_material_stroke_scale(local_geometry_scale, tile_type) - output_scale)
+                    .abs()
+                    < 1e-9
+            );
+        }
     }
 
     #[test]

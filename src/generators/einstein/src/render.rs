@@ -287,6 +287,7 @@ fn pattern_defs(pattern: Option<&Value>, fallback_color: &str) -> String {
             "var(--einstein-tile-fill)",
             Affine::IDENTITY,
             1.0,
+            1.0,
             None,
         ),
         None => concat!(

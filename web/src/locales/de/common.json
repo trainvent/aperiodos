@@ -118,7 +118,7 @@
 			"cutColor": "Kachelfarbe (ausschneiden)",
 			"radius": "Radius",
 			"hollow": "Hohl",
-			"width": "Linienstärke nach innen",
+			"width": "Linienstärke",
 			"remove": "Kreis löschen"
 		},
 		"circularPaths": {

@@ -220,7 +220,7 @@ fn push_tile(
         .pointer("/colors/ink")
         .and_then(Value::as_str)
         .unwrap_or("black");
-    let motif = render_studio_elements(pattern, ink, fill, transform, scale, None);
+    let motif = render_studio_elements(pattern, ink, fill, transform, scale, scale, None);
     scene.push_raw(format!("<g clip-path=\"url(#{clip_id})\">{motif}</g>"));
 }
 

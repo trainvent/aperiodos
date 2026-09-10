@@ -174,10 +174,10 @@ function coerceStudioPattern(payload, tile = "einstein-hat") {
       throw new ApiError("'studio_pattern' circle hollow values must be boolean.");
     }
     if (circle.width != null && (!Number.isFinite(Number(circle.width)) || Number(circle.width) <= 0 || Number(circle.width) > Number(circle.radius))) {
-      throw new ApiError("'studio_pattern' hollow-circle widths must be between 0 and the radius.");
+      throw new ApiError("'studio_pattern' hollow-circle stroke widths must be between 0 and the radius.");
     }
     if (circle.hollow === true && circle.width == null) {
-      throw new ApiError("'studio_pattern' hollow circles need an inward width.");
+      throw new ApiError("'studio_pattern' hollow circles need a stroke width.");
     }
   }
   for (const pathItem of circularPaths) {
