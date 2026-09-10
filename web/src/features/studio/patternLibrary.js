@@ -6,6 +6,7 @@ export const STUDIO_LIBRARY_EVENT = "aperiodos:studio-library-changed";
 export const PUBLIC_STUDIO_PATTERN_ASSETS = [
   "/patterns/einstein/greencurves.json",
   "/patterns/spectre/hexagonalization.json",
+  "/patterns/penrose/p2-bicircular.json",
 ];
 
 export function readStudioLibrary(storage = globalThis.window?.localStorage) {

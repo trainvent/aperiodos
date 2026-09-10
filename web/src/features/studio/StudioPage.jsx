@@ -1203,7 +1203,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                   setSelectedExportId(item.id);
                 }}
               >
-                <MiniDesign design={item} geometry={geometry} />
+                <MiniDesign design={item} geometry={geometry} familyGeometry={familyGeometry} />
                 <div><strong>{item.name}</strong><small>{item.id.startsWith("builtin-") ? t("studio.library.builtin") : t("studio.library.local")}</small></div>
                 <div className="studio-card-actions">
                   <button type="button" onClick={(event) => { event.stopPropagation(); loadDesign(item); }}>{t("studio.library.load")}</button>
@@ -1317,16 +1317,40 @@ function GeneratedPenrosePreview({ design, geometry }) {
     : <div className="studio-generated-penrose-preview studio-preview-loading">Generating first generation…</div>;
 }
 
-function MiniDesign({ design, geometry }) {
+function MiniTileDesign({ design, geometry, clipId, transform }) {
   const mapper = canvasMapperFor(geometry);
+  const layers = getDesignLayers(design).filter(({ item }) => (
+    !item.tileType || item.tileType === geometry.activeTileType
+  ));
   return (
-    <svg className="studio-mini-design" viewBox={`0 0 ${CANVAS.width} ${CANVAS.height}`} aria-hidden="true">
-      <defs><clipPath id={`mini-${design.id}`}><TileShape design={design} geometry={geometry} /></clipPath></defs>
+    <g transform={transform}>
+      <defs><clipPath id={clipId}><TileShape design={design} geometry={geometry} /></clipPath></defs>
       <TileShape design={design} geometry={geometry} fill={design.colors.base} />
-      <g clipPath={`url(#mini-${design.id})`}>
-        <MaterialLayerShapes layers={getDesignLayers(design)} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} radiusScale={mapper.scale} strokeScale={geometry.tile === "penrose" ? canvasScaleFor(geometry) : mapper.scale} />
+      <g clipPath={`url(#${clipId})`}>
+        <MaterialLayerShapes layers={layers} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} radiusScale={mapper.scale} strokeScale={geometry.tile === "penrose" ? canvasScaleFor(geometry) : mapper.scale} />
       </g>
       <TileShape design={design} geometry={geometry} fill="none" stroke={design.outline || "#17313b"} strokeWidth="4" strokeLinejoin="round" />
+    </g>
+  );
+}
+
+function MiniDesign({ design, geometry, familyGeometry }) {
+  const penroseGeometries = geometry.tile === "penrose"
+    ? familyGeometry.editorShapes.map((shape) => penroseTileEditorGeometry(familyGeometry, shape.tileType))
+    : null;
+  return (
+    <svg className="studio-mini-design" viewBox={`0 0 ${CANVAS.width} ${CANVAS.height}`} aria-hidden="true">
+      {penroseGeometries
+        ? penroseGeometries.map((tileGeometry, index) => (
+          <MiniTileDesign
+            key={tileGeometry.activeTileType}
+            design={design}
+            geometry={tileGeometry}
+            clipId={`mini-${design.id}-${tileGeometry.activeTileType}`}
+            transform={`translate(${index === 0 ? -84 : 296} 87) scale(0.72)`}
+          />
+        ))
+        : <MiniTileDesign design={design} geometry={geometry} clipId={`mini-${design.id}`} />}
     </svg>
   );
 }

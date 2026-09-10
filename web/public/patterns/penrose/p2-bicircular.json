@@ -1,0 +1,70 @@
+{
+  "schema": "aperiodos.material-design",
+  "version": 1,
+  "id": "builtin-penrose-p2-bicircular",
+  "name": "P2_bicircular",
+  "tile": "penrose",
+  "tileMode": "kite-dart",
+  "colors": { "base": "#ffffff", "ink": "#00c200" },
+  "outline": "#17313b",
+  "strokeWidth": 2,
+  "paths": [],
+  "lines": [],
+  "circles": [
+    {
+      "id": "p2-bicircular-dart-green",
+      "name": "Kreis 1",
+      "tileType": "dart",
+      "center": { "u": -2.7755575615628914e-17, "v": 0 },
+      "radius": 0.6180339887406862,
+      "handleAngle": 306.00000000020106,
+      "operation": "ink",
+      "hollow": true,
+      "width": 0.05
+    },
+    {
+      "id": "p2-bicircular-dart-red",
+      "name": "Kreis 2",
+      "tileType": "dart",
+      "center": { "u": 0, "v": 1 },
+      "radius": 0.38196601127165514,
+      "handleAngle": 126.00000000097016,
+      "operation": "ink",
+      "color": "#c20000",
+      "hollow": true,
+      "width": 0.025
+    },
+    {
+      "id": "p2-bicircular-kite-green",
+      "name": "Kreis 3",
+      "tileType": "kite",
+      "center": { "u": 4.23606797818664, "v": -1.6180339890933195 },
+      "radius": 0.6180339888005829,
+      "handleAngle": 180,
+      "operation": "ink",
+      "hollow": true,
+      "width": 0.05
+    },
+    {
+      "id": "p2-bicircular-kite-red",
+      "name": "Kreis 4",
+      "tileType": "kite",
+      "center": { "u": 1, "v": 0 },
+      "radius": 0.38196601128143226,
+      "handleAngle": 359.99999999999994,
+      "operation": "ink",
+      "color": "#c20000",
+      "hollow": true,
+      "width": 0.025
+    }
+  ],
+  "circularPaths": [],
+  "layerOrder": [
+    { "kind": "circle", "id": "p2-bicircular-dart-green" },
+    { "kind": "circle", "id": "p2-bicircular-dart-red" },
+    { "kind": "circle", "id": "p2-bicircular-kite-green" },
+    { "kind": "circle", "id": "p2-bicircular-kite-red" }
+  ],
+  "createdAt": "2026-09-10T08:58:05.377Z",
+  "updatedAt": "2026-09-10T08:58:05.377Z"
+}

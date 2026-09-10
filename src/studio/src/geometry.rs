@@ -215,23 +215,21 @@ fn penrose_construction_points(shape: &Shape) -> Vec<Point> {
     if shape.tile_type != "kite" || shape.points.len() != 4 {
         return Vec::new();
     }
-    let min_x = shape
-        .points
-        .iter()
-        .map(|point| point.x)
-        .fold(f64::INFINITY, f64::min);
-    let max_x = shape
-        .points
-        .iter()
-        .map(|point| point.x)
-        .fold(f64::NEG_INFINITY, f64::max);
-    // The P2 Kite's horizontal construction line is its symmetry axis. This
-    // marks the center of the complete tile bounds, rather than the midpoint
-    // of the shorter left-to-notch helper segment.
-    vec![point(
-        (min_x + max_x) / 2.0,
-        (shape.points[1].y + shape.points[3].y) / 2.0,
-    )]
+    let start = shape.points[1];
+    let end = shape.points[3];
+    let phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
+    // The two reciprocal golden sections provide the exact P2 circle-radius
+    // landmarks. A Euclidean midpoint is visually plausible but does not
+    // reproduce the Dart/Kite matching rule.
+    [1.0 / (phi * phi), 1.0 / phi]
+        .into_iter()
+        .map(|amount| {
+            point(
+                start.x + (end.x - start.x) * amount,
+                start.y + (end.y - start.y) * amount,
+            )
+        })
+        .collect()
 }
 
 fn penrose_cartesian_grid_origin(shape: &Shape) -> Point {
@@ -1279,26 +1277,32 @@ mod tests {
     }
 
     #[test]
-    fn kite_exposes_and_snaps_to_its_complete_tile_center() {
+    fn kite_exposes_and_snaps_to_its_golden_section_points() {
         let kite = selected_shape("penrose-kite-dart", "kite").unwrap();
-        let expected = penrose_construction_points(&kite)[0];
+        let expected = penrose_construction_points(&kite);
+        assert_eq!(expected.len(), 2);
         let editor = penrose_editor_geometry("penrose-kite-dart", "kite").unwrap();
-        let material_point: LatticePoint =
-            serde_json::from_value(editor["constructionPoints"][0].clone()).unwrap();
         let transform: [f64; 6] =
             serde_json::from_value(editor["materialTransform"].clone()).unwrap();
-        let visible = apply(transform, lattice_to_cartesian(material_point));
-        close(visible.x, expected.x);
-        close(visible.y, expected.y);
+        for (index, expected) in expected.iter().copied().enumerate() {
+            let material_point: LatticePoint =
+                serde_json::from_value(editor["constructionPoints"][index].clone()).unwrap();
+            let visible = apply(transform, lattice_to_cartesian(material_point));
+            close(visible.x, expected.x);
+            close(visible.y, expected.y);
+        }
 
         let (_, inverse, _) = material_transform(&kite.points);
-        let near =
-            cartesian_to_lattice(apply(inverse, point(expected.x + 0.01, expected.y - 0.01)));
-        let snapped = snap_penrose_construction("penrose-kite-dart", "kite", near, 0.5).unwrap();
-        let snapped: LatticePoint = serde_json::from_value(snapped).unwrap();
-        let visible = apply(transform, lattice_to_cartesian(snapped));
-        close(visible.x, expected.x);
-        close(visible.y, expected.y);
+        for expected in expected {
+            let near =
+                cartesian_to_lattice(apply(inverse, point(expected.x + 0.01, expected.y - 0.01)));
+            let snapped =
+                snap_penrose_construction("penrose-kite-dart", "kite", near, 0.5).unwrap();
+            let snapped: LatticePoint = serde_json::from_value(snapped).unwrap();
+            let visible = apply(transform, lattice_to_cartesian(snapped));
+            close(visible.x, expected.x);
+            close(visible.y, expected.y);
+        }
     }
 
     #[test]

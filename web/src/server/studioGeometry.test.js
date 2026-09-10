@@ -344,12 +344,15 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
           assert.equal(editor.gridLines.length, 1);
           assert.ok(matches(shapeConstructionLines[0][0], editor.points[1]));
           assert.ok(matches(shapeConstructionLines[0][1], editor.points[3]));
-          assert.equal(editor.constructionPoints.length, 1);
-          const fullTileCenter = editor.materialToShape(latticeToCartesian(editor.constructionPoints[0]));
-          assert.ok(matches(fullTileCenter, {
-            x: (Math.min(...editor.points.map((point) => point.x)) + Math.max(...editor.points.map((point) => point.x))) / 2,
-            y: (editor.points[1].y + editor.points[3].y) / 2,
-          }));
+          assert.equal(editor.constructionPoints.length, 2);
+          const phi = (1 + Math.sqrt(5)) / 2;
+          [1 / (phi * phi), 1 / phi].forEach((amount, index) => {
+            const goldenPoint = editor.materialToShape(latticeToCartesian(editor.constructionPoints[index]));
+            assert.ok(matches(goldenPoint, {
+              x: editor.points[1].x + (editor.points[3].x - editor.points[1].x) * amount,
+              y: editor.points[1].y + (editor.points[3].y - editor.points[1].y) * amount,
+            }));
+          });
         } else {
           assert.equal(editor.gridLines.length, 1);
           assert.ok(matches(shapeConstructionLines[0][0], editor.points[0]));
@@ -459,16 +462,29 @@ test("Public Studio presets load from their pattern assets", async () => {
   const assets = await Promise.all([
     readFile(new URL("../../public/patterns/einstein/greencurves.json", import.meta.url), "utf8"),
     readFile(new URL("../../public/patterns/spectre/hexagonalization.json", import.meta.url), "utf8"),
+    readFile(new URL("../../public/patterns/penrose/p2-bicircular.json", import.meta.url), "utf8"),
   ]);
   let index = 0;
   const designs = await getPublicStudioDesigns(async () => ({ ok: true, json: async () => JSON.parse(assets[index++]) }));
   const greenCurves = designs.find((design) => design.id === "builtin-green-curves");
   const hexagonalization = designs.find((design) => design.id === "builtin-spectre-hexagonalization");
+  const p2Bicircular = designs.find((design) => design.id === "builtin-penrose-p2-bicircular");
   assert.deepEqual(greenCurves.circularPaths.map((path) => path.width), [0.7, 1.3]);
   assert.equal(greenCurves.outline, "#17313b");
   assert.equal(hexagonalization.tile, "spectre");
   assert.equal(hexagonalization.outline, "#000000");
   assert.equal(hexagonalization.lines.length, 7);
+  assert.equal(p2Bicircular.tile, "penrose");
+  assert.equal(p2Bicircular.tileMode, "kite-dart");
+  assert.deepEqual(p2Bicircular.circles.map((circle) => circle.tileType), ["dart", "dart", "kite", "kite"]);
+  assert.deepEqual(p2Bicircular.circles.map((circle) => circle.width), [0.05, 0.025, 0.05, 0.025]);
+  assert.deepEqual(p2Bicircular.circles.map((circle) => circle.radius), [
+    0.6180339887406862,
+    0.38196601127165514,
+    0.6180339888005829,
+    0.38196601128143226,
+  ]);
+  assert.ok(p2Bicircular.circles.every((circle) => circle.hollow === true));
 });
 
 test("Studio elements can override the document color", () => {
