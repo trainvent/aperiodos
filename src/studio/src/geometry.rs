@@ -200,6 +200,9 @@ fn penrose_construction_segments(shape: &Shape) -> Vec<[Point; 2]> {
             [rhombus_corner, points[1]],
         ];
     }
+    if shape.tile_type == "kite" {
+        return vec![[points[1], points[3]]];
+    }
     if points.len() == 4 {
         return vec![[points[0], points[2]]];
     }

@@ -105,12 +105,18 @@ pub fn render_studio_elements(
             }
             "circle" => {
                 let center = transform.apply(lattice_point(&item["center"]));
-                let fill = if item.get("operation").and_then(Value::as_str) == Some("ink") {
+                let paint = if item.get("operation").and_then(Value::as_str) == Some("ink") {
                     color
                 } else {
                     escape_xml(base_fill)
                 };
-                let _ = write!(output, "<circle cx=\"{:.4}\" cy=\"{:.4}\" r=\"{:.4}\" fill=\"{fill}\" stroke=\"none\" />", center.x, center.y, number(item, "radius") * width_scale);
+                let radius = number(item, "radius");
+                if item.get("hollow").and_then(Value::as_bool) == Some(true) {
+                    let inward_width = number(item, "width").min(radius);
+                    let _ = write!(output, "<circle cx=\"{:.4}\" cy=\"{:.4}\" r=\"{:.4}\" fill=\"none\" stroke=\"{paint}\" stroke-width=\"{:.4}\" />", center.x, center.y, (radius - inward_width / 2.0) * width_scale, inward_width * width_scale);
+                } else {
+                    let _ = write!(output, "<circle cx=\"{:.4}\" cy=\"{:.4}\" r=\"{:.4}\" fill=\"{paint}\" stroke=\"none\" />", center.x, center.y, radius * width_scale);
+                }
             }
             "circularPath" => {
                 for segment in circular_path_points(item) {
@@ -232,6 +238,19 @@ mod tests {
         assert!(svg.contains("M 3.0000 4.0000 L 4.0000 4.0000"));
         assert!(svg.contains("stroke=\"&lt;&amp;\""));
         assert!(svg.contains("stroke-width=\"4.0000\""));
+    }
+
+    #[test]
+    fn hollow_circle_width_is_measured_inward_from_the_outer_radius() {
+        let pattern = serde_json::json!({
+            "circles":[{
+                "id":"ring","center":{"u":0,"v":0},"radius":1.0,"hollow":true,
+                "width":0.2,"operation":"ink","color":"#123456"
+            }]
+        });
+        let svg = render_studio_elements(&pattern, "black", "white", Affine::IDENTITY, 2.0, None);
+        assert!(svg.contains("r=\"1.8000\""));
+        assert!(svg.contains("fill=\"none\" stroke=\"#123456\" stroke-width=\"0.4000\""));
     }
 
     #[test]

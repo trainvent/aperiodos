@@ -117,6 +117,8 @@
 			"addColor": "Kurvenfarbe (hinzufügen)",
 			"cutColor": "Kachelfarbe (ausschneiden)",
 			"radius": "Radius",
+			"hollow": "Hohl",
+			"width": "Linienstärke nach innen",
 			"remove": "Kreis löschen"
 		},
 		"circularPaths": {

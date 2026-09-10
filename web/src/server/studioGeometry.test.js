@@ -322,9 +322,9 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
         const shapeConstructionLines = editor.gridLines.map((line) => line.map((point) => (
           editor.materialToShape(latticeToCartesian(point))
         )));
-        assert.ok(matches(shapeConstructionLines[0][0], editor.points[0]));
-        assert.ok(matches(shapeConstructionLines[0][1], editor.points[2]));
         if (shape.tileType === "dart") {
+          assert.ok(matches(shapeConstructionLines[0][0], editor.points[0]));
+          assert.ok(matches(shapeConstructionLines[0][1], editor.points[2]));
           assert.equal(editor.gridLines.length, 3);
           const rhombusCorner = {
             x: editor.points[1].x + editor.points[3].x - editor.points[2].x,
@@ -340,13 +340,19 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
             return Math.hypot(next.x - point.x, next.y - point.y);
           });
           sideLengths.forEach((length) => assert.ok(Math.abs(length - sideLengths[0]) < 1e-8));
+        } else if (shape.tileType === "kite") {
+          assert.equal(editor.gridLines.length, 1);
+          assert.ok(matches(shapeConstructionLines[0][0], editor.points[1]));
+          assert.ok(matches(shapeConstructionLines[0][1], editor.points[3]));
         } else {
           assert.equal(editor.gridLines.length, 1);
+          assert.ok(matches(shapeConstructionLines[0][0], editor.points[0]));
+          assert.ok(matches(shapeConstructionLines[0][1], editor.points[2]));
         }
 
         const diagonalMidpoint = {
-          x: (editor.points[0].x + editor.points[2].x) / 2,
-          y: (editor.points[0].y + editor.points[2].y) / 2,
+          x: (shapeConstructionLines[0][0].x + shapeConstructionLines[0][1].x) / 2,
+          y: (shapeConstructionLines[0][0].y + shapeConstructionLines[0][1].y) / 2,
         };
         const nearMidpoint = editor.shapeToMaterial({
           x: diagonalMidpoint.x + 0.025,
@@ -541,6 +547,25 @@ test("Studio accepts circle-only material designs", () => {
   const design = createEmptyDesign();
   design.circles = [{ id: "disc", name: "Disc", center: { u: 0.5, v: 1 }, radius: 1.25, operation: "ink" }];
   assert.equal(validateDesign(design).circles[0].radius, 1.25);
+});
+
+test("Studio validates hollow circles with inward widths", () => {
+  const design = createEmptyDesign();
+  design.circles = [{
+    id: "ring",
+    name: "Ring",
+    center: { u: 0.5, v: 1 },
+    radius: 1.25,
+    hollow: true,
+    width: 0.25,
+    operation: "ink",
+  }];
+  const validated = validateDesign(design);
+  assert.equal(validated.circles[0].hollow, true);
+  assert.equal(validated.circles[0].width, 0.25);
+
+  design.circles[0].width = 1.5;
+  assert.throws(() => validateDesign(design), /inward widths/);
 });
 
 test("circle radius handles snap to 30 degree spokes around their center", () => {

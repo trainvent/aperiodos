@@ -423,7 +423,12 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   function updateCircle(circleId, changes) {
     setDesign((current) => ({
       ...current,
-      circles: (current.circles || []).map((circle) => circle.id === circleId ? { ...circle, ...changes } : circle),
+      circles: (current.circles || []).map((circle) => {
+        if (circle.id !== circleId) return circle;
+        const updated = { ...circle, ...changes };
+        if (updated.width != null) updated.width = Math.min(updated.width, updated.radius);
+        return updated;
+      }),
     }));
   }
 
@@ -645,6 +650,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       radius: geometry.defaultElements?.circleRadius || 1,
       handleAngle: 0,
       operation: "ink",
+      hollow: false,
+      width: 0.05,
     });
     setDesign((current) => ({ ...current, circles: [...(current.circles || []), circle] }));
     setSelectedPathId(null);
@@ -803,6 +810,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           <option value="base">{t("studio.circles.cutColor")}</option>
         </InspectorSelectField>
         <InspectorRangeField label={t("studio.circles.radius")} value={selectedCircle.radius} min="0.125" max="5" step="0.125" onChange={(radius) => updateCircle(selectedCircle.id, { radius })} />
+        <InspectorToggleField label={t("studio.circles.hollow")} checked={selectedCircle.hollow === true} onChange={(hollow) => updateCircle(selectedCircle.id, { hollow, width: selectedCircle.width ?? Math.min(0.05, selectedCircle.radius) })} />
+        {selectedCircle.hollow === true ? <InspectorRangeField label={t("studio.circles.width")} value={selectedCircle.width ?? Math.min(0.05, selectedCircle.radius)} min="0.025" max={selectedCircle.radius} step="0.025" editable onChange={(width) => updateCircle(selectedCircle.id, { width })} /> : null}
         <InspectorActions><button type="button" className="danger" onClick={removeCircle}>{t("studio.circles.remove")}</button></InspectorActions>
       </InspectorGroup>
     );

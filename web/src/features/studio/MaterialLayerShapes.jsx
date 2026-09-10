@@ -2,7 +2,21 @@ export default function MaterialLayerShapes({ layers, colorFor, baseColor, mapPo
   return layers.map(({ kind, id, item }) => {
     if (kind === "circle") {
       const center = mapPoint(item.center);
-      return <circle key={`${kind}:${id}`} className="studio-material-circle" cx={center.x} cy={center.y} r={item.radius * strokeScale} fill={item.operation === "ink" ? colorFor(item) : baseColor} onPointerDown={onSelect ? () => onSelect(kind, id) : undefined} />;
+      const color = item.operation === "ink" ? colorFor(item) : baseColor;
+      const radius = item.radius * strokeScale;
+      const hollow = item.hollow === true;
+      const inwardWidth = Math.min(item.width ?? 0.05, item.radius) * strokeScale;
+      return <circle
+        key={`${kind}:${id}`}
+        className="studio-material-circle"
+        cx={center.x}
+        cy={center.y}
+        r={hollow ? Math.max(0, radius - inwardWidth / 2) : radius}
+        fill={hollow ? "none" : color}
+        stroke={hollow ? color : "none"}
+        strokeWidth={hollow ? inwardWidth : undefined}
+        onPointerDown={onSelect ? () => onSelect(kind, id) : undefined}
+      />;
     }
     const selected = id === selectedIds[kind];
     return <path key={`${kind}:${id}`} className={`studio-material-path${kind === "circularPath" ? " studio-circular-material-path" : ""}${selected ? " selected" : ""}`} d={renderPath(kind, item)} fill="none" stroke={colorFor(item)} strokeWidth={item.width * strokeScale} strokeLinecap="round" strokeLinejoin="round" onPointerDown={onSelect ? () => onSelect(kind, id) : undefined} />;

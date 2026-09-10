@@ -170,6 +170,15 @@ function coerceStudioPattern(payload, tile = "einstein-hat") {
     if (!finitePoint(circle.center) || !Number.isFinite(Number(circle.radius)) || Number(circle.radius) <= 0 || Number(circle.radius) > 20 || !["ink", "base"].includes(circle.operation)) {
       throw new ApiError("'studio_pattern' contains an invalid circle.");
     }
+    if (circle.hollow != null && typeof circle.hollow !== "boolean") {
+      throw new ApiError("'studio_pattern' circle hollow values must be boolean.");
+    }
+    if (circle.width != null && (!Number.isFinite(Number(circle.width)) || Number(circle.width) <= 0 || Number(circle.width) > Number(circle.radius))) {
+      throw new ApiError("'studio_pattern' hollow-circle widths must be between 0 and the radius.");
+    }
+    if (circle.hollow === true && circle.width == null) {
+      throw new ApiError("'studio_pattern' hollow circles need an inward width.");
+    }
   }
   for (const pathItem of circularPaths) {
     if (!Array.isArray(pathItem.points) || pathItem.points.length !== 3 || !pathItem.points.every(finitePoint) || !["left", "right"].includes(pathItem.side)) {
