@@ -1062,6 +1062,10 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                     />)}
                   </g>;
                 })}
+                {gridMode === "construction" ? (geometry.constructionPoints || []).map((point, index) => {
+                  const screen = mapToCanvas(point);
+                  return <circle key={`construction-point-${index}`} className="studio-construction-snap-point" cx={screen.x} cy={screen.y} r="3" />;
+                }) : null}
                 {family === "einstein" ? Array.from({ length: 15 }, (_, uIndex) => Array.from({ length: 14 }, (_, vIndex) => {
                   const point = mapToCanvas({ u: uIndex - 6, v: vIndex - 6 });
                   return <circle key={`${uIndex}-${vIndex}`} cx={point.x} cy={point.y} r="2.1" />;

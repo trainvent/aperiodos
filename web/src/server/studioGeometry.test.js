@@ -344,6 +344,12 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
           assert.equal(editor.gridLines.length, 1);
           assert.ok(matches(shapeConstructionLines[0][0], editor.points[1]));
           assert.ok(matches(shapeConstructionLines[0][1], editor.points[3]));
+          assert.equal(editor.constructionPoints.length, 1);
+          const fullTileCenter = editor.materialToShape(latticeToCartesian(editor.constructionPoints[0]));
+          assert.ok(matches(fullTileCenter, {
+            x: (Math.min(...editor.points.map((point) => point.x)) + Math.max(...editor.points.map((point) => point.x))) / 2,
+            y: (editor.points[1].y + editor.points[3].y) / 2,
+          }));
         } else {
           assert.equal(editor.gridLines.length, 1);
           assert.ok(matches(shapeConstructionLines[0][0], editor.points[0]));
@@ -373,7 +379,13 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
       });
 
       const gridOrigin = editor.cartesianGridOrigin;
-      assert.ok(matches(gridOrigin, editor.points[0]));
+      const expectedGridOrigin = shape.tileType === "kite"
+        ? {
+            x: (editor.points[0].x + editor.points[2].x) / 2,
+            y: (editor.points[1].y + editor.points[3].y) / 2,
+          }
+        : editor.points[0];
+      assert.ok(matches(gridOrigin, expectedGridOrigin));
       const shapeGridLines = editor.cartesianGridLines.map(([startPoint, endPoint]) => [
         editor.materialToShape(latticeToCartesian(startPoint)),
         editor.materialToShape(latticeToCartesian(endPoint)),
@@ -381,11 +393,11 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
       assert.ok(shapeGridLines.some(([startPoint, endPoint]) => (
         Math.abs(startPoint.x - gridOrigin.x) < 1e-8
         && Math.abs(endPoint.x - gridOrigin.x) < 1e-8
-      )), `${family} ${shape.name} does not anchor a vertical grid line to its first vertex`);
+      )), `${family} ${shape.name} does not anchor a vertical grid line to its grid origin`);
       assert.ok(shapeGridLines.some(([startPoint, endPoint]) => (
         Math.abs(startPoint.y - gridOrigin.y) < 1e-8
         && Math.abs(endPoint.y - gridOrigin.y) < 1e-8
-      )), `${family} ${shape.name} does not anchor a horizontal grid line to its first vertex`);
+      )), `${family} ${shape.name} does not anchor a horizontal grid line to its grid origin`);
 
       const nearGridOrigin = editor.shapeToMaterial({
         x: gridOrigin.x + 0.04,

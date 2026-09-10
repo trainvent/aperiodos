@@ -211,6 +211,42 @@ fn penrose_construction_segments(shape: &Shape) -> Vec<[Point; 2]> {
         .collect()
 }
 
+fn penrose_construction_points(shape: &Shape) -> Vec<Point> {
+    if shape.tile_type != "kite" || shape.points.len() != 4 {
+        return Vec::new();
+    }
+    let min_x = shape
+        .points
+        .iter()
+        .map(|point| point.x)
+        .fold(f64::INFINITY, f64::min);
+    let max_x = shape
+        .points
+        .iter()
+        .map(|point| point.x)
+        .fold(f64::NEG_INFINITY, f64::max);
+    // The P2 Kite's horizontal construction line is its symmetry axis. This
+    // marks the center of the complete tile bounds, rather than the midpoint
+    // of the shorter left-to-notch helper segment.
+    vec![point(
+        (min_x + max_x) / 2.0,
+        (shape.points[1].y + shape.points[3].y) / 2.0,
+    )]
+}
+
+fn penrose_cartesian_grid_origin(shape: &Shape) -> Point {
+    if shape.tile_type == "kite" && shape.points.len() == 4 {
+        // Put the grid crossing on the Kite's symmetry axes instead of on one
+        // outer tip. This keeps the tip-to-tip axis vertical and the
+        // left-to-notch axis horizontal while preserving the canonical tile.
+        return point(
+            (shape.points[0].x + shape.points[2].x) / 2.0,
+            (shape.points[1].y + shape.points[3].y) / 2.0,
+        );
+    }
+    shape.points[0]
+}
+
 pub fn affine_length_scale(transform: [f64; 6]) -> f64 {
     (transform[0] * transform[4] - transform[1] * transform[3])
         .abs()
@@ -260,7 +296,7 @@ pub fn penrose_editor_geometry(family: &str, tile_type: &str) -> Result<Value, G
     // Phase the Cartesian grid through the first canonical vertex. For the P2
     // Dart this is the lower end of the long vertical edge, which keeps both
     // that edge and anything snapped to its corner on the visible grid.
-    let grid_origin = shape.points[0];
+    let grid_origin = penrose_cartesian_grid_origin(&shape);
     let cartesian_grid_lines = cartesian_grid_lines(-10.0, 10.0, CARTESIAN_GRID_STEP)
         .into_iter()
         .map(|line| {
@@ -276,6 +312,10 @@ pub fn penrose_editor_geometry(family: &str, tile_type: &str) -> Result<Value, G
     let construction_lines = penrose_construction_segments(&shape)
         .into_iter()
         .map(|line| line.map(|point| cartesian_to_lattice(apply(inverse, point))))
+        .collect::<Vec<_>>();
+    let construction_points = penrose_construction_points(&shape)
+        .into_iter()
+        .map(|point| cartesian_to_lattice(apply(inverse, point)))
         .collect::<Vec<_>>();
     let mut geometry = geometry_adapter(family)?;
     geometry["label"] = json!(format!(
@@ -294,6 +334,7 @@ pub fn penrose_editor_geometry(family: &str, tile_type: &str) -> Result<Value, G
     geometry["cartesianRadiusStep"] = json!(CARTESIAN_GRID_STEP / material_scale);
     geometry["materialVertices"] = json!(material_vertices);
     geometry["gridLines"] = json!(construction_lines);
+    geometry["constructionPoints"] = json!(construction_points);
     geometry["cartesianGridLines"] = json!(cartesian_grid_lines);
     geometry["activeTileType"] = json!(shape.tile_type);
     geometry["defaultElements"] = json!({
@@ -331,7 +372,7 @@ fn snap_penrose_cartesian(
     let shape = selected_shape(family, tile_type)?;
     let (forward, inverse, _) = material_transform(&shape.points);
     let point = apply(forward, lattice_to_cartesian(target));
-    let grid_origin = shape.points[0];
+    let grid_origin = penrose_cartesian_grid_origin(&shape);
     Ok(json!(cartesian_to_lattice(apply(
         inverse,
         Point {
@@ -363,6 +404,12 @@ fn snap_penrose_construction(
     segments.extend(penrose_construction_segments(&shape));
 
     let mut nearest = (shape.points[0], f64::INFINITY);
+    for candidate in penrose_construction_points(&shape) {
+        let distance = (candidate.x - target_shape.x).hypot(candidate.y - target_shape.y);
+        if distance < nearest.1 {
+            nearest = (candidate, distance);
+        }
+    }
     for [start, end] in segments {
         let dx = end.x - start.x;
         let dy = end.y - start.y;
@@ -1209,6 +1256,49 @@ mod tests {
                 assert_eq!(adapter["shapes"].as_array().unwrap().len(), count);
             }
         }
+    }
+
+    #[test]
+    fn kite_cartesian_grid_crosses_on_both_symmetry_axes() {
+        let kite = selected_shape("penrose-kite-dart", "kite").unwrap();
+        let origin = penrose_cartesian_grid_origin(&kite);
+        close(origin.x, kite.points[0].x);
+        close(origin.x, kite.points[2].x);
+        close(origin.y, kite.points[1].y);
+        close(origin.y, kite.points[3].y);
+
+        let editor = penrose_editor_geometry("penrose-kite-dart", "kite").unwrap();
+        close(
+            editor["cartesianGridOrigin"]["x"].as_f64().unwrap(),
+            origin.x,
+        );
+        close(
+            editor["cartesianGridOrigin"]["y"].as_f64().unwrap(),
+            origin.y,
+        );
+    }
+
+    #[test]
+    fn kite_exposes_and_snaps_to_its_complete_tile_center() {
+        let kite = selected_shape("penrose-kite-dart", "kite").unwrap();
+        let expected = penrose_construction_points(&kite)[0];
+        let editor = penrose_editor_geometry("penrose-kite-dart", "kite").unwrap();
+        let material_point: LatticePoint =
+            serde_json::from_value(editor["constructionPoints"][0].clone()).unwrap();
+        let transform: [f64; 6] =
+            serde_json::from_value(editor["materialTransform"].clone()).unwrap();
+        let visible = apply(transform, lattice_to_cartesian(material_point));
+        close(visible.x, expected.x);
+        close(visible.y, expected.y);
+
+        let (_, inverse, _) = material_transform(&kite.points);
+        let near =
+            cartesian_to_lattice(apply(inverse, point(expected.x + 0.01, expected.y - 0.01)));
+        let snapped = snap_penrose_construction("penrose-kite-dart", "kite", near, 0.5).unwrap();
+        let snapped: LatticePoint = serde_json::from_value(snapped).unwrap();
+        let visible = apply(transform, lattice_to_cartesian(snapped));
+        close(visible.x, expected.x);
+        close(visible.y, expected.y);
     }
 
     #[test]
