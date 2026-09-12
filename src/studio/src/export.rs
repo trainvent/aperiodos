@@ -4,7 +4,7 @@ use aperiodos_render_core::{escape_xml, Affine, Vec2};
 use serde_json::Value;
 
 use crate::geometry::{material_transform, shapes_for_family, spectre_edge_control, Point};
-use crate::render_studio_elements;
+use crate::{render_studio_elements, tile_base_color};
 
 const WIDTH: f64 = 760.0;
 const HEIGHT: f64 = 620.0;
@@ -137,10 +137,7 @@ pub fn export_svg(design: &Value, tile_type: Option<&str>) -> Result<String, Str
     } else {
         (screen, scale)
     };
-    let base = design
-        .pointer("/colors/base")
-        .and_then(Value::as_str)
-        .unwrap_or("#ffffff");
+    let base = tile_base_color(design, if fit { Some(shape.tile_type) } else { None });
     let ink = design
         .pointer("/colors/ink")
         .and_then(Value::as_str)
@@ -231,5 +228,15 @@ mod tests {
         let svg = export_svg(&value, Some("star")).unwrap();
         assert!(svg.contains("#110001"));
         assert!(!svg.contains("#220002"));
+    }
+
+    #[test]
+    fn penrose_export_uses_the_selected_prototile_base_color() {
+        let mut value = design("penrose");
+        value["tileMode"] = json!("p1");
+        value["tileColors"] = json!({"star":"#123456","boat":"#abcdef"});
+        let svg = export_svg(&value, Some("star")).unwrap();
+        assert!(svg.contains("fill=\"#123456\""));
+        assert!(!svg.contains("fill=\"#abcdef\""));
     }
 }

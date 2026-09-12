@@ -1,7 +1,32 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
-import { renderEinstein, renderPenrose, renderSpectre } from "./renderers.js";
+import { newestFreshBinary, renderEinstein, renderPenrose, renderSpectre } from "./renderers.js";
+
+test("Local renderers ignore binaries older than their Rust sources", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "aperiodos-renderer-freshness-"));
+  try {
+    const binary = path.join(directory, "penrose");
+    const source = path.join(directory, "render.rs");
+    await writeFile(binary, "binary");
+    await writeFile(source, "source");
+    const oldTime = new Date("2026-01-01T00:00:00Z");
+    const newTime = new Date("2026-01-02T00:00:00Z");
+
+    await utimes(source, oldTime, oldTime);
+    await utimes(binary, newTime, newTime);
+    assert.equal(await newestFreshBinary([binary], [source]), binary);
+
+    await utimes(binary, oldTime, oldTime);
+    await utimes(source, newTime, newTime);
+    assert.equal(await newestFreshBinary([binary], [source]), null);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 test("Einstein rejects unknown material modes before rendering", async () => {
   await assert.rejects(

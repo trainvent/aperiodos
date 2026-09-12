@@ -9,6 +9,7 @@ import {
   cartesianToLattice,
   circleHandlePoint,
   circleThroughVertex,
+  commonTileBaseColor,
   circularPathGeometry,
   createEmptyDesign,
   elementMaterialColor,
@@ -20,7 +21,10 @@ import {
   snapCircleHandle,
   snapLatticePoint,
   setDefaultMaterialColor,
+  setTileBaseColor,
+  setTileBaseColors,
   validateDesign,
+  tileBaseColor,
 } from "../features/studio/einsteinGeometry.js";
 import { getEinsteinStudioPatterns, getPenroseStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns, readStudioLibrary, writeStudioLibrary } from "../features/studio/patternLibrary.js";
 import { spectreEdgeControl, spectrePath } from "../features/studio/spectreGeometry.js";
@@ -459,20 +463,28 @@ test("Spectre designs persist in the local Studio library", () => {
 });
 
 test("Public Studio presets load from their pattern assets", async () => {
-  const assets = await Promise.all([
-    readFile(new URL("../../public/patterns/einstein/greencurves.json", import.meta.url), "utf8"),
-    readFile(new URL("../../public/patterns/spectre/hexagonalization.json", import.meta.url), "utf8"),
-    readFile(new URL("../../public/patterns/penrose/p2-bicircular.json", import.meta.url), "utf8"),
-  ]);
-  let index = 0;
-  const designs = await getPublicStudioDesigns(async () => ({ ok: true, json: async () => JSON.parse(assets[index++]) }));
+  const assetPaths = [
+    "/patterns/einstein/greencurves.json",
+    "/patterns/spectre/hexagonalization.json",
+    "/patterns/penrose/p2-bicircular.json",
+  ];
+  const assets = new Map(await Promise.all(assetPaths.map(async (asset) => [
+    asset,
+    JSON.parse(await readFile(new URL(`../../public${asset}`, import.meta.url), "utf8")),
+  ])));
+  const designs = await getPublicStudioDesigns(async (url) => ({
+    ok: url === "/patterns/library.json" || assets.has(url),
+    json: async () => url === "/patterns/library.json" ? assetPaths : assets.get(url),
+  }));
   const greenCurves = designs.find((design) => design.id === "builtin-green-curves");
   const hexagonalization = designs.find((design) => design.id === "builtin-spectre-hexagonalization");
   const p2Bicircular = designs.find((design) => design.id === "builtin-penrose-p2-bicircular");
   assert.deepEqual(greenCurves.circularPaths.map((path) => path.width), [0.7, 1.3]);
   assert.equal(greenCurves.outline, "#17313b");
   assert.equal(hexagonalization.tile, "spectre");
-  assert.equal(hexagonalization.outline, "#000000");
+  assert.equal(hexagonalization.outline, "#b99dfb");
+  assert.equal(hexagonalization.strokeWidth, 1);
+  assert.equal(hexagonalization.tileShape.lean, -1);
   assert.equal(hexagonalization.lines.length, 7);
   assert.equal(p2Bicircular.tile, "penrose");
   assert.equal(p2Bicircular.tileMode, "kite-dart");
@@ -485,6 +497,23 @@ test("Public Studio presets load from their pattern assets", async () => {
     0.38196601128143226,
   ]);
   assert.ok(p2Bicircular.circles.every((circle) => circle.hollow === true));
+});
+
+test("Penrose prototiles keep independent tile colors", () => {
+  const design = createEmptyDesign("penrose");
+  design.lines = [{ id: "line", width: 0.2, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }];
+  design.tileMode = "kite-dart";
+  design.tileColors = { dart: "#aa0000", kite: "#00aa00" };
+
+  assert.equal(tileBaseColor(design, "dart"), "#aa0000");
+  assert.equal(tileBaseColor(design, "kite"), "#00aa00");
+  const changed = setTileBaseColor(design, "dart", "#0000aa");
+  assert.equal(tileBaseColor(changed, "dart"), "#0000aa");
+  assert.equal(tileBaseColor(changed, "kite"), "#00aa00");
+  assert.equal(commonTileBaseColor(changed, ["dart", "kite"]), null);
+  const unified = setTileBaseColors(changed, ["dart", "kite"], "#123456");
+  assert.equal(commonTileBaseColor(unified, ["dart", "kite"]), "#123456");
+  assert.deepEqual(validateDesign(changed).tileColors, { dart: "#0000aa", kite: "#00aa00" });
 });
 
 test("Studio elements can override the document color", () => {

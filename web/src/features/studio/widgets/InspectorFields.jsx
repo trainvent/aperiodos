@@ -23,10 +23,10 @@ export function InspectorSelectField({ label, value, onChange, children }) {
   );
 }
 
-export function InspectorColorField({ label, value, onChange }) {
+export function InspectorColorField({ label, value, mixed = false, onChange }) {
   return (
-    <FieldShell label={label} className="studio-widget-color">
-      <input type="color" aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
+    <FieldShell label={label} className={`studio-widget-color${mixed ? " mixed" : ""}`}>
+      <input type="color" aria-label={label} value={value || "#000000"} onChange={(event) => onChange(event.target.value)} />
     </FieldShell>
   );
 }

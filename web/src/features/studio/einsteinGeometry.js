@@ -76,6 +76,22 @@ export function setDefaultMaterialColor(design, color) {
   return studioCall("setDefaultMaterialColor", { design, color });
 }
 
+export function tileBaseColor(design, tileType) {
+  return studioCall("tileBaseColor", { design, tileType });
+}
+
+export function setTileBaseColor(design, tileType, color) {
+  return studioCall("setTileBaseColor", { design, tileType, color });
+}
+
+export function commonTileBaseColor(design, tileTypes) {
+  return studioCall("commonTileBaseColor", { design, tileTypes });
+}
+
+export function setTileBaseColors(design, tileTypes, color) {
+  return studioCall("setTileBaseColors", { design, tileTypes, color });
+}
+
 export function validateDesign(design) {
   return studioCall("validateDesign", { design });
 }

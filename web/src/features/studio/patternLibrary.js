@@ -8,6 +8,7 @@ export const PUBLIC_STUDIO_PATTERN_ASSETS = [
   "/patterns/spectre/hexagonalization.json",
   "/patterns/penrose/p2-bicircular.json",
 ];
+export const PUBLIC_STUDIO_PATTERN_REGISTRY = "/patterns/library.json";
 
 export function readStudioLibrary(storage = globalThis.window?.localStorage) {
   if (!storage) return [];
@@ -28,8 +29,18 @@ export function writeStudioLibrary(designs, storage = globalThis.window?.localSt
 export async function getPublicStudioDesigns(fetcher = globalThis.fetch) {
   if (!studioRuntimeReady()) await loadStudioRuntime();
   if (typeof fetcher !== "function") return [];
-  const results = await Promise.allSettled(PUBLIC_STUDIO_PATTERN_ASSETS.map(async (asset) => {
-    const response = await fetcher(asset);
+  let assets = PUBLIC_STUDIO_PATTERN_ASSETS;
+  try {
+    const response = await fetcher(PUBLIC_STUDIO_PATTERN_REGISTRY, { cache: "no-store" });
+    const registry = response.ok ? await response.json() : null;
+    if (Array.isArray(registry) && registry.every((asset) => typeof asset === "string" && asset.startsWith("/patterns/") && asset.endsWith(".json"))) {
+      assets = registry;
+    }
+  } catch {
+    // Older deployments without the registry retain the original built-in set.
+  }
+  const results = await Promise.allSettled(assets.map(async (asset) => {
+    const response = await fetcher(asset, { cache: "no-store" });
     if (!response.ok) throw new Error(`Could not load public Studio pattern: ${asset}`);
     return cloneDesign(validateDesign(await response.json()));
   }));

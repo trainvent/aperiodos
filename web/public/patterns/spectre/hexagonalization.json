@@ -7,13 +7,14 @@
   "tileShape": {
     "roundness": 0,
     "weight": 0.5,
-    "lean": 1
+    "lean": -1
   },
   "colors": {
     "base": "#ffffff",
     "ink": "#000000"
   },
-  "outline": "#000000",
+  "outline": "#b99dfb",
+  "strokeWidth": 1,
   "paths": [],
   "lines": [
     {
@@ -155,5 +156,5 @@
     }
   ],
   "createdAt": "2026-08-25T11:34:57.456Z",
-  "updatedAt": "2026-08-25T11:47:43.176Z"
+  "updatedAt": "2026-09-12T07:56:00.000Z"
 }

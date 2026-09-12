@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, rm, stat } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -97,7 +97,7 @@ function coerceOneOf(payload, key, fallback, allowed) {
   return value;
 }
 
-function coerceStudioPattern(payload, tile = "einstein-hat") {
+export function coerceStudioPattern(payload, tile = "einstein-hat") {
   if (payload.studio_pattern === undefined || payload.studio_pattern === null) return null;
   const pattern = payload.studio_pattern;
   const serialized = JSON.stringify(pattern);
@@ -217,7 +217,26 @@ async function exists(filePath) {
   }
 }
 
-async function newestExisting(paths) {
+async function newestModification(paths) {
+  let newest = 0;
+  for (const candidate of paths) {
+    try {
+      const candidateStat = await stat(candidate);
+      newest = Math.max(newest, candidateStat.mtimeMs);
+      if (candidateStat.isDirectory()) {
+        const entries = await readdir(candidate, { withFileTypes: true });
+        newest = Math.max(newest, await newestModification(entries
+          .filter((entry) => entry.isDirectory() || entry.isFile())
+          .map((entry) => path.join(candidate, entry.name))));
+      }
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+  return newest;
+}
+
+export async function newestFreshBinary(paths, sourcePaths = []) {
   const candidates = [];
   for (const candidate of paths) {
     if (await exists(candidate)) {
@@ -228,8 +247,33 @@ async function newestExisting(paths) {
     return null;
   }
   const withStats = await Promise.all(candidates.map(async (candidate) => ({ candidate, stat: await stat(candidate) })));
-  withStats.sort((left, right) => right.stat.mtimeMs - left.stat.mtimeMs);
-  return withStats[0].candidate;
+  const newestSource = await newestModification(sourcePaths);
+  const freshCandidates = withStats.filter(({ stat: candidateStat }) => candidateStat.mtimeMs >= newestSource);
+  if (freshCandidates.length === 0) return null;
+  freshCandidates.sort((left, right) => right.stat.mtimeMs - left.stat.mtimeMs);
+  return freshCandidates[0].candidate;
+}
+
+function rustSourcePaths(cargoPackage) {
+  return [
+    path.join(PROJECT_ROOT, "Cargo.toml"),
+    path.join(PROJECT_ROOT, "Cargo.lock"),
+    path.join(PROJECT_ROOT, "src", "generators", "common"),
+    path.join(PROJECT_ROOT, "src", "generators", cargoPackage),
+    path.join(PROJECT_ROOT, "src", "studio"),
+  ];
+}
+
+async function cargoCommand() {
+  if (process.env.CARGO_BIN) return process.env.CARGO_BIN;
+  const rustupCargo = path.join(os.homedir(), ".cargo", "bin", process.platform === "win32" ? "cargo.exe" : "cargo");
+  return (await exists(rustupCargo)) ? rustupCargo : "cargo";
+}
+
+async function cargoEnvironment() {
+  if (process.env.RUSTC) return {};
+  const rustupRustc = path.join(os.homedir(), ".cargo", "bin", process.platform === "win32" ? "rustc.exe" : "rustc");
+  return (await exists(rustupRustc)) ? { RUSTC: rustupRustc } : {};
 }
 
 function runCommand(command, args, options = {}) {
@@ -491,14 +535,18 @@ export async function renderPenrose(payload) {
 async function renderRustSvg({ imageFormat, allowedFormats, filenameBase, cargoPackage, binaryEnv, releaseBinary, debugBinary, args, transformSvg }) {
   return withTempFile("svg", async (outputPath) => {
     const configured = process.env[binaryEnv];
-    const binaryPath = configured || (await newestExisting([releaseBinary, debugBinary]));
-    const command = binaryPath || "cargo";
+    const binaryPath = configured || (await newestFreshBinary(
+      [releaseBinary, debugBinary],
+      rustSourcePaths(cargoPackage),
+    ));
+    const command = binaryPath || (await cargoCommand());
     const commandArgs = binaryPath
       ? ["--output", outputPath, ...args]
       : ["run", "--quiet", "--release", "-p", cargoPackage, "--", "--output", outputPath, ...args];
 
     await runCommand(command, commandArgs, {
       cwd: PROJECT_ROOT,
+      env: binaryPath ? {} : await cargoEnvironment(),
     });
 
     const renderedSvg = await readFile(outputPath);

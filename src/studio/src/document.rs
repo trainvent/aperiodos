@@ -129,6 +129,49 @@ pub fn element_material_color(design: &Value, element: &Value) -> Value {
     }
 }
 
+/// Resolve a tile fill from the canonical Studio document. Penrose designs may
+/// override the document base color for each prototile while older designs keep
+/// using `colors.base` unchanged.
+pub fn tile_base_color<'a>(design: &'a Value, tile_type: Option<&str>) -> &'a str {
+    tile_type
+        .and_then(|tile_type| design.get("tileColors")?.get(tile_type)?.as_str())
+        .or_else(|| design.pointer("/colors/base").and_then(Value::as_str))
+        .unwrap_or("#ffffff")
+}
+
+pub fn set_tile_base_color(design: &Value, tile_type: &str, color: &str) -> Value {
+    let mut output = design.clone();
+    if design.get("tile").and_then(Value::as_str) != Some("penrose")
+        || tile_type.trim().is_empty()
+        || color.trim().is_empty()
+    {
+        return output;
+    }
+    if !output.get("tileColors").is_some_and(Value::is_object) {
+        output["tileColors"] = json!({});
+    }
+    output["tileColors"][tile_type] = json!(color);
+    output
+}
+
+pub fn common_tile_base_color<'a>(design: &'a Value, tile_types: &[Value]) -> Option<&'a str> {
+    let mut colors = tile_types
+        .iter()
+        .filter_map(Value::as_str)
+        .map(|tile_type| tile_base_color(design, Some(tile_type)));
+    let first = colors.next()?;
+    colors.all(|color| color == first).then_some(first)
+}
+
+pub fn set_tile_base_colors(design: &Value, tile_types: &[Value], color: &str) -> Value {
+    tile_types
+        .iter()
+        .filter_map(Value::as_str)
+        .fold(design.clone(), |output, tile_type| {
+            set_tile_base_color(&output, tile_type, color)
+        })
+}
+
 pub fn set_default_material_color(design: &Value, color: &str) -> Value {
     let mut output = design.clone();
     for (_, collection) in KINDS {
@@ -197,6 +240,18 @@ pub fn validate_design(input: &Value) -> Result<Value, String> {
             .unwrap_or_default();
         if !["kite-dart", "rhombs", "p1"].contains(&mode) {
             return fail("Penrose designs need a supported tile combination.");
+        }
+    }
+    if let Some(tile_colors) = input.get("tileColors") {
+        let Some(tile_colors) = tile_colors.as_object() else {
+            return fail("Penrose tile colors must be an object keyed by tile type.");
+        };
+        if tile != "penrose"
+            || tile_colors.iter().any(|(tile_type, color)| {
+                tile_type.trim().is_empty() || !non_empty_string(Some(color))
+            })
+        {
+            return fail("Every Penrose tile color needs a tile type and a non-empty color value.");
         }
     }
     if let Some(width) = input.get("strokeWidth") {
@@ -427,6 +482,42 @@ pub fn call(operation: &str, input: &Value) -> Option<Result<Value, String>> {
                 .and_then(Value::as_str)
                 .unwrap_or_default(),
         )),
+        "tileBaseColor" => Ok(json!(tile_base_color(
+            input.get("design").unwrap_or(&Value::Null),
+            input.get("tileType").and_then(Value::as_str),
+        ))),
+        "setTileBaseColor" => Ok(set_tile_base_color(
+            input.get("design").unwrap_or(&Value::Null),
+            input
+                .get("tileType")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+            input
+                .get("color")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+        )),
+        "commonTileBaseColor" => Ok(common_tile_base_color(
+            input.get("design").unwrap_or(&Value::Null),
+            input
+                .get("tileTypes")
+                .and_then(Value::as_array)
+                .map(Vec::as_slice)
+                .unwrap_or(&[]),
+        )
+        .map_or(Value::Null, |color| json!(color))),
+        "setTileBaseColors" => Ok(set_tile_base_colors(
+            input.get("design").unwrap_or(&Value::Null),
+            input
+                .get("tileTypes")
+                .and_then(Value::as_array)
+                .map(Vec::as_slice)
+                .unwrap_or(&[]),
+            input
+                .get("color")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+        )),
         "validateDesign" => validate_design(input.get("design").unwrap_or(input)),
         "insertCircularPathTemplate" => insert_circular_path_template(
             input.get("design").unwrap_or(&Value::Null),
@@ -466,5 +557,34 @@ mod tests {
             assert_eq!(design["tile"], tile);
             assert_eq!(design["schema"], "aperiodos.material-design");
         }
+    }
+
+    #[test]
+    fn penrose_prototile_colors_are_independent_and_backward_compatible() {
+        let design = json!({
+            "tile":"penrose",
+            "colors":{"base":"#ffffff","ink":"#000000"},
+            "tileColors":{"dart":"#aa0000","kite":"#00aa00"}
+        });
+        assert_eq!(tile_base_color(&design, Some("dart")), "#aa0000");
+        assert_eq!(tile_base_color(&design, Some("kite")), "#00aa00");
+        assert_eq!(tile_base_color(&design, Some("star")), "#ffffff");
+
+        let updated = set_tile_base_color(&design, "dart", "#0000aa");
+        assert_eq!(tile_base_color(&updated, Some("dart")), "#0000aa");
+        assert_eq!(tile_base_color(&updated, Some("kite")), "#00aa00");
+        assert_eq!(
+            common_tile_base_color(&updated, &json!(["dart", "kite"]).as_array().unwrap()),
+            None
+        );
+        let unified = set_tile_base_colors(
+            &updated,
+            json!(["dart", "kite"]).as_array().unwrap(),
+            "#123456",
+        );
+        assert_eq!(
+            common_tile_base_color(&unified, json!(["dart", "kite"]).as_array().unwrap()),
+            Some("#123456")
+        );
     }
 }

@@ -6,6 +6,7 @@ import { apiUrl } from "../../lib/api";
 import { PENROSE_DEFAULTS } from "./defaults";
 import GeneratorLayout from "./GeneratorLayout";
 import GeneratorSettingsScaffold, { SettingsRow } from "./GeneratorSettingsScaffold";
+import { paletteFromStudioPattern, penrosePaletteFields, studioPatternWithPalette } from "./penrosePalette";
 import { getPenroseStudioPatterns, STUDIO_LIBRARY_EVENT, studioPatternId, studioPatternValue } from "../studio/patternLibrary";
 
 export default function PenrosePage() {
@@ -19,6 +20,7 @@ export default function PenrosePage() {
   const legacyPaletteDefaults = ["wheat", "midnightblue", "sandybrown", "seagreen"];
   const cartwheelPaletteDefaults = ["lightyellow", "lightcoral", "gainsboro", "dodgerblue"];
   const cartwheelLegacyHexDefaults = ["#ffffb3", "#ff6666", "#e6e6e6", "#0080ff"];
+  const paletteFields = penrosePaletteFields(values.tile_mode);
 
   useEffect(() => {
     async function refreshPatterns() {
@@ -45,11 +47,18 @@ export default function PenrosePage() {
   const selectedStudioPattern = compatibleStudioPatterns.find((pattern) => pattern.id === studioPatternId(values.pattern_design));
   const patternStrokeWidth = selectedStudioPattern?.strokeWidth;
   const patternOutline = selectedStudioPattern?.outline;
+  const patternPalette = paletteFromStudioPattern(selectedStudioPattern, values.tile_mode);
+  const patternPaletteKey = patternPalette.join("\u0000");
 
   useEffect(() => {
     if (!selectedStudioPattern) return;
-    setValues((current) => ({ ...current, stroke_width: patternStrokeWidth ?? current.stroke_width, outline: patternOutline || current.outline }));
-  }, [selectedStudioPattern?.id, patternStrokeWidth, patternOutline]);
+    setValues((current) => ({
+      ...current,
+      ...Object.fromEntries(paletteFields.map((field, index) => [field, patternPalette[index] || current[field]])),
+      stroke_width: patternStrokeWidth ?? current.stroke_width,
+      outline: patternOutline || current.outline,
+    }));
+  }, [selectedStudioPattern?.id, patternStrokeWidth, patternOutline, patternPaletteKey]);
 
   useEffect(() => {
     const previousMode = previousTileModeRef.current;
@@ -173,10 +182,9 @@ export default function PenrosePage() {
           }
           palette={
             <>
-              <ColorField values={values} setValues={setValues} name="palette_1" label={t("generator.common.color1")} />
-              <ColorField values={values} setValues={setValues} name="palette_2" label={t("generator.common.color2")} />
-              <ColorField values={values} setValues={setValues} name="palette_3" label={t("generator.common.color3")} />
-              <ColorField values={values} setValues={setValues} name="palette_4" label={t("generator.common.color4")} />
+              {paletteFields.map((name, index) => (
+                <ColorField key={name} values={values} setValues={setValues} name={name} label={t(`generator.common.color${index + 1}`)} />
+              ))}
             </>
           }
         />
@@ -195,10 +203,11 @@ export default function PenrosePage() {
         background: values.background,
         outline: values.outline,
         stroke_width: Number(values.stroke_width),
-        palette: [values.palette_1, values.palette_2, values.palette_3, values.palette_4]
+        palette: paletteFields
+          .map((name) => values[name])
           .map((value) => String(value).trim())
           .filter(Boolean),
-        ...(selectedStudioPattern ? { studio_pattern: selectedStudioPattern } : {})
+        ...(selectedStudioPattern ? { studio_pattern: studioPatternWithPalette(selectedStudioPattern, values.tile_mode, values) } : {})
       })}
       endpoint={apiUrl("/api/penrose/render")}
       downloadName={(payload) => `penrose.${payload.format}`}

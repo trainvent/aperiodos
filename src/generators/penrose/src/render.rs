@@ -2,11 +2,12 @@ mod classic_logic;
 mod p1_logic;
 mod rhombs_logic;
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use aperiodos_render_core::{Affine, Polygon, Renderer, Scene, Vec2 as ScenePoint};
-use aperiodos_studio::render_studio_elements;
+use aperiodos_render_core::{escape_xml, Affine, Polygon, Renderer, Scene, Vec2 as ScenePoint};
+use aperiodos_studio::{render_studio_elements, tile_base_color};
 use serde_json::{json, Value};
 
 use crate::math::Vec2;
@@ -127,6 +128,7 @@ impl Renderer for PenroseRenderer {
         });
         let material = (config.material_mode == PenroseMaterialMode::Pattern)
             .then(|| config.studio_pattern.as_ref().unwrap_or(&built_in_pattern));
+        let mut boundaries = BTreeMap::new();
 
         for tile in tiles {
             if !tile_visible(&tile, config) {
@@ -140,14 +142,18 @@ impl Renderer for PenroseRenderer {
                     ScenePoint::new(x, y)
                 })
                 .collect();
+            collect_unique_boundaries(&mut boundaries, &points);
             let material_basis = tile.material_basis.map(|point| {
                 let (x, y) = svg_point(point, config);
                 ScenePoint::new(x, y)
             });
+            let fill = material
+                .map(|pattern| tile_base_color(pattern, Some(tile.tile_type)))
+                .unwrap_or(&palette[tile.fill_index]);
             push_tile(
                 &mut scene,
                 points,
-                &palette[tile.fill_index],
+                fill,
                 config,
                 material,
                 tile.fill_index,
@@ -155,8 +161,67 @@ impl Renderer for PenroseRenderer {
                 material_basis,
             );
         }
+        push_unique_boundaries(&mut scene, boundaries, config);
         Ok(scene)
     }
+}
+
+type BoundaryKey = ((i64, i64), (i64, i64));
+
+fn boundary_key(start: ScenePoint, end: ScenePoint) -> BoundaryKey {
+    // Generated neighbors differ only by floating-point noise. Quantizing well
+    // below the SVG's two-decimal output precision makes reversed shared edges
+    // resolve to one stable key without merging visibly distinct segments.
+    let quantize = |point: ScenePoint| {
+        (
+            (point.x * 1_000_000.0).round() as i64,
+            (point.y * 1_000_000.0).round() as i64,
+        )
+    };
+    let start = quantize(start);
+    let end = quantize(end);
+    if start <= end {
+        (start, end)
+    } else {
+        (end, start)
+    }
+}
+
+fn collect_unique_boundaries(
+    boundaries: &mut BTreeMap<BoundaryKey, (ScenePoint, ScenePoint)>,
+    points: &[ScenePoint],
+) {
+    for (index, start) in points.iter().copied().enumerate() {
+        let end = points[(index + 1) % points.len()];
+        boundaries
+            .entry(boundary_key(start, end))
+            .or_insert((start, end));
+    }
+}
+
+fn push_unique_boundaries(
+    scene: &mut Scene,
+    boundaries: BTreeMap<BoundaryKey, (ScenePoint, ScenePoint)>,
+    config: &PenroseSvgConfig,
+) {
+    if config.stroke_width <= 0.0 || boundaries.is_empty() {
+        return;
+    }
+    let commands = boundaries
+        .into_values()
+        .map(|(start, end)| {
+            format!(
+                "M {:.2} {:.2} L {:.2} {:.2}",
+                start.x, start.y, end.x, end.y
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    scene.push_raw(format!(
+        "<path data-penrose-boundaries=\"true\" d=\"{commands}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" />",
+        escape_xml(&config.outline),
+        config.stroke_width,
+    ));
 }
 
 fn push_tile(
@@ -169,12 +234,7 @@ fn push_tile(
     tile_type: &str,
     material_basis: [ScenePoint; 3],
 ) {
-    scene.push_polygon(Polygon::new(
-        points.clone(),
-        fill,
-        &config.outline,
-        config.stroke_width,
-    ));
+    scene.push_polygon(Polygon::new(points.clone(), fill, "none", 0.0));
     let Some(pattern) = material else { return };
     if points.len() < 3 {
         return;
@@ -247,14 +307,14 @@ fn normalized_palette(config: &PenroseSvgConfig) -> Vec<String> {
     }
 
     let mut palette = config.palette.clone();
-    let defaults = PenroseSvgConfig::default().palette;
+    let supplied_colors = palette.clone();
     let minimum_colors = match config.tile_mode {
         PenroseTileMode::KiteDart if config.seed == PenroseSeed::Star => 4,
         PenroseTileMode::P1 => 4,
         _ => 2,
     };
     while palette.len() < minimum_colors {
-        palette.push(defaults[palette.len()].clone());
+        palette.push(supplied_colors[palette.len() % supplied_colors.len()].clone());
     }
     palette
 }
@@ -454,6 +514,112 @@ mod tests {
                     < 1e-9
             );
         }
+    }
+
+    #[test]
+    fn shared_tile_boundaries_are_emitted_once() {
+        let left = vec![
+            ScenePoint::new(0.0, 0.0),
+            ScenePoint::new(1.0, 0.0),
+            ScenePoint::new(1.0, 1.0),
+            ScenePoint::new(0.0, 1.0),
+        ];
+        let right = vec![
+            ScenePoint::new(1.0, 0.0),
+            ScenePoint::new(2.0, 0.0),
+            ScenePoint::new(2.0, 1.0),
+            ScenePoint::new(1.0, 1.0),
+        ];
+        let mut boundaries = BTreeMap::new();
+        collect_unique_boundaries(&mut boundaries, &left);
+        collect_unique_boundaries(&mut boundaries, &right);
+
+        assert_eq!(boundaries.len(), 7);
+        assert!(boundaries.contains_key(&boundary_key(
+            ScenePoint::new(1.0, 0.0),
+            ScenePoint::new(1.0, 1.0),
+        )));
+
+        let config = PenroseSvgConfig {
+            width: 640,
+            height: 432,
+            iterations: 3,
+            scale: 400.0,
+            ..PenroseSvgConfig::default()
+        };
+        let visible_tiles = classic_logic::render_tiles(config.seed, config.iterations)
+            .into_iter()
+            .filter(|tile| tile_visible(tile, &config))
+            .collect::<Vec<_>>();
+        let total_edges = visible_tiles
+            .iter()
+            .map(|tile| tile.points.len())
+            .sum::<usize>();
+        let mut generated_boundaries = BTreeMap::new();
+        for tile in visible_tiles {
+            let points = tile
+                .points
+                .into_iter()
+                .map(|point| {
+                    let (x, y) = svg_point(point, &config);
+                    ScenePoint::new(x, y)
+                })
+                .collect::<Vec<_>>();
+            collect_unique_boundaries(&mut generated_boundaries, &points);
+        }
+        assert!(generated_boundaries.len() < total_edges);
+    }
+
+    #[test]
+    fn rendered_patch_uses_one_consolidated_boundary_path() {
+        let svg = render_svg(&PenroseSvgConfig {
+            width: 320,
+            height: 240,
+            iterations: 2,
+            scale: 120.0,
+            ..PenroseSvgConfig::default()
+        });
+
+        assert_eq!(svg.matches("data-penrose-boundaries=\"true\"").count(), 1);
+        assert!(svg.contains("<polygon"));
+        assert!(svg
+            .lines()
+            .filter(|line| line.contains("<polygon"))
+            .all(|line| {
+                line.contains("stroke=\"none\"") && line.contains("stroke-width=\"0\"")
+            }));
+    }
+
+    #[test]
+    fn patterned_patch_uses_independent_prototile_base_colors() {
+        let svg = render_svg(&PenroseSvgConfig {
+            width: 640,
+            height: 432,
+            iterations: 3,
+            scale: 180.0,
+            material_mode: PenroseMaterialMode::Pattern,
+            studio_pattern: Some(json!({
+                "colors":{"base":"#ffffff","ink":"#000000"},
+                "tileColors":{"dart":"#aa1100","kite":"#00aa11"},
+                "paths":[],"lines":[],"circles":[],"circularPaths":[]
+            })),
+            ..PenroseSvgConfig::default()
+        });
+
+        assert!(svg.contains("fill=\"#aa1100\""));
+        assert!(svg.contains("fill=\"#00aa11\""));
+    }
+
+    #[test]
+    fn two_color_cartwheel_reuses_only_the_supplied_colors() {
+        let palette = normalized_palette(&PenroseSvgConfig {
+            seed: PenroseSeed::Star,
+            tile_mode: PenroseTileMode::KiteDart,
+            palette: vec!["#112233".to_owned(), "#aabbcc".to_owned()],
+            ..PenroseSvgConfig::default()
+        });
+
+        assert_eq!(palette, ["#112233", "#aabbcc", "#112233", "#aabbcc"]);
     }
 
     #[test]

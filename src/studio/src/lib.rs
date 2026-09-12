@@ -8,6 +8,7 @@ mod export;
 mod geometry;
 mod material;
 
+pub use document::tile_base_color;
 pub use geometry::{call as call_geometry, geometry_adapter, GeometryError};
 pub use material::render_studio_elements;
 

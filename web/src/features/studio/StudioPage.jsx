@@ -5,17 +5,19 @@ import {
   cartesianToLattice,
   circleHandlePoint,
   circleThroughVertex,
+  commonTileBaseColor,
   circularPathGeometry,
   cloneDesign,
   createEmptyDesign,
   elementMaterialColor,
   getDesignLayers,
-  insertCircularPathTemplate,
-  insertHexagonalizationTemplate,
   latticeToCartesian,
   normalizeLayerOrder,
   setDefaultMaterialColor,
+  setTileBaseColor,
+  setTileBaseColors,
   snapCircleHandle,
+  tileBaseColor,
   validateDesign,
 } from "./einsteinGeometry";
 import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
@@ -272,11 +274,19 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     ? penroseTileEditorGeometry(familyGeometry, activePenroseTileType)
     : familyGeometry, [familyGeometry, activePenroseTileType]);
   const mapToCanvas = useMemo(() => canvasMapperFor(geometry), [geometry]);
-  const emptyDesign = () => ({
-    ...createEmptyDesign(geometry.tile),
-    ...(geometry.tileMode ? { tileMode: geometry.tileMode } : {}),
-    name: family === "spectre" ? t("studio.spectre.untitled") : geometry.tile === "penrose" ? `Untitled ${familyGeometry.label} pattern` : t("studio.templates.untitled"),
-  });
+  const emptyDesign = () => {
+    const empty = {
+      ...createEmptyDesign(geometry.tile),
+      ...(geometry.tileMode ? { tileMode: geometry.tileMode } : {}),
+      name: family === "spectre" ? t("studio.spectre.untitled") : geometry.tile === "penrose" ? `Untitled ${familyGeometry.label} pattern` : t("studio.templates.untitled"),
+    };
+    if (geometry.tile === "penrose") {
+      empty.tileColors = Object.fromEntries(
+        familyGeometry.editorShapes.map((shape) => [shape.tileType, empty.colors.base]),
+      );
+    }
+    return empty;
+  };
   const [design, setDesign] = useState(() => cachedDesign ? cloneDesign(cachedDesign) : emptyDesign());
   const [selectedPathId, setSelectedPathId] = useState(null);
   const [selectedLineId, setSelectedLineId] = useState(null);
@@ -294,17 +304,43 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const [status, setStatus] = useState("");
   const [treeMode, setTreeMode] = useState("layers");
   const [transformExpanded, setTransformExpanded] = useState(false);
+  const [tileColorScope, setTileColorScope] = useState("current");
+  const [integratingId, setIntegratingId] = useState(null);
   const importRef = useRef(null);
+  const snapStep = snapMode === "grid" ? 1 : snapMode === "half" ? 0.5 : snapMode === "quarter" ? 0.25 : 0;
   const grid = useMemo(() => (gridMode === "cartesian"
     ? geometry.cartesianGridLines
     : geometry.gridLines) || [], [geometry, gridMode]);
-  const constructionSnapFractions = gridMode !== "construction"
+  const constructionSnapFractions = gridMode !== "construction" || family === "einstein"
     ? []
     : snapMode === "quarter"
       ? [0.25, 0.5, 0.75]
       : snapMode === "half"
         ? [0.5]
         : [];
+  const constructionLatticeSnapPoints = useMemo(() => {
+    if (family !== "einstein" || gridMode !== "construction" || !snapStep) return [];
+    const corners = [
+      fromGeometryCanvas({ x: 0, y: 0 }, geometry),
+      fromGeometryCanvas({ x: CANVAS.width, y: 0 }, geometry),
+      fromGeometryCanvas({ x: 0, y: CANVAS.height }, geometry),
+      fromGeometryCanvas({ x: CANVAS.width, y: CANVAS.height }, geometry),
+    ];
+    const minU = Math.floor(Math.min(...corners.map((point) => point.u)) / snapStep) - 1;
+    const maxU = Math.ceil(Math.max(...corners.map((point) => point.u)) / snapStep) + 1;
+    const minV = Math.floor(Math.min(...corners.map((point) => point.v)) / snapStep) - 1;
+    const maxV = Math.ceil(Math.max(...corners.map((point) => point.v)) / snapStep) + 1;
+    const points = [];
+    for (let uIndex = minU; uIndex <= maxU; uIndex += 1) {
+      for (let vIndex = minV; vIndex <= maxV; vIndex += 1) {
+        const point = mapToCanvas({ u: uIndex * snapStep, v: vIndex * snapStep });
+        if (point.x >= 0 && point.x <= CANVAS.width && point.y >= 0 && point.y <= CANVAS.height) {
+          points.push({ ...point, key: `${uIndex}:${vIndex}` });
+        }
+      }
+    }
+    return points;
+  }, [family, geometry, gridMode, mapToCanvas, snapStep]);
   const selectedCircle = (design.circles || []).find((circle) => circle.id === selectedCircleId);
   const selectedCircularPath = (design.circularPaths || []).find((path) => path.id === selectedCircularPathId);
   const selectedLine = (design.lines || []).find((line) => line.id === selectedLineId);
@@ -325,6 +361,23 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   ), [design, familyGeometry.editorShapes]);
   const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile && (geometry.tile !== "penrose" || item.tileMode === geometry.tileMode));
   const selectedExportDesign = familyDesigns.find((item) => item.id === selectedExportId) || null;
+  const penroseTileTypes = familyGeometry.editorShapes?.map((shape) => shape.tileType) || [];
+  const activeTileName = familyGeometry.editorShapes?.find((shape) => shape.tileType === activePenroseTileType)?.name || activePenroseTileType;
+  const activeTileBaseColor = geometry.tile === "penrose"
+    ? tileBaseColor(design, activePenroseTileType)
+    : design.colors.base;
+  const editAllPenroseTiles = geometry.tile === "penrose" && tileColorScope === "all";
+  const commonPenroseTileColor = geometry.tile === "penrose"
+    ? commonTileBaseColor(design, penroseTileTypes)
+    : design.colors.base;
+  const displayedTileBaseColor = editAllPenroseTiles ? commonPenroseTileColor : activeTileBaseColor;
+  const updateDisplayedTileBaseColor = (color) => setDesign((current) => (
+    editAllPenroseTiles
+      ? setTileBaseColors(current, penroseTileTypes, color)
+      : geometry.tile === "penrose"
+      ? setTileBaseColor(current, activePenroseTileType, color)
+      : { ...current, colors: { ...current.colors, base: color } }
+  ));
   const scopeNewElement = (element) => geometry.tile === "penrose" && activePenroseTileType
     ? { ...element, tileType: activePenroseTileType }
     : element;
@@ -385,28 +438,6 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     setSelectedCircleId(null);
     setSelectedCircularPathId(null);
     setDrag(null);
-  }
-
-  function applyTemplate(templateId) {
-    if (templateId === "einstein-circular-path") {
-      const id = `template-circular-path-${window.crypto?.randomUUID?.() || Date.now()}`;
-      setDesign((current) => insertCircularPathTemplate(current, {
-        id,
-        name: t("studio.circularPaths.newName", { count: (current.circularPaths || []).length + 1 }),
-      }));
-      selectLayer("circularPath", id);
-      setStatus(t("studio.status.templateApplied"));
-      return;
-    }
-    if (templateId === "spectre-hexagonalization") {
-      const idPrefix = `template-hexagonalization-${window.crypto?.randomUUID?.() || Date.now()}`;
-      setDesign((current) => insertHexagonalizationTemplate(current, {
-        idPrefix,
-        name: t("studio.templates.hexagonalization"),
-      }));
-      selectLayer("line", `${idPrefix}-1`);
-      setStatus(t("studio.status.templateApplied"));
-    }
   }
 
   function updatePoint(pathId, pointIndex, point) {
@@ -484,7 +515,6 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     if (!drag || event.pointerId !== drag.pointerId) return;
     const canvasPoint = pointerPosition(event);
     let point = fromGeometryCanvas(canvasPoint, geometry);
-    const snapStep = snapMode === "grid" ? 1 : snapMode === "half" ? 0.5 : snapMode === "quarter" ? 0.25 : 0;
     if (drag.kind === "circle-center") {
       updateCircle(drag.circleId, { center: snapTileVertex(snapEditorPoint(point, snapStep), canvasPoint) });
       return;
@@ -763,6 +793,66 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     setStatus(t("studio.status.deleted"));
   }
 
+  async function integrateDesign(item) {
+    setIntegratingId(item.id);
+    try {
+      const response = await fetch("/api/dev/studio-patterns/integrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Integration failed.");
+      setSavedDesigns(await getStudioLibraryDesigns());
+      setSelectedExportId(result.design.id);
+      setStatus(t("studio.status.integrated"));
+    } catch {
+      setStatus(t("studio.status.integrationFailed"));
+    } finally {
+      setIntegratingId(null);
+    }
+  }
+
+  async function disintegrateDesign(item) {
+    if (!window.confirm(t("studio.library.disintegrateConfirm", { name: item.name }))) return;
+    setIntegratingId(item.id);
+    try {
+      const existingLocal = savedDesigns.find((candidate) => (
+        !candidate.id.startsWith("builtin-")
+        && candidate.name === item.name
+        && candidate.tile === item.tile
+        && (candidate.tileMode || null) === (item.tileMode || null)
+      ));
+      let localId = existingLocal?.id;
+      if (!existingLocal) {
+        const now = new Date().toISOString();
+        const local = {
+          ...cloneDesign(item),
+          id: window.crypto?.randomUUID?.() || `design-${Date.now()}`,
+          createdAt: now,
+          updatedAt: now,
+        };
+        localId = local.id;
+        writeStudioLibrary([...savedDesigns.filter((candidate) => !candidate.id.startsWith("builtin-")), local]);
+      }
+
+      const response = await fetch("/api/dev/studio-patterns/integrate", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Disintegration failed.");
+      setSavedDesigns(await getStudioLibraryDesigns());
+      setSelectedExportId(localId);
+      setStatus(t("studio.status.disintegrated"));
+    } catch {
+      setStatus(t("studio.status.disintegrationFailed"));
+    } finally {
+      setIntegratingId(null);
+    }
+  }
+
   function resetDesign() {
     loadDesign(emptyDesign());
     setStatus(t("studio.status.reset"));
@@ -876,34 +966,48 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   }
 
   function renderSpectreShapeControls() {
-    if (family !== "spectre" || selectedPath || selectedLine || selectedCircle || selectedCircularPath) return null;
+    if (family !== "spectre") return null;
     const shape = design.tileShape || { roundness: 0.18, weight: 0.5, lean: 1 };
     const updateShape = (changes) => setDesign((current) => ({
       ...current,
       tileShape: { ...current.tileShape, ...changes },
     }));
-    return (
-      <InspectorGroup>
+    return <>
         <InspectorRangeField label={t("studio.spectre.roundness")} value={shape.roundness} min="0" max="1" step="0.01" onChange={(roundness) => updateShape({ roundness })} />
         <InspectorRangeField label={t("studio.spectre.weight")} value={shape.weight} min="0.15" max="0.85" step="0.01" onChange={(weight) => updateShape({ weight })} />
         <InspectorToggleField label={t("studio.spectre.invert")} checked={shape.lean > 0} onChange={(checked) => updateShape({ lean: checked ? 1 : -1 })} indicator={shape.lean > 0 ? "↻" : "↺"} />
-      </InspectorGroup>
-    );
+      </>;
   }
+
+  const outlineWidth = design.strokeWidth ?? (family === "spectre" ? 1 : 2);
+  const updateOutlineWidth = (value) => {
+    if (!Number.isFinite(value)) return;
+    setDesign((current) => ({ ...current, strokeWidth: Math.max(0, Math.min(20, value)) }));
+  };
 
   function renderDocumentControls() {
     if (selectedPath || selectedLine || selectedCircle || selectedCircularPath) return null;
-    const outlineWidth = design.strokeWidth ?? (family === "spectre" ? 1 : 2);
-    const updateOutlineWidth = (value) => {
-      if (!Number.isFinite(value)) return;
-      setDesign((current) => ({ ...current, strokeWidth: Math.max(0, Math.min(20, value)) }));
-    };
-    return (
+    return <>
       <InspectorGroup title={t("studio.controls.outlineGroup")} titleId="studio-outline-heading" className="studio-widget-outline-group">
         <InspectorColorField label={t("studio.controls.outlineColor")} value={design.outline || "#17313b"} onChange={(outline) => setDesign((current) => ({ ...current, outline }))} />
         <InspectorRangeField label={t("studio.controls.outlineWidth")} value={outlineWidth} min="0" max="8" step="0.1" digits={1} editable onChange={updateOutlineWidth} />
       </InspectorGroup>
-    );
+      <InspectorGroup title={t("studio.controls.otherGroup")} titleId="studio-other-heading" className="studio-widget-other-group">
+        <InspectorColorField
+          label={editAllPenroseTiles ? t("studio.controls.baseColorAllTiles") : geometry.tile === "penrose" ? t("studio.controls.tileColorFor", { tile: activeTileName }) : t("studio.controls.baseColor")}
+          value={displayedTileBaseColor || ""}
+          mixed={editAllPenroseTiles && !displayedTileBaseColor}
+          onChange={updateDisplayedTileBaseColor}
+        />
+        {renderSpectreShapeControls()}
+        {geometry.tile === "penrose" ? <>
+          <div className="studio-scope-options" role="group" aria-label={t("studio.controls.editScope")}>
+            <button type="button" className={tileColorScope === "current" ? "active" : ""} aria-pressed={tileColorScope === "current"} onClick={() => setTileColorScope("current")}>{t("studio.controls.currentTile")}</button>
+            <button type="button" className={tileColorScope === "all" ? "active" : ""} aria-pressed={tileColorScope === "all"} onClick={() => setTileColorScope("all")}>{t("studio.controls.allTiles")}</button>
+          </div>
+        </> : null}
+      </InspectorGroup>
+    </>;
   }
 
   const ports = [...design.paths, ...(design.lines || [])].flatMap((path) => [
@@ -935,24 +1039,13 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
               <button type="button" onClick={addCircle}><span>○</span>{t("studio.circles.title")}</button>
               <button type="button" onClick={addLine}><span>╱</span>{t("studio.lines.title")}</button>
             </div>
-            {geometry.tile !== "penrose" ? <div className="studio-toolbar-group studio-toolbar-templates">
-              <span className="studio-toolbar-label">{t("studio.templates.title")}</span>
-              <label>
-                <span>▧</span>
-                <select value="" onChange={(event) => applyTemplate(event.target.value)} aria-label={t("studio.templates.choose")}>
-                  <option value="" disabled>{t("studio.templates.choose")}</option>
-                  {family === "einstein" ? (
-                    <option value="einstein-circular-path">{t("studio.templates.circularPath")}</option>
-                  ) : (
-                    <option value="spectre-hexagonalization">{t("studio.templates.hexagonalization")}</option>
-                  )}
-                </select>
-              </label>
-            </div> : null}
             <div className="studio-toolbar-group studio-toolbar-settings">
               <span className="studio-toolbar-label">{t("studio.toolbar.appearance")}</span>
-              <label className="studio-toolbar-color" title={t("studio.controls.baseColor")}><span>{t("studio.toolbar.tile")}</span><input type="color" value={design.colors.base} onChange={(event) => setDesign((current) => ({ ...current, colors: { ...current.colors, base: event.target.value } }))} /></label>
               <label className="studio-toolbar-color" title={t("studio.controls.curveColor")}><span>{t("studio.toolbar.material")}</span><input type="color" value={design.colors.ink} onChange={(event) => setDesign((current) => setDefaultMaterialColor(current, event.target.value))} /></label>
+              <label className="studio-toolbar-number" title={t("studio.controls.outlineWidth")}>
+                <span>{t("studio.toolbar.strokeWidth")}</span>
+                <input type="number" min="0" max="20" step="0.1" value={outlineWidth.toFixed(1)} onChange={(event) => updateOutlineWidth(Number(event.target.value))} />
+              </label>
             </div>
             <div className="studio-toolbar-group studio-toolbar-settings">
               <span className="studio-toolbar-label">{t("studio.toolbar.precision")}</span>
@@ -963,8 +1056,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                   <label className="studio-toolbar-snap"><select aria-label={t("studio.controls.snapping")} value={snapMode} onChange={(event) => setSnapMode(event.target.value)}><option value="quarter">¼</option><option value="half">½</option><option value="grid">1</option><option value="free">{t("studio.controls.snapFree")}</option></select></label>
                 </div>
               </div>
-              <label className="studio-toolbar-toggle"><input type="checkbox" aria-label={t("studio.toolbar.handles")} checked={showHandles} onChange={(event) => setShowHandles(event.target.checked)} /><span>⌖</span></label>
-              <label className="studio-toolbar-toggle"><input type="checkbox" aria-label={t("studio.toolbar.edges")} checked={showEdgeNumbers} onChange={(event) => setShowEdgeNumbers(event.target.checked)} /><span className="studio-toolbar-edge-number"><span>1</span></span></label>
+              <label className="studio-toolbar-toggle" title={t("studio.toolbar.handlesHint")}><input type="checkbox" aria-label={t("studio.toolbar.handles")} checked={showHandles} onChange={(event) => setShowHandles(event.target.checked)} /><span>⌖</span></label>
+              <label className="studio-toolbar-toggle" title={t("studio.toolbar.edgesHint")}><input type="checkbox" aria-label={t("studio.toolbar.edges")} checked={showEdgeNumbers} onChange={(event) => setShowEdgeNumbers(event.target.checked)} /><span className="studio-toolbar-edge-number"><span>1</span></span></label>
             </div>
           </div>
         </div>
@@ -1045,7 +1138,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             >
             <defs><clipPath id="studio-tile-clip"><TileShape design={design} geometry={geometry} /></clipPath></defs>
             <rect width={CANVAS.width} height={CANVAS.height} className="studio-canvas-bg" onPointerDown={clearSelection} />
-            <TileShape design={design} geometry={geometry} className="studio-tile-fill" style={{ fill: design.colors.base }} />
+            <TileShape design={design} geometry={geometry} className="studio-tile-fill" style={{ fill: activeTileBaseColor }} />
             {showGrid ? (
               <g className={`studio-lattice studio-${family}-grid studio-grid-${gridMode}`}>
                 {grid.map(([start, end], index) => {
@@ -1066,7 +1159,9 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                   const screen = mapToCanvas(point);
                   return <circle key={`construction-point-${index}`} className="studio-construction-snap-point" cx={screen.x} cy={screen.y} r="3" />;
                 }) : null}
-                {family === "einstein" ? Array.from({ length: 15 }, (_, uIndex) => Array.from({ length: 14 }, (_, vIndex) => {
+                {family === "einstein" && gridMode === "construction" ? constructionLatticeSnapPoints.map((point) => (
+                  <circle key={point.key} className="studio-construction-snap-point" cx={point.x} cy={point.y} r={snapStep <= 0.25 ? 1.35 : snapStep <= 0.5 ? 1.8 : 2.2} />
+                )) : family === "einstein" ? Array.from({ length: 15 }, (_, uIndex) => Array.from({ length: 14 }, (_, vIndex) => {
                   const point = mapToCanvas({ u: uIndex - 6, v: vIndex - 6 });
                   return <circle key={`${uIndex}-${vIndex}`} cx={point.x} cy={point.y} r="2.1" />;
                 })) : geometry.materialVertices.map((point, index) => {
@@ -1080,7 +1175,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 layers={visibleMaterialLayers}
                 mapPoint={mapToCanvas}
                 colorFor={(item) => elementMaterialColor(design, item)}
-                baseColor={design.colors.base}
+                baseColor={activeTileBaseColor}
                 renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapToCanvas) : kind === "line" ? linePath(item.points, mapToCanvas) : circularPathD(item, mapToCanvas)}
                 radiusScale={mapToCanvas.scale}
                 strokeScale={geometry.tile === "penrose" ? canvasScaleFor(geometry) : mapToCanvas.scale}
@@ -1171,13 +1266,11 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           ariaLabel={t("studio.toolbar.document")}
           icon={selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedLine ? "╱" : selectedCircle ? "○" : "◇"}
           title={selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedLine ? t("studio.lines.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}
-          help={family !== "spectre" && !selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? t("studio.toolbar.selectHint") : null}
         >
           {renderPathControls()}
           {renderLineControls()}
           {renderCircleControls()}
           {renderCircularPathControls()}
-          {renderSpectreShapeControls()}
           {renderDocumentControls()}
         </InspectorPanel>
       </StudioSurface>
@@ -1207,6 +1300,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 <div><strong>{item.name}</strong><small>{item.id.startsWith("builtin-") ? t("studio.library.builtin") : t("studio.library.local")}</small></div>
                 <div className="studio-card-actions">
                   <button type="button" onClick={(event) => { event.stopPropagation(); loadDesign(item); }}>{t("studio.library.load")}</button>
+                  {process.env.NODE_ENV === "development" && !item.id.startsWith("builtin-") ? <button type="button" disabled={integratingId === item.id} onClick={(event) => { event.stopPropagation(); integrateDesign(item); }}>{t(integratingId === item.id ? "studio.library.integrating" : "studio.library.integrate")}</button> : null}
+                  {process.env.NODE_ENV === "development" && item.id.startsWith("builtin-") ? <button type="button" disabled={integratingId === item.id} onClick={(event) => { event.stopPropagation(); disintegrateDesign(item); }}>{t(integratingId === item.id ? "studio.library.disintegrating" : "studio.library.disintegrate")}</button> : null}
                   {!item.id.startsWith("builtin-") ? <button type="button" onClick={(event) => { event.stopPropagation(); deleteDesign(item.id); }}>{t("studio.library.delete")}</button> : null}
                 </div>
               </article>
@@ -1319,15 +1414,16 @@ function GeneratedPenrosePreview({ design, geometry }) {
 
 function MiniTileDesign({ design, geometry, clipId, transform }) {
   const mapper = canvasMapperFor(geometry);
+  const baseColor = tileBaseColor(design, geometry.activeTileType);
   const layers = getDesignLayers(design).filter(({ item }) => (
     !item.tileType || item.tileType === geometry.activeTileType
   ));
   return (
     <g transform={transform}>
       <defs><clipPath id={clipId}><TileShape design={design} geometry={geometry} /></clipPath></defs>
-      <TileShape design={design} geometry={geometry} fill={design.colors.base} />
+      <TileShape design={design} geometry={geometry} fill={baseColor} />
       <g clipPath={`url(#${clipId})`}>
-        <MaterialLayerShapes layers={layers} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={design.colors.base} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} radiusScale={mapper.scale} strokeScale={geometry.tile === "penrose" ? canvasScaleFor(geometry) : mapper.scale} />
+        <MaterialLayerShapes layers={layers} mapPoint={mapper} colorFor={(item) => elementMaterialColor(design, item)} baseColor={baseColor} renderPath={(kind, item) => kind === "path" ? bezierPath(item.points, mapper) : kind === "line" ? linePath(item.points, mapper) : circularPathD(item, mapper)} radiusScale={mapper.scale} strokeScale={geometry.tile === "penrose" ? canvasScaleFor(geometry) : mapper.scale} />
       </g>
       <TileShape design={design} geometry={geometry} fill="none" stroke={design.outline || "#17313b"} strokeWidth="4" strokeLinejoin="round" />
     </g>
