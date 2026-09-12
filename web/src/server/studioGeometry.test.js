@@ -357,6 +357,47 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
               y: editor.points[1].y + (editor.points[3].y - editor.points[1].y) * amount,
             }));
           });
+        } else if (shape.tileType === "thin-rhomb") {
+          assert.equal(editor.gridLines.length, 2);
+          assert.ok(matches(shapeConstructionLines[0][0], editor.points[0]));
+          assert.ok(matches(shapeConstructionLines[0][1], editor.points[2]));
+          assert.ok(matches(shapeConstructionLines[1][0], editor.points[1]));
+          assert.ok(matches(shapeConstructionLines[1][1], editor.points[3]));
+          assert.equal(editor.constructionPoints.length, 2);
+          const axisPoints = editor.constructionPoints.map((point) => (
+            editor.materialToShape(latticeToCartesian(point))
+          ));
+          assert.ok(Math.abs(Math.hypot(
+            axisPoints[0].x - editor.points[1].x,
+            axisPoints[0].y - editor.points[1].y,
+          ) - 3 / 16) < 1e-8);
+          assert.ok(Math.abs(Math.hypot(
+            axisPoints[1].x - editor.points[3].x,
+            axisPoints[1].y - editor.points[3].y,
+          ) - 3 / 16) < 1e-8);
+        } else if (shape.tileType === "thick-rhomb") {
+          assert.equal(editor.gridLines.length, 4);
+          assert.equal(editor.constructionPoints.length, 3);
+          const radiusPoints = editor.constructionPoints.map((point) => (
+            editor.materialToShape(latticeToCartesian(point))
+          ));
+          const phi = (1 + Math.sqrt(5)) / 2;
+          assert.ok(Math.abs(Math.hypot(
+            radiusPoints[0].x - editor.points[0].x,
+            radiusPoints[0].y - editor.points[0].y,
+          ) - phi / 2) < 1e-8);
+          radiusPoints.slice(1).forEach((point) => assert.ok(Math.abs(Math.hypot(
+            point.x - editor.points[2].x,
+            point.y - editor.points[2].y,
+          ) - (1 - phi / 2)) < 1e-8));
+          assert.ok(matches(shapeConstructionLines[0][0], editor.points[0]));
+          assert.ok(matches(shapeConstructionLines[0][1], editor.points[2]));
+          assert.ok(matches(shapeConstructionLines[1][0], editor.points[2]));
+          assert.ok(matches(shapeConstructionLines[1][1], radiusPoints[1]));
+          assert.ok(matches(shapeConstructionLines[2][0], radiusPoints[1]));
+          assert.ok(matches(shapeConstructionLines[2][1], radiusPoints[2]));
+          assert.ok(matches(shapeConstructionLines[3][0], radiusPoints[2]));
+          assert.ok(matches(shapeConstructionLines[3][1], editor.points[2]));
         } else {
           assert.equal(editor.gridLines.length, 1);
           assert.ok(matches(shapeConstructionLines[0][0], editor.points[0]));

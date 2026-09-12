@@ -362,31 +362,41 @@ pub(super) fn approx_eq(left: f64, right: f64) -> bool {
     (left - right).abs() <= 1e-6
 }
 
-pub(super) fn canonical_material_basis(points: &[Vec2], tile_type: &str) -> [Vec2; 3] {
+/// Match a cyclic P2 polygon to its Studio prototile without allowing reflection.
+pub(super) fn canonical_polygon_basis(points: &[Vec2], tile_type: &str) -> [Vec2; 3] {
     let canonical = canonical_tile_points(tile_type);
-    if canonical.len() != points.len() || points.len() < 3 {
-        return [points[0], points[1], points[2]];
-    }
+    assert!(
+        points.len() >= 3,
+        "{tile_type} polygon needs at least three points"
+    );
+    assert_eq!(
+        canonical.len(),
+        points.len(),
+        "{tile_type} polygon does not match its canonical point count"
+    );
 
+    let direction = if polygon_signed_area(points) * polygon_signed_area(&canonical) >= 0.0 {
+        1_isize
+    } else {
+        -1
+    };
     let mut best = ([points[0], points[1], points[2]], f64::INFINITY);
     for start in 0..points.len() {
-        for direction in [1_isize, -1] {
-            let ordered = (0..points.len())
-                .map(|offset| {
-                    let index = (start as isize + direction * offset as isize)
-                        .rem_euclid(points.len() as isize) as usize;
-                    points[index]
-                })
-                .collect::<Vec<_>>();
-            let basis = [ordered[0], ordered[1], ordered[2]];
-            let error = canonical
-                .iter()
-                .zip(&ordered)
-                .map(|(source, target)| distance(map_triangle(&canonical, basis, *source), *target))
-                .sum::<f64>();
-            if error < best.1 {
-                best = (basis, error);
-            }
+        let ordered = (0..points.len())
+            .map(|offset| {
+                let index = (start as isize + direction * offset as isize)
+                    .rem_euclid(points.len() as isize) as usize;
+                points[index]
+            })
+            .collect::<Vec<_>>();
+        let basis = [ordered[0], ordered[1], ordered[2]];
+        let error = canonical
+            .iter()
+            .zip(&ordered)
+            .map(|(source, target)| distance(map_triangle(&canonical, basis, *source), *target))
+            .sum::<f64>();
+        if error < best.1 {
+            best = (basis, error);
         }
     }
     let scale = points
@@ -400,6 +410,15 @@ pub(super) fn canonical_material_basis(points: &[Vec2], tile_type: &str) -> [Vec
         "{tile_type} polygon does not match its canonical Studio geometry"
     );
     best.0
+}
+
+fn polygon_signed_area(points: &[Vec2]) -> f64 {
+    points
+        .iter()
+        .zip(points.iter().cycle().skip(1))
+        .take(points.len())
+        .map(|(left, right)| left.x * right.y - right.x * left.y)
+        .sum()
 }
 
 fn map_triangle(source: &[Vec2], target: [Vec2; 3], point: Vec2) -> Vec2 {
@@ -442,12 +461,8 @@ fn canonical_tile_points(tile_type: &str) -> Vec<Vec2> {
             ),
             Vec2::new(degrees(18.0).cos(), -degrees(18.0).sin()),
         ],
-        _ => points_fallback(),
+        _ => Vec::new(),
     }
-}
-
-fn points_fallback() -> Vec<Vec2> {
-    Vec::new()
 }
 
 fn svg_point(point: Vec2, config: &PenroseSvgConfig) -> (f64, f64) {
@@ -465,26 +480,40 @@ mod tests {
     fn assert_material_basis_matches_polygon(tile: &RenderTile) {
         let canonical = canonical_tile_points(tile.tile_type);
         assert_eq!(canonical.len(), tile.points.len());
-        for point in canonical {
-            let mapped = map_triangle(
-                &canonical_tile_points(tile.tile_type),
-                tile.material_basis,
-                point,
-            );
+        let mapped = canonical
+            .iter()
+            .map(|point| map_triangle(&canonical, tile.material_basis, *point))
+            .collect::<Vec<_>>();
+        for point in &mapped {
             assert!(
                 tile.points
                     .iter()
-                    .any(|candidate| distance(mapped, *candidate) < 1e-6),
+                    .any(|candidate| distance(*point, *candidate) < 1e-6),
                 "{} material point ({}, {}) missed its generated polygon",
                 tile.tile_type,
-                mapped.x,
-                mapped.y,
+                point.x,
+                point.y,
+            );
+        }
+        let scale = distance(mapped[0], mapped[1]) / distance(canonical[0], canonical[1]);
+        for index in 0..canonical.len() {
+            let next = (index + 1) % canonical.len();
+            let expected = distance(canonical[index], canonical[next]) * scale;
+            assert!(
+                (distance(mapped[index], mapped[next]) - expected).abs() < 1e-6,
+                "{} material basis distorted its canonical edge order",
+                tile.tile_type,
             );
         }
     }
 
+    fn triangle_winding(points: [Vec2; 3]) -> f64 {
+        let [a, b, c] = points;
+        (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+    }
+
     #[test]
-    fn generated_p2_and_p3_tiles_use_stable_studio_material_bases() {
+    fn generated_p2_and_p3_tiles_preserve_canonical_material_geometry() {
         let cases = [
             classic_logic::render_tiles(PenroseSeed::Sun, 3),
             rhombs_logic::render_tiles(PenroseSeed::Sun, 3),
@@ -494,6 +523,14 @@ mod tests {
             for tile in &tiles {
                 tile_types.insert(tile.tile_type);
                 assert_material_basis_matches_polygon(tile);
+                let canonical = canonical_tile_points(tile.tile_type);
+                assert!(
+                    triangle_winding([canonical[0], canonical[1], canonical[2]])
+                        * triangle_winding(tile.material_basis)
+                        > 0.0,
+                    "{} material basis was reflected",
+                    tile.tile_type,
+                );
             }
         }
         assert_eq!(

@@ -4,7 +4,7 @@ use std::f64::consts::PI;
 use crate::math::Vec2;
 
 use super::{
-    approx_eq, canonical_material_basis, distance, polar, PenroseSeed, PenroseTileMode, RenderTile,
+    approx_eq, canonical_polygon_basis, distance, polar, PenroseSeed, PenroseTileMode, RenderTile,
     PHI,
 };
 
@@ -173,7 +173,7 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
             TriangleKind::Obtuse => "kite",
         };
         tiles.push(RenderTile {
-            material_basis: canonical_material_basis(&points, tile_type),
+            material_basis: canonical_polygon_basis(&points, tile_type),
             points,
             fill_index: tile_fill_index(left.kind),
             tile_type,

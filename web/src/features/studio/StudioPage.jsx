@@ -311,7 +311,9 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const grid = useMemo(() => (gridMode === "cartesian"
     ? geometry.cartesianGridLines
     : geometry.gridLines) || [], [geometry, gridMode]);
-  const constructionSnapFractions = gridMode !== "construction" || family === "einstein"
+  const constructionSnapFractions = gridMode !== "construction"
+    || family === "einstein"
+    || (geometry.constructionPoints || []).length > 0
     ? []
     : snapMode === "quarter"
       ? [0.25, 0.5, 0.75]

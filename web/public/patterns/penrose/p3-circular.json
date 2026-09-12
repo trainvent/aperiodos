@@ -1,0 +1,103 @@
+{
+  "circles": [
+    {
+      "center": {
+        "u": 0.9999999999999996,
+        "v": 1.2819751242557095e-16
+      },
+      "color": "#00c200",
+      "handleAngle": 30,
+      "hollow": true,
+      "id": "circle-1789211942815",
+      "name": "Kreis 1",
+      "operation": "ink",
+      "radius": 0.18750000000000008,
+      "tileType": "thin-rhomb",
+      "width": 0.05
+    },
+    {
+      "center": {
+        "u": 3.2049378106392736e-17,
+        "v": -6.409875621278546e-17
+      },
+      "color": "#00c200",
+      "handleAngle": 18,
+      "hollow": true,
+      "id": "circle-1789211959428",
+      "name": "Kreis 2",
+      "operation": "ink",
+      "radius": 0.8090169943749475,
+      "tileType": "thick-rhomb",
+      "width": 0.05
+    },
+    {
+      "center": {
+        "u": -0.9999999999999998,
+        "v": 1
+      },
+      "color": "#00c200",
+      "handleAngle": 300,
+      "hollow": true,
+      "id": "circle-1789212370482",
+      "name": "Kreis 3",
+      "operation": "ink",
+      "radius": 0.18750000000000008,
+      "tileType": "thin-rhomb",
+      "width": 0.05
+    },
+    {
+      "center": {
+        "u": 1.1102230246251563e-16,
+        "v": 0.9999999999999998
+      },
+      "color": "#00c200",
+      "handleAngle": 0,
+      "hollow": true,
+      "id": "circle-1789212442819",
+      "name": "Kreis 4",
+      "operation": "ink",
+      "radius": 0.1875,
+      "tileType": "thick-rhomb",
+      "width": 0.05
+    }
+  ],
+  "circularPaths": [],
+  "colors": {
+    "base": "#ffffff",
+    "ink": "#7a83ff"
+  },
+  "createdAt": "2026-09-12T11:25:22.249Z",
+  "id": "builtin-penrose-p3-circular",
+  "layerOrder": [
+    {
+      "id": "circle-1789211942815",
+      "kind": "circle"
+    },
+    {
+      "id": "circle-1789211959428",
+      "kind": "circle"
+    },
+    {
+      "id": "circle-1789212370482",
+      "kind": "circle"
+    },
+    {
+      "id": "circle-1789212442819",
+      "kind": "circle"
+    }
+  ],
+  "lines": [],
+  "name": "P3_circular",
+  "outline": "#00b7ff",
+  "paths": [],
+  "schema": "aperiodos.material-design",
+  "strokeWidth": 1,
+  "tile": "penrose",
+  "tileColors": {
+    "thick-rhomb": "#ffffff",
+    "thin-rhomb": "#ffffff"
+  },
+  "tileMode": "rhombs",
+  "updatedAt": "2026-09-12T11:34:00.472Z",
+  "version": 1
+}

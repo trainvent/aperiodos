@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 
 use crate::math::Vec2;
 
-use super::{canonical_material_basis, polar, PenroseSeed, RenderTile, PHI};
+use super::{polar, PenroseSeed, RenderTile, PHI};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum TriangleKind {
@@ -11,10 +11,45 @@ enum TriangleKind {
     Thick,
 }
 
+impl TriangleKind {
+    fn tile_type(self) -> &'static str {
+        match self {
+            Self::Thin => "thin-rhomb",
+            Self::Thick => "thick-rhomb",
+        }
+    }
+
+    fn fill_index(self) -> usize {
+        match self {
+            Self::Thin => 0,
+            Self::Thick => 1,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 struct Triangle {
     kind: TriangleKind,
     points: [Vec2; 3],
+}
+
+impl Triangle {
+    fn apex(self) -> Vec2 {
+        self.points[0]
+    }
+
+    fn base_start(self) -> Vec2 {
+        self.points[1]
+    }
+
+    fn base_end(self) -> Vec2 {
+        self.points[2]
+    }
+
+    fn winding(self) -> f64 {
+        let [a, b, c] = self.points;
+        (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -123,23 +158,36 @@ fn assemble_rhombs(triangles: &[Triangle]) -> Vec<RenderTile> {
             }
 
             let points = merged_polygon_points(left, right);
-            let tile_type = match left.kind {
-                TriangleKind::Thin => "thin-rhomb",
-                TriangleKind::Thick => "thick-rhomb",
-            };
             tiles.push(RenderTile {
-                material_basis: canonical_material_basis(&points, tile_type),
+                material_basis: rhomb_material_basis(left, right),
                 points,
-                fill_index: match left.kind {
-                    TriangleKind::Thin => 0,
-                    TriangleKind::Thick => 1,
-                },
-                tile_type,
+                fill_index: left.kind.fill_index(),
+                tile_type: left.kind.tile_type(),
             });
         }
     }
 
     tiles
+}
+
+fn rhomb_material_basis(first: Triangle, second: Triangle) -> [Vec2; 3] {
+    // A bare rhomb cannot distinguish its two equal tips. The oriented
+    // Robinson halves retain that information from the substitution.
+    debug_assert_eq!(first.kind, second.kind);
+    debug_assert!(first.winding() * second.winding() < 0.0);
+    let (positive, negative) = if first.winding() > 0.0 {
+        (first, second)
+    } else {
+        (second, first)
+    };
+    match positive.kind {
+        // A thin Robinson triangle's apex is a sharp rhomb tip.
+        TriangleKind::Thin => [positive.apex(), positive.base_start(), negative.apex()],
+        // A thick Robinson triangle's shared-edge endpoints are the sharp
+        // rhomb tips; its apex is obtuse. Preserve that vertex classification
+        // so the Studio's third (right-hand sharp) point remains sharp.
+        TriangleKind::Thick => [positive.base_start(), positive.apex(), positive.base_end()],
+    }
 }
 
 fn triangle_edge_points(triangle: &Triangle, edge_index: usize) -> (Vec2, Vec2) {
@@ -258,5 +306,40 @@ mod tests {
         let fourth = render_tiles(PenroseSeed::Sun, 4);
 
         assert!((shortest_boundary_edge(&first) - shortest_boundary_edge(&fourth)).abs() <= 1e-6);
+    }
+
+    #[test]
+    fn p3_material_orientation_is_independent_of_pair_order() {
+        let mut triangles = initial_seed(PenroseSeed::Sun, PHI.powi(3));
+        for _ in 0..3 {
+            triangles = subdivide(&triangles);
+        }
+        let mut shared_edges: HashMap<EdgeKey, Vec<usize>> = HashMap::new();
+        for (index, triangle) in triangles.iter().enumerate() {
+            let (left, right) = triangle_edge_points(triangle, 1);
+            shared_edges
+                .entry(edge_key(left, right))
+                .or_default()
+                .push(index);
+        }
+
+        let mut compared = 0;
+        for pair in shared_edges.values() {
+            let [left_index, right_index] = pair.as_slice() else {
+                continue;
+            };
+            let left = triangles[*left_index];
+            let right = triangles[*right_index];
+            if left.kind != right.kind {
+                continue;
+            }
+            let forward = rhomb_material_basis(left, right);
+            let reversed = rhomb_material_basis(right, left);
+            forward.iter().zip(reversed).for_each(|(a, b)| {
+                assert!(distance(*a, b) < 1e-9);
+            });
+            compared += 1;
+        }
+        assert!(compared > 0);
     }
 }

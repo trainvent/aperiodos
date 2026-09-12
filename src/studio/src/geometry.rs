@@ -187,6 +187,49 @@ fn apply(transform: [f64; 6], point: Point) -> Point {
     }
 }
 
+fn interpolate(start: Point, end: Point, amount: f64) -> Point {
+    point(
+        start.x + (end.x - start.x) * amount,
+        start.y + (end.y - start.y) * amount,
+    )
+}
+
+fn thick_rhomb_radius_construction(shape: &Shape) -> Option<(Point, Point, Point)> {
+    if shape.tile_type != "thick-rhomb" || shape.points.len() != 4 {
+        return None;
+    }
+
+    let [first_sharp, first_obtuse, second_sharp, second_obtuse] = shape.points.as_slice() else {
+        return None;
+    };
+    // The long diagonal has length phi, so its midpoint gives the large
+    // radius phi/2. The small radius is the complement on a unit side.
+    let large_radius_point = interpolate(*first_sharp, *second_sharp, 0.5);
+    let phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
+    let small_radius = 1.0 - phi / 2.0;
+    let first_edge_length =
+        (first_obtuse.x - second_sharp.x).hypot(first_obtuse.y - second_sharp.y);
+    let second_edge_length =
+        (second_obtuse.x - second_sharp.x).hypot(second_obtuse.y - second_sharp.y);
+    if first_edge_length <= f64::EPSILON || second_edge_length <= f64::EPSILON {
+        return None;
+    }
+
+    Some((
+        large_radius_point,
+        interpolate(
+            *second_sharp,
+            *first_obtuse,
+            small_radius / first_edge_length,
+        ),
+        interpolate(
+            *second_sharp,
+            *second_obtuse,
+            small_radius / second_edge_length,
+        ),
+    ))
+}
+
 fn penrose_construction_segments(shape: &Shape) -> Vec<[Point; 2]> {
     let points = &shape.points;
     if shape.tile_type == "dart" {
@@ -203,6 +246,19 @@ fn penrose_construction_segments(shape: &Shape) -> Vec<[Point; 2]> {
     if shape.tile_type == "kite" {
         return vec![[points[1], points[3]]];
     }
+    if shape.tile_type == "thin-rhomb" && points.len() == 4 {
+        return vec![[points[0], points[2]], [points[1], points[3]]];
+    }
+    if let Some((_, small_radius_point_a, small_radius_point_b)) =
+        thick_rhomb_radius_construction(shape)
+    {
+        return vec![
+            [points[0], points[2]],
+            [points[2], small_radius_point_a],
+            [small_radius_point_a, small_radius_point_b],
+            [small_radius_point_b, points[2]],
+        ];
+    }
     if points.len() == 4 {
         return vec![[points[0], points[2]]];
     }
@@ -212,24 +268,37 @@ fn penrose_construction_segments(shape: &Shape) -> Vec<[Point; 2]> {
 }
 
 fn penrose_construction_points(shape: &Shape) -> Vec<Point> {
-    if shape.tile_type != "kite" || shape.points.len() != 4 {
+    if shape.points.len() != 4 {
         return Vec::new();
     }
-    let start = shape.points[1];
-    let end = shape.points[3];
-    let phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
-    // The two reciprocal golden sections provide the exact P2 circle-radius
-    // landmarks. A Euclidean midpoint is visually plausible but does not
-    // reproduce the Dart/Kite matching rule.
-    [1.0 / (phi * phi), 1.0 / phi]
-        .into_iter()
-        .map(|amount| {
-            point(
-                start.x + (end.x - start.x) * amount,
-                start.y + (end.y - start.y) * amount,
-            )
-        })
-        .collect()
+    match shape.tile_type {
+        "kite" => {
+            let start = shape.points[1];
+            let end = shape.points[3];
+            let phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
+            // The reciprocal golden sections reproduce the P2 matching rule.
+            [1.0 / (phi * phi), 1.0 / phi]
+                .into_iter()
+                .map(|amount| interpolate(start, end, amount))
+                .collect()
+        }
+        "thin-rhomb" => {
+            let start = shape.points[1];
+            let end = shape.points[3];
+            let axis_length = (end.x - start.x).hypot(end.y - start.y);
+            // These are the two radius handles established on the Cartesian
+            // grid by the integrated P3 circular design.
+            let radius_fraction = (3.0 / 16.0) / axis_length;
+            vec![
+                interpolate(start, end, radius_fraction),
+                interpolate(end, start, radius_fraction),
+            ]
+        }
+        "thick-rhomb" => thick_rhomb_radius_construction(shape)
+            .map(|(large, small_a, small_b)| vec![large, small_a, small_b])
+            .unwrap_or_default(),
+        _ => Vec::new(),
+    }
 }
 
 fn penrose_cartesian_grid_origin(shape: &Shape) -> Point {
@@ -1298,6 +1367,67 @@ mod tests {
                 cartesian_to_lattice(apply(inverse, point(expected.x + 0.01, expected.y - 0.01)));
             let snapped =
                 snap_penrose_construction("penrose-kite-dart", "kite", near, 0.5).unwrap();
+            let snapped: LatticePoint = serde_json::from_value(snapped).unwrap();
+            let visible = apply(transform, lattice_to_cartesian(snapped));
+            close(visible.x, expected.x);
+            close(visible.y, expected.y);
+        }
+    }
+
+    #[test]
+    fn thin_rhomb_exposes_the_two_cartesian_radius_axis_points() {
+        let rhomb = selected_shape("penrose-rhombs", "thin-rhomb").unwrap();
+        let segments = penrose_construction_segments(&rhomb);
+        assert_eq!(
+            segments,
+            vec![
+                [rhomb.points[0], rhomb.points[2]],
+                [rhomb.points[1], rhomb.points[3]]
+            ]
+        );
+
+        let points = penrose_construction_points(&rhomb);
+        assert_eq!(points.len(), 2);
+        close(
+            (points[0].x - rhomb.points[1].x).hypot(points[0].y - rhomb.points[1].y),
+            3.0 / 16.0,
+        );
+        close(
+            (points[1].x - rhomb.points[3].x).hypot(points[1].y - rhomb.points[3].y),
+            3.0 / 16.0,
+        );
+    }
+
+    #[test]
+    fn thick_rhomb_constructs_both_circle_radii() {
+        let rhomb = selected_shape("penrose-rhombs", "thick-rhomb").unwrap();
+        let segments = penrose_construction_segments(&rhomb);
+        let points = penrose_construction_points(&rhomb);
+        assert_eq!(segments.len(), 4);
+        assert_eq!(points.len(), 3);
+
+        let phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
+        close(
+            (points[0].x - rhomb.points[0].x).hypot(points[0].y - rhomb.points[0].y),
+            phi / 2.0,
+        );
+        for point in &points[1..] {
+            close(
+                (point.x - rhomb.points[2].x).hypot(point.y - rhomb.points[2].y),
+                1.0 - phi / 2.0,
+            );
+        }
+        assert_eq!(segments[0], [rhomb.points[0], rhomb.points[2]]);
+        assert_eq!(segments[1], [rhomb.points[2], points[1]]);
+        assert_eq!(segments[2], [points[1], points[2]]);
+        assert_eq!(segments[3], [points[2], rhomb.points[2]]);
+
+        let (transform, inverse, _) = material_transform(&rhomb.points);
+        for expected in points {
+            let near =
+                cartesian_to_lattice(apply(inverse, point(expected.x + 0.01, expected.y - 0.01)));
+            let snapped =
+                snap_penrose_construction("penrose-rhombs", "thick-rhomb", near, 0.5).unwrap();
             let snapped: LatticePoint = serde_json::from_value(snapped).unwrap();
             let visible = apply(transform, lattice_to_cartesian(snapped));
             close(visible.x, expected.x);
