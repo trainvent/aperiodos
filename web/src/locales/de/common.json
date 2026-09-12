@@ -55,6 +55,7 @@
 			"orderHelp": "Obere Elemente werden zuletzt gezeichnet",
 			"moveUp": "Ebene nach oben",
 			"moveDown": "Ebene nach unten",
+			"polygon": "Polygon",
 			"path": "Bézier-Pfad",
 			"line": "Linie",
 			"circle": "Kreis",
@@ -92,6 +93,17 @@
 			"showHandles": "Bearbeitungsgriffe anzeigen",
 			"bindEndpoints": "Endpunkte an Kachelkanten binden"
 		},
+		"penroseOverlay": {
+			"enabled": "P3-Rauten überlagern",
+			"thinColor": "Schmale Rauten",
+			"thickColor": "Breite Rauten",
+			"edgeColor": "Rautenkanten",
+			"edgeWidth": "Rautenkantenbreite",
+			"scale": "Rautengröße",
+			"rotation": "Drehung",
+			"offsetX": "Versatz X",
+			"offsetY": "Versatz Y"
+		},
 		"paths": {
 			"title": "Bézier-Pfade",
 			"help": "Fortgeschrittene Freiform-Alternative für nicht kreisförmige Formen.",
@@ -103,6 +115,16 @@
 			"addSegment": "+ Segment",
 			"removeSegment": "− Segment",
 			"removePath": "Pfad löschen"
+		},
+		"polygons": {
+			"title": "Polygone",
+			"newName": "Polygon {{count}}",
+			"polygonName": "Polygonname",
+			"outlineColor": "Konturfarbe",
+			"width": "Konturbreite",
+			"addPoint": "+ Punkt",
+			"removePoint": "− Punkt",
+			"remove": "Polygon löschen"
 		},
 		"lines": {
 			"title": "Linien",

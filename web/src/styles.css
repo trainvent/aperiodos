@@ -654,6 +654,10 @@ select {
   cursor: pointer;
 }
 
+.studio-material-polygon {
+  cursor: pointer;
+}
+
 .studio-edge-label circle {
   fill: #fffdf8;
   stroke: #526b75;
@@ -696,6 +700,13 @@ select {
 .studio-circular-path-handles polyline {
   fill: none;
   stroke: rgba(180, 85, 45, 0.62);
+  stroke-width: 1.4;
+  stroke-dasharray: 4 4;
+}
+
+.studio-polygon-handles polygon {
+  fill: none;
+  stroke: rgba(180, 85, 45, 0.72);
   stroke-width: 1.4;
   stroke-dasharray: 4 4;
 }

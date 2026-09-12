@@ -55,6 +55,7 @@
 			"orderHelp": "Upper items draw last",
 			"moveUp": "Move layer up",
 			"moveDown": "Move layer down",
+			"polygon": "Polygon",
 			"path": "Bézier path",
 			"line": "Line",
 			"circle": "Circle",
@@ -92,6 +93,17 @@
 			"showHandles": "Show editing handles",
 			"bindEndpoints": "Bind endpoints to tile edges"
 		},
+		"penroseOverlay": {
+			"enabled": "P3 rhomb overlay",
+			"thinColor": "Thin rhombs",
+			"thickColor": "Thick rhombs",
+			"edgeColor": "Rhomb edges",
+			"edgeWidth": "Rhomb edge width",
+			"scale": "Rhomb scale",
+			"rotation": "Rotation",
+			"offsetX": "Offset X",
+			"offsetY": "Offset Y"
+		},
 		"paths": {
 			"title": "Bézier paths",
 			"help": "Advanced freeform alternative for shapes that are not circular.",
@@ -103,6 +115,16 @@
 			"addSegment": "+ segment",
 			"removeSegment": "− segment",
 			"removePath": "Delete path"
+		},
+		"polygons": {
+			"title": "Polygons",
+			"newName": "Polygon {{count}}",
+			"polygonName": "Polygon name",
+			"outlineColor": "Outline color",
+			"width": "Outline width",
+			"addPoint": "+ point",
+			"removePoint": "− point",
+			"remove": "Delete polygon"
 		},
 		"lines": {
 			"title": "Lines",

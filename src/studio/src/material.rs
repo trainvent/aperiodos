@@ -19,6 +19,7 @@ pub fn render_studio_elements(
     tile_type: Option<&str>,
 ) -> String {
     let kinds = [
+        ("polygon", "polygons"),
         ("path", "paths"),
         ("line", "lines"),
         ("circle", "circles"),
@@ -78,7 +79,9 @@ pub fn render_studio_elements(
         // existing Studio designs. Tagged material is rendered only by its
         // matching Penrose prototile.
         if let Some(scope) = item.get("tileType").and_then(Value::as_str) {
-            if Some(scope) != tile_type {
+            if !tile_type.is_some_and(|tile_type| {
+                scope == tile_type || (scope == "pentagon" && tile_type.starts_with("pentagon-"))
+            }) {
                 continue;
             }
         }
@@ -88,6 +91,26 @@ pub fn render_studio_elements(
                 .unwrap_or(fallback_ink),
         );
         match kind {
+            "polygon" => {
+                let points = item_points(item)
+                    .into_iter()
+                    .map(|p| transform.apply(p))
+                    .map(|p| format!("{:.4},{:.4}", p.x, p.y))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                if !points.is_empty() {
+                    let stroke_width = number(item, "width") * stroke_scale;
+                    let stroke = item
+                        .get("strokeColor")
+                        .and_then(Value::as_str)
+                        .map(escape_xml)
+                        .unwrap_or_else(|| "none".to_owned());
+                    let _ = write!(
+                        output,
+                        "<polygon points=\"{points}\" fill=\"{color}\" stroke=\"{stroke}\" stroke-width=\"{stroke_width:.4}\" stroke-linejoin=\"round\" />"
+                    );
+                }
+            }
             "path" => {
                 let points = item_points(item)
                     .into_iter()
@@ -300,6 +323,7 @@ mod tests {
     #[test]
     fn applies_tile_scope_to_every_studio_tool_kind() {
         let pattern = serde_json::json!({
+            "polygons": [{"id":"polygon","tileType":"star","color":"#005500","strokeColor":"#ffee00","width":0.05,"points":[{"u":0,"v":0},{"u":1,"v":0},{"u":0,"v":1}]}],
             "paths": [{"id":"path","tileType":"star","color":"#110001","width":0.1,"points":[{"u":0,"v":0},{"u":0.25,"v":0},{"u":0.75,"v":0},{"u":1,"v":0}]}],
             "lines": [{"id":"line","tileType":"star","color":"#220002","width":0.1,"points":[{"u":0,"v":0},{"u":1,"v":0}]}],
             "circles": [{"id":"circle","tileType":"star","color":"#330003","operation":"ink","radius":0.2,"center":{"u":0,"v":0}}],
@@ -315,9 +339,11 @@ mod tests {
             1.0,
             Some("star"),
         );
-        for color in ["#110001", "#220002", "#330003", "#440004"] {
+        for color in ["#005500", "#110001", "#220002", "#330003", "#440004"] {
             assert!(star.contains(color), "missing scoped {color} material");
         }
+        assert!(star.contains("stroke=\"#ffee00\""));
+        assert!(star.contains("stroke-width=\"0.0500\""));
 
         let boat = render_studio_elements(
             &pattern,

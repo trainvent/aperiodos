@@ -234,6 +234,12 @@ function safeFilename(name) {
   return String(name || "material-design").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "material-design";
 }
 
+function materialMatchesTile(item, tileType) {
+  return !item.tileType
+    || item.tileType === tileType
+    || (item.tileType === "pentagon" && tileType?.startsWith("pentagon-"));
+}
+
 function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectre" ? "spectre" : "einstein")) {
   return studioCall("exportSvg", { design, tileType: geometry.activeTileType });
 }
@@ -288,6 +294,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     return empty;
   };
   const [design, setDesign] = useState(() => cachedDesign ? cloneDesign(cachedDesign) : emptyDesign());
+  const [selectedPolygonId, setSelectedPolygonId] = useState(null);
   const [selectedPathId, setSelectedPathId] = useState(null);
   const [selectedLineId, setSelectedLineId] = useState(null);
   const [selectedCircleId, setSelectedCircleId] = useState(null);
@@ -346,19 +353,20 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const selectedCircle = (design.circles || []).find((circle) => circle.id === selectedCircleId);
   const selectedCircularPath = (design.circularPaths || []).find((path) => path.id === selectedCircularPathId);
   const selectedLine = (design.lines || []).find((line) => line.id === selectedLineId);
-  const selectedPath = !selectedLine && !selectedCircle && !selectedCircularPath
+  const selectedPolygon = (design.polygons || []).find((polygon) => polygon.id === selectedPolygonId);
+  const selectedPath = !selectedPolygon && !selectedLine && !selectedCircle && !selectedCircularPath
     ? design.paths.find((path) => path.id === selectedPathId) || (selectedPathId ? design.paths[0] : null)
     : null;
   const visibleMaterialLayers = useMemo(() => getDesignLayers(design).filter(({ item }) => (
-    geometry.tile !== "penrose" || !item.tileType || item.tileType === activePenroseTileType
+    geometry.tile !== "penrose" || materialMatchesTile(item, activePenroseTileType)
   )), [design, geometry.tile, activePenroseTileType]);
   const navigatorLayersByKind = useMemo(() => Object.fromEntries(
-    ["path", "line", "circle", "circularPath"].map((kind) => [kind, visibleMaterialLayers.filter((layer) => layer.kind === kind)]),
+    ["polygon", "path", "line", "circle", "circularPath"].map((kind) => [kind, visibleMaterialLayers.filter((layer) => layer.kind === kind)]),
   ), [visibleMaterialLayers]);
   const penroseTileLayerCounts = useMemo(() => Object.fromEntries(
     (familyGeometry.editorShapes || []).map((shape) => [
       shape.tileType,
-      getDesignLayers(design).filter(({ item }) => !item.tileType || item.tileType === shape.tileType).length,
+      getDesignLayers(design).filter(({ item }) => materialMatchesTile(item, shape.tileType)).length,
     ]),
   ), [design, familyGeometry.editorShapes]);
   const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile && (geometry.tile !== "penrose" || item.tileMode === geometry.tileMode));
@@ -386,6 +394,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
 
   function selectPenroseTileType(tileType) {
     setActivePenroseTileType(tileType);
+    setSelectedPolygonId(null);
     setSelectedPathId(null);
     setSelectedLineId(null);
     setSelectedCircleId(null);
@@ -427,6 +436,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   }
 
   function selectLayer(kind, id) {
+    setSelectedPolygonId(kind === "polygon" ? id : null);
     setSelectedPathId(kind === "path" ? id : null);
     setSelectedLineId(kind === "line" ? id : null);
     setSelectedCircleId(kind === "circle" ? id : null);
@@ -435,6 +445,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   }
 
   function clearSelection() {
+    setSelectedPolygonId(null);
     setSelectedPathId(null);
     setSelectedLineId(null);
     setSelectedCircleId(null);
@@ -450,6 +461,13 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
         const points = path.points.map((existing, index) => index === pointIndex ? point : existing);
         return { ...path, points };
       }),
+    }));
+  }
+
+  function updatePolygon(polygonId, changes) {
+    setDesign((current) => ({
+      ...current,
+      polygons: (current.polygons || []).map((polygon) => polygon.id === polygonId ? { ...polygon, ...changes } : polygon),
     }));
   }
 
@@ -564,6 +582,13 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       updateCircularPath(drag.pathId, { points });
       return;
     }
+    if (drag.kind === "polygon") {
+      const polygon = (design.polygons || []).find((candidate) => candidate.id === drag.polygonId);
+      point = snapTileVertex(snapEditorPoint(point, snapStep), canvasPoint);
+      const points = polygon.points.map((existing, index) => index === drag.pointIndex ? point : existing);
+      updatePolygon(drag.polygonId, { points });
+      return;
+    }
     if (drag.kind === "line") {
       const line = (design.lines || []).find((candidate) => candidate.id === drag.lineId);
       point = snapTileVertex(snapEditorPoint(point, snapStep), canvasPoint);
@@ -588,6 +613,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   function beginDragging(event, pathId, pointIndex) {
     event.preventDefault();
     event.currentTarget.ownerSVGElement.setPointerCapture(event.pointerId);
+    setSelectedPolygonId(null);
     setSelectedPathId(pathId);
     setSelectedLineId(null);
     setSelectedCircleId(null);
@@ -595,9 +621,17 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     setDrag({ kind: "path", pathId, pointIndex, pointerId: event.pointerId });
   }
 
+  function beginPolygonDragging(event, polygonId, pointIndex) {
+    event.preventDefault();
+    event.currentTarget.ownerSVGElement.setPointerCapture(event.pointerId);
+    selectLayer("polygon", polygonId);
+    setDrag({ kind: "polygon", polygonId, pointIndex, pointerId: event.pointerId });
+  }
+
   function beginLineDragging(event, lineId, pointIndex) {
     event.preventDefault();
     event.currentTarget.ownerSVGElement.setPointerCapture(event.pointerId);
+    setSelectedPolygonId(null);
     setSelectedPathId(null);
     setSelectedLineId(lineId);
     setSelectedCircleId(null);
@@ -608,6 +642,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   function beginCircleDragging(event, kind, circleId) {
     event.preventDefault();
     event.currentTarget.ownerSVGElement.setPointerCapture(event.pointerId);
+    setSelectedPolygonId(null);
     setSelectedPathId(null);
     setSelectedLineId(null);
     setSelectedCircleId(circleId);
@@ -618,6 +653,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   function beginCircularPathDragging(event, pathId, pointIndex) {
     event.preventDefault();
     event.currentTarget.ownerSVGElement.setPointerCapture(event.pointerId);
+    setSelectedPolygonId(null);
     setSelectedPathId(null);
     setSelectedLineId(null);
     setSelectedCircleId(null);
@@ -651,10 +687,45 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     points[points.length - 1] = geometry.nearestBoundary(points[points.length - 1]).point;
     const path = scopeNewElement({ ...draft, points });
     setDesign((current) => ({ ...current, paths: [...current.paths, path] }));
+    setSelectedPolygonId(null);
     setSelectedPathId(id);
     setSelectedLineId(null);
     setSelectedCircleId(null);
     setSelectedCircularPathId(null);
+  }
+
+  function addPolygon() {
+    const id = `polygon-${Date.now()}`;
+    const vertices = geometry.materialVertices || [];
+    const polygon = scopeNewElement({
+      id,
+      name: t("studio.polygons.newName", { count: (design.polygons || []).length + 1 }),
+      strokeColor: design.outline || "#17313b",
+      width: 0.05,
+      points: (geometry.defaultElements?.polygonPoints || vertices.slice(0, 4)).map((point) => ({ ...point })),
+    });
+    setDesign((current) => ({ ...current, polygons: [...(current.polygons || []), polygon] }));
+    selectLayer("polygon", id);
+  }
+
+  function removePolygon() {
+    if (!selectedPolygon) return;
+    setDesign((current) => ({ ...current, polygons: (current.polygons || []).filter((polygon) => polygon.id !== selectedPolygon.id) }));
+    setSelectedPolygonId(null);
+    setStatus(t("studio.status.elementDeleted"));
+  }
+
+  function addPolygonPoint() {
+    if (!selectedPolygon) return;
+    const points = selectedPolygon.points;
+    const first = points[0];
+    const last = points[points.length - 1];
+    updatePolygon(selectedPolygon.id, { points: [...points, { u: (first.u + last.u) / 2, v: (first.v + last.v) / 2 }] });
+  }
+
+  function removePolygonPoint() {
+    if (!selectedPolygon || selectedPolygon.points.length <= 3) return;
+    updatePolygon(selectedPolygon.id, { points: selectedPolygon.points.slice(0, -1) });
   }
 
   function addLine() {
@@ -686,6 +757,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       width: 0.05,
     });
     setDesign((current) => ({ ...current, circles: [...(current.circles || []), circle] }));
+    setSelectedPolygonId(null);
     setSelectedPathId(null);
     setSelectedLineId(null);
     setSelectedCircleId(id);
@@ -709,6 +781,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       points: geometry.defaultElements?.circularPathPoints || [{ u: 0, v: 1 }, { u: 1, v: 1 }, { u: 1, v: 0 }],
     });
     setDesign((current) => ({ ...current, circularPaths: [...(current.circularPaths || []), circularPath] }));
+    setSelectedPolygonId(null);
     setSelectedPathId(null);
     setSelectedLineId(null);
     setSelectedCircleId(null);
@@ -760,7 +833,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   }
 
   function saveDesign() {
-    if (!design.paths.length && !(design.lines || []).length && !(design.circles || []).length && !(design.circularPaths || []).length) {
+    const hasP1RhombOverlay = design.tile === "penrose" && design.tileMode === "p1" && design.penroseOverlay?.enabled;
+    if (!hasP1RhombOverlay && !(design.polygons || []).length && !design.paths.length && !(design.lines || []).length && !(design.circles || []).length && !(design.circularPaths || []).length) {
       setStatus(t("studio.status.emptyDesign"));
       return;
     }
@@ -781,10 +855,11 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   function loadDesign(nextDesign) {
     const loaded = cloneDesign(nextDesign);
     setDesign(loaded);
-    setSelectedPathId(loaded.paths[0]?.id || null);
-    setSelectedLineId(loaded.paths.length ? null : loaded.lines?.[0]?.id || null);
+    setSelectedPolygonId(loaded.polygons?.[0]?.id || null);
+    setSelectedPathId(loaded.polygons?.length ? null : loaded.paths[0]?.id || null);
+    setSelectedLineId(loaded.polygons?.length || loaded.paths.length ? null : loaded.lines?.[0]?.id || null);
     setSelectedCircleId(null);
-    setSelectedCircularPathId(loaded.paths.length || loaded.lines?.length ? null : loaded.circularPaths?.[0]?.id || null);
+    setSelectedCircularPathId(loaded.polygons?.length || loaded.paths.length || loaded.lines?.length ? null : loaded.circularPaths?.[0]?.id || null);
     setStatus(t("studio.status.loaded"));
   }
 
@@ -890,6 +965,24 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     );
   }
 
+  function renderPolygonControls() {
+    if (!selectedPolygon) return null;
+    return (
+      <InspectorGroup>
+        <InspectorTextField label={t("studio.polygons.polygonName")} value={selectedPolygon.name} onChange={(name) => updatePolygon(selectedPolygon.id, { name })} />
+        {renderElementColorControl(selectedPolygon, (changes) => updatePolygon(selectedPolygon.id, changes))}
+        <InspectorColorField label={t("studio.polygons.outlineColor")} value={selectedPolygon.strokeColor || design.outline} onChange={(strokeColor) => updatePolygon(selectedPolygon.id, { strokeColor })} />
+        <InspectorRangeField label={t("studio.polygons.width")} value={selectedPolygon.width || 0} min="0" max="1.6" step="0.02" editable onChange={(width) => updatePolygon(selectedPolygon.id, { width })} />
+        {renderElementTileTypeControl(selectedPolygon, (changes) => updatePolygon(selectedPolygon.id, changes))}
+        <InspectorActions>
+          <button type="button" onClick={addPolygonPoint}>{t("studio.polygons.addPoint")}</button>
+          <button type="button" onClick={removePolygonPoint} disabled={selectedPolygon.points.length <= 3}>{t("studio.polygons.removePoint")}</button>
+          <button type="button" className="danger" onClick={removePolygon}>{t("studio.polygons.remove")}</button>
+        </InspectorActions>
+      </InspectorGroup>
+    );
+  }
+
   function renderCircleControls() {
     if (!selectedCircle) return null;
     return (
@@ -981,6 +1074,39 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       </>;
   }
 
+  function renderPenroseOverlayControls() {
+    if (geometry.tile !== "penrose" || design.tileMode !== "p1") return null;
+    const overlay = design.penroseOverlay || {
+      enabled: false,
+      type: "rhombs",
+      thinColor: "#204a87",
+      thickColor: "#555753",
+      edgeColor: "#edd400",
+      edgeWidth: 1,
+      scale: Math.sqrt(5),
+      rotation: 0,
+      offsetX: 0,
+      offsetY: 0,
+    };
+    const updateOverlay = (changes) => setDesign((current) => ({
+      ...current,
+      penroseOverlay: { ...overlay, ...current.penroseOverlay, ...changes },
+    }));
+    return <>
+      <InspectorToggleField label={t("studio.penroseOverlay.enabled")} checked={overlay.enabled} onChange={(enabled) => updateOverlay({ enabled })} />
+      {overlay.enabled ? <>
+        <InspectorColorField label={t("studio.penroseOverlay.thinColor")} value={overlay.thinColor} onChange={(thinColor) => updateOverlay({ thinColor })} />
+        <InspectorColorField label={t("studio.penroseOverlay.thickColor")} value={overlay.thickColor} onChange={(thickColor) => updateOverlay({ thickColor })} />
+        <InspectorColorField label={t("studio.penroseOverlay.edgeColor")} value={overlay.edgeColor} onChange={(edgeColor) => updateOverlay({ edgeColor })} />
+        <InspectorRangeField label={t("studio.penroseOverlay.edgeWidth")} value={overlay.edgeWidth} min="0" max="8" step="0.1" digits={1} editable onChange={(edgeWidth) => updateOverlay({ edgeWidth })} />
+        <InspectorRangeField label={t("studio.penroseOverlay.scale")} value={overlay.scale} min="0.125" max="8" step="0.001" digits={3} editable onChange={(scale) => updateOverlay({ scale })} />
+        <InspectorRangeField label={t("studio.penroseOverlay.rotation")} value={overlay.rotation} min="-180" max="180" step="1" digits={0} editable onChange={(rotation) => updateOverlay({ rotation })} />
+        <InspectorRangeField label={t("studio.penroseOverlay.offsetX")} value={overlay.offsetX} min="-8" max="8" step="0.01" digits={2} editable onChange={(offsetX) => updateOverlay({ offsetX })} />
+        <InspectorRangeField label={t("studio.penroseOverlay.offsetY")} value={overlay.offsetY} min="-8" max="8" step="0.01" digits={2} editable onChange={(offsetY) => updateOverlay({ offsetY })} />
+      </> : null}
+    </>;
+  }
+
   const outlineWidth = design.strokeWidth ?? (family === "spectre" ? 1 : 2);
   const updateOutlineWidth = (value) => {
     if (!Number.isFinite(value)) return;
@@ -988,7 +1114,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   };
 
   function renderDocumentControls() {
-    if (selectedPath || selectedLine || selectedCircle || selectedCircularPath) return null;
+    if (selectedPolygon || selectedPath || selectedLine || selectedCircle || selectedCircularPath) return null;
     return <>
       <InspectorGroup title={t("studio.controls.outlineGroup")} titleId="studio-outline-heading" className="studio-widget-outline-group">
         <InspectorColorField label={t("studio.controls.outlineColor")} value={design.outline || "#17313b"} onChange={(outline) => setDesign((current) => ({ ...current, outline }))} />
@@ -1001,6 +1127,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           mixed={editAllPenroseTiles && !displayedTileBaseColor}
           onChange={updateDisplayedTileBaseColor}
         />
+        {renderPenroseOverlayControls()}
         {renderSpectreShapeControls()}
         {geometry.tile === "penrose" ? <>
           <div className="studio-scope-options" role="group" aria-label={t("studio.controls.editScope")}>
@@ -1036,6 +1163,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
           <div className="studio-toolbar-row studio-toolbar-ribbon">
             <div className="studio-toolbar-group studio-toolbar-create">
               <span className="studio-toolbar-label">{t("studio.toolbar.create")}</span>
+              <button type="button" onClick={addPolygon}><span>⬟</span>{t("studio.polygons.title")}</button>
               <button type="button" onClick={addCircularPath}><span>⌁</span>{t("studio.circularPaths.title")}</button>
               <button type="button" onClick={addPath}><span>⌇</span>{t("studio.paths.title")}</button>
               <button type="button" onClick={addCircle}><span>○</span>{t("studio.circles.title")}</button>
@@ -1079,9 +1207,13 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name} · {penroseTileLayerCounts[shape.tileType] || 0}</option>)}
               </select>
             </label> : null}
-            <button type="button" className={`studio-tree-root${!selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={clearSelection}><strong>{t("studio.controls.outlineGroup")}</strong></button>
+            <button type="button" className={`studio-tree-root${!selectedPolygon && !selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={clearSelection}><strong>{t("studio.controls.outlineGroup")}</strong></button>
             {treeMode === "categories" ? (
               <>
+                <details open>
+                  <summary><span>⬟</span><strong>{t("studio.polygons.title")}</strong><small>{navigatorLayersByKind.polygon.length}</small></summary>
+                  <div className="studio-tree-children">{navigatorLayersByKind.polygon.map(({ id, item: polygon }) => <button key={id} type="button" className={id === selectedPolygonId ? "active" : ""} onClick={() => selectLayer("polygon", id)}><span>⬟</span><span>{polygon.name}</span><small>{polygon.points.length}P</small></button>)}</div>
+                </details>
                 <details open>
                   <summary><span>⌁</span><strong>{t("studio.circularPaths.title")}</strong><small>{navigatorLayersByKind.circularPath.length}</small></summary>
                   <div className="studio-tree-children">{navigatorLayersByKind.circularPath.map(({ id, item: path }) => <button key={id} type="button" className={id === selectedCircularPathId ? "active" : ""} onClick={() => selectLayer("circularPath", id)}><span>⌁</span><span>{path.name}</span><small>r {circularPathGeometry(path).radius.toFixed(2)}</small></button>)}</div>
@@ -1104,12 +1236,13 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 <div className="studio-layer-stack-label"><span>{t("studio.layers.top")}</span><small>{t("studio.layers.orderHelp")}</small></div>
                 {[...visibleMaterialLayers].reverse().map(({ kind, id, item }, displayIndex, layers) => {
                   const active = (kind === "path" && id === selectedPathId && !selectedCircle && !selectedCircularPath)
+                    || (kind === "polygon" && id === selectedPolygonId)
                     || (kind === "line" && id === selectedLineId)
                     || (kind === "circle" && id === selectedCircleId)
                     || (kind === "circularPath" && id === selectedCircularPathId);
                   return (
                     <div className={`studio-layer-row${active ? " active" : ""}`} key={`${kind}:${id}`}>
-                      <button type="button" className="studio-layer-select" onClick={() => selectLayer(kind, id)}><span>{kind === "path" ? "⌇" : kind === "line" ? "╱" : kind === "circle" ? "○" : "⌁"}</span><span>{item.name}</span><small>{t(`studio.layers.${kind}`)}</small></button>
+                      <button type="button" className="studio-layer-select" onClick={() => selectLayer(kind, id)}><span>{kind === "polygon" ? "⬟" : kind === "path" ? "⌇" : kind === "line" ? "╱" : kind === "circle" ? "○" : "⌁"}</span><span>{item.name}</span><small>{t(`studio.layers.${kind}`)}</small></button>
                       <div className="studio-layer-actions">
                         <button type="button" onClick={() => swapLayerPositions(kind, id, layers[displayIndex - 1].kind, layers[displayIndex - 1].id)} disabled={displayIndex === 0} title={t("studio.layers.moveUp")}>↑</button>
                         <button type="button" onClick={() => swapLayerPositions(kind, id, layers[displayIndex + 1].kind, layers[displayIndex + 1].id)} disabled={displayIndex === layers.length - 1} title={t("studio.layers.moveDown")}>↓</button>
@@ -1208,6 +1341,15 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
                 })}
               </g>
             ) : null}
+            {showHandles && selectedPolygon ? (
+              <g className="studio-handles studio-polygon-handles">
+                <polygon points={pointsAttribute(selectedPolygon.points, mapToCanvas)} />
+                {selectedPolygon.points.map((point, index) => {
+                  const screen = mapToCanvas(point);
+                  return <circle key={index} className="anchor" cx={screen.x} cy={screen.y} r="8" onPointerDown={(event) => beginPolygonDragging(event, selectedPolygon.id, index)} />;
+                })}
+              </g>
+            ) : null}
             {showHandles && selectedCircle ? (() => {
               const center = mapToCanvas(selectedCircle.center);
               const radiusHandle = circleHandleCanvas(selectedCircle, geometry, mapToCanvas);
@@ -1266,9 +1408,10 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
         </main>
         <InspectorPanel
           ariaLabel={t("studio.toolbar.document")}
-          icon={selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedLine ? "╱" : selectedCircle ? "○" : "◇"}
-          title={selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedLine ? t("studio.lines.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}
+          icon={selectedPolygon ? "⬟" : selectedCircularPath ? "⌁" : selectedPath ? "⌇" : selectedLine ? "╱" : selectedCircle ? "○" : "◇"}
+          title={selectedPolygon ? t("studio.polygons.title") : selectedCircularPath ? t("studio.circularPaths.title") : selectedPath ? t("studio.paths.title") : selectedLine ? t("studio.lines.title") : selectedCircle ? t("studio.circles.title") : t("studio.toolbar.document")}
         >
+          {renderPolygonControls()}
           {renderPathControls()}
           {renderLineControls()}
           {renderCircleControls()}
@@ -1418,7 +1561,7 @@ function MiniTileDesign({ design, geometry, clipId, transform }) {
   const mapper = canvasMapperFor(geometry);
   const baseColor = tileBaseColor(design, geometry.activeTileType);
   const layers = getDesignLayers(design).filter(({ item }) => (
-    !item.tileType || item.tileType === geometry.activeTileType
+    materialMatchesTile(item, geometry.activeTileType)
   ));
   return (
     <g transform={transform}>
@@ -1436,18 +1579,27 @@ function MiniDesign({ design, geometry, familyGeometry }) {
   const penroseGeometries = geometry.tile === "penrose"
     ? familyGeometry.editorShapes.map((shape) => penroseTileEditorGeometry(familyGeometry, shape.tileType))
     : null;
+  const columns = penroseGeometries ? Math.min(3, penroseGeometries.length) : 1;
+  const rows = penroseGeometries ? Math.ceil(penroseGeometries.length / columns) : 1;
+  const cellWidth = CANVAS.width / columns;
+  const cellHeight = CANVAS.height / rows;
+  const tileScale = Math.min(cellWidth / CANVAS.width, cellHeight / CANVAS.height) * 0.88;
   return (
     <svg className="studio-mini-design" viewBox={`0 0 ${CANVAS.width} ${CANVAS.height}`} aria-hidden="true">
       {penroseGeometries
-        ? penroseGeometries.map((tileGeometry, index) => (
-          <MiniTileDesign
+        ? penroseGeometries.map((tileGeometry, index) => {
+          const column = index % columns;
+          const row = Math.floor(index / columns);
+          const x = column * cellWidth + (cellWidth - CANVAS.width * tileScale) / 2;
+          const y = row * cellHeight + (cellHeight - CANVAS.height * tileScale) / 2;
+          return <MiniTileDesign
             key={tileGeometry.activeTileType}
             design={design}
             geometry={tileGeometry}
             clipId={`mini-${design.id}-${tileGeometry.activeTileType}`}
-            transform={`translate(${index === 0 ? -84 : 296} 87) scale(0.72)`}
-          />
-        ))
+            transform={`translate(${x} ${y}) scale(${tileScale})`}
+          />;
+        })
         : <MiniTileDesign design={design} geometry={geometry} clipId={`mini-${design.id}`} />}
     </svg>
   );

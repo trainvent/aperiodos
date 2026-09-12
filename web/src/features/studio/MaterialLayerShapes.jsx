@@ -1,5 +1,20 @@
 export default function MaterialLayerShapes({ layers, colorFor, baseColor, mapPoint, renderPath, strokeScale, radiusScale = strokeScale, onSelect, selectedIds = {} }) {
   return layers.map(({ kind, id, item }) => {
+    if (kind === "polygon") {
+      return <polygon
+        key={`${kind}:${id}`}
+        className="studio-material-polygon"
+        points={item.points.map((point) => {
+          const mapped = mapPoint(point);
+          return `${mapped.x},${mapped.y}`;
+        }).join(" ")}
+        fill={colorFor(item)}
+        stroke={item.strokeColor || "none"}
+        strokeWidth={(item.width || 0) * strokeScale}
+        strokeLinejoin="round"
+        onPointerDown={onSelect ? () => onSelect(kind, id) : undefined}
+      />;
+    }
     if (kind === "circle") {
       const center = mapPoint(item.center);
       const color = item.operation === "ink" ? colorFor(item) : baseColor;

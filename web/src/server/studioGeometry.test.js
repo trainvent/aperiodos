@@ -118,6 +118,7 @@ test("Studio can start with an empty editable document", () => {
   const design = createEmptyDesign();
   assert.equal(design.schema, "aperiodos.material-design");
   assert.deepEqual(getDesignLayers(design), []);
+  assert.deepEqual(design.polygons, []);
   assert.deepEqual(design.paths, []);
   assert.deepEqual(design.lines, []);
   assert.deepEqual(design.circles, []);
@@ -271,7 +272,7 @@ test("Studio pattern consumers receive only their geometry family", async () => 
 });
 
 test("Studio exposes all Penrose tile combinations", () => {
-  for (const [family, tileMode, shapeCount] of [["penrose-kite-dart", "kite-dart", 2], ["penrose-rhombs", "rhombs", 2], ["penrose-p1", "p1", 4]]) {
+  for (const [family, tileMode, shapeCount] of [["penrose-kite-dart", "kite-dart", 2], ["penrose-rhombs", "rhombs", 2], ["penrose-p1", "p1", 6]]) {
     const adapter = geometryAdapterFor(family);
     assert.equal(adapter.tile, "penrose");
     assert.equal(adapter.tileMode, tileMode);
@@ -474,14 +475,16 @@ test("Penrose Studio isolates each prototile in the generator's coordinate syste
 test("Penrose Studio designs retain their tile combination and per-tool tile scopes", () => {
   const design = createEmptyDesign("penrose");
   design.tileMode = "p1";
+  design.polygons = [{ id: "polygon", tileType: "pentagon-c", color: "#123456", points: [{ u: 0, v: 0 }, { u: 1, v: 0 }, { u: 0, v: 1 }] }];
   design.paths = [{ id: "path", tileType: "star", width: 0.2, points: [{ u: 0, v: 0 }, { u: 0.25, v: 0 }, { u: 0.75, v: 0 }, { u: 1, v: 0 }] }];
-  design.lines = [{ id: "line", tileType: "pentagon", width: 0.2, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }];
+  design.lines = [{ id: "line", tileType: "pentagon-a", width: 0.2, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }];
   design.circles = [{ id: "circle", tileType: "boat", center: { u: 0, v: 0 }, radius: 0.25, operation: "ink" }];
   design.circularPaths = [{ id: "arc", tileType: "diamond", width: 0.2, side: "left", points: [{ u: 0, v: 0 }, { u: 1, v: 0 }, { u: 2, v: 0 }] }];
   const validated = validateDesign(design);
   assert.equal(validated.tileMode, "p1");
+  assert.equal(validated.polygons[0].tileType, "pentagon-c");
   assert.equal(validated.paths[0].tileType, "star");
-  assert.equal(validated.lines[0].tileType, "pentagon");
+  assert.equal(validated.lines[0].tileType, "pentagon-a");
   assert.equal(validated.circles[0].tileType, "boat");
   assert.equal(validated.circularPaths[0].tileType, "diamond");
 });
@@ -504,11 +507,7 @@ test("Spectre designs persist in the local Studio library", () => {
 });
 
 test("Public Studio presets load from their pattern assets", async () => {
-  const assetPaths = [
-    "/patterns/einstein/greencurves.json",
-    "/patterns/spectre/hexagonalization.json",
-    "/patterns/penrose/p2-bicircular.json",
-  ];
+  const assetPaths = JSON.parse(await readFile(new URL("../../public/patterns/library.json", import.meta.url), "utf8"));
   const assets = new Map(await Promise.all(assetPaths.map(async (asset) => [
     asset,
     JSON.parse(await readFile(new URL(`../../public${asset}`, import.meta.url), "utf8")),
@@ -520,6 +519,7 @@ test("Public Studio presets load from their pattern assets", async () => {
   const greenCurves = designs.find((design) => design.id === "builtin-green-curves");
   const hexagonalization = designs.find((design) => design.id === "builtin-spectre-hexagonalization");
   const p2Bicircular = designs.find((design) => design.id === "builtin-penrose-p2-bicircular");
+  const p1OverP3 = designs.find((design) => design.id === "builtin-penrose-p1-over-p3");
   assert.deepEqual(greenCurves.circularPaths.map((path) => path.width), [0.7, 1.3]);
   assert.equal(greenCurves.outline, "#17313b");
   assert.equal(hexagonalization.tile, "spectre");
@@ -538,6 +538,11 @@ test("Public Studio presets load from their pattern assets", async () => {
     0.38196601128143226,
   ]);
   assert.ok(p2Bicircular.circles.every((circle) => circle.hollow === true));
+  assert.equal(p1OverP3.tileMode, "p1");
+  assert.equal(p1OverP3.polygons.length, 0);
+  assert.equal(p1OverP3.penroseOverlay.enabled, true);
+  assert.equal(p1OverP3.penroseOverlay.type, "rhombs");
+  assert.ok(Math.abs(p1OverP3.penroseOverlay.scale - Math.sqrt(5)) < 1e-12);
 });
 
 test("Penrose prototiles keep independent tile colors", () => {

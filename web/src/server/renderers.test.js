@@ -200,3 +200,63 @@ test("Penrose accepts Studio material for every tile combination", async () => {
     assert.match(result.buffer.toString("utf8"), /stroke="#d81b60"/);
   }
 });
+
+test("Penrose accepts editable filled polygons from Studio", async () => {
+  const studioPattern = {
+    schema: "aperiodos.material-design",
+    version: 1,
+    tile: "penrose",
+    tileMode: "p1",
+    colors: { base: "#555753", ink: "#204a87" },
+    polygons: [{
+      id: "star-rhomb",
+      tileType: "star",
+      color: "#204a87",
+      strokeColor: "#edd400",
+      width: 0.05,
+      points: [{ u: 0, v: 0 }, { u: 1, v: 0 }, { u: 1, v: 1 }, { u: 0, v: 1 }],
+    }],
+    paths: [],
+    lines: [],
+    circles: [],
+    circularPaths: [],
+    layerOrder: [{ kind: "polygon", id: "star-rhomb" }],
+  };
+  const result = await renderPenrose({ width: 256, height: 256, iterations: 4, scale: 220, format: "svg", tile_mode: "p1", material_mode: "pattern", studio_pattern: studioPattern });
+  const svg = result.buffer.toString("utf8");
+  assert.match(svg, /fill="#204a87"/);
+  assert.match(svg, /stroke="#edd400"/);
+});
+
+test("Penrose renders a continuous P3 rhomb overlay beneath P1 boundaries", async () => {
+  const studioPattern = {
+    schema: "aperiodos.material-design",
+    version: 1,
+    tile: "penrose",
+    tileMode: "p1",
+    colors: { base: "#555753", ink: "#204a87" },
+    outline: "#111111",
+    strokeWidth: 1,
+    penroseOverlay: {
+      enabled: true,
+      type: "rhombs",
+      thinColor: "#204a87",
+      thickColor: "#555753",
+      edgeColor: "#edd400",
+      edgeWidth: 1,
+      scale: Math.sqrt(5),
+      rotation: 0,
+      offsetX: 0,
+      offsetY: 0,
+    },
+    polygons: [], paths: [], lines: [], circles: [], circularPaths: [], layerOrder: [],
+  };
+  const result = await renderPenrose({ width: 256, height: 256, iterations: 3, scale: 80, outline: "#111111", stroke_width: 1, format: "svg", tile_mode: "p1", material_mode: "pattern", studio_pattern: studioPattern });
+  const svg = result.buffer.toString("utf8");
+  assert.match(svg, /data-penrose-overlay-boundaries="true"/);
+  assert.match(svg, /data-penrose-overlay-tile="true" clip-path="url\(#penrose-p1-overlay-tile-/);
+  assert.match(svg, /fill="#204a87"/);
+  assert.match(svg, /fill="#555753"/);
+  assert.match(svg, /stroke="#edd400"/);
+  assert.match(svg, /stroke="#111111"/);
+});

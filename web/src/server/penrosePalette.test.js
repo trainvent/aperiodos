@@ -44,3 +44,21 @@ test("Edited generator colors override the selected Studio pattern", () => {
     diamond: "#a0a000",
   });
 });
+
+test("P1 over P3 exposes and updates only its two rhomb colors", () => {
+  const pattern = {
+    colors: { base: "#ffffff" },
+    penroseOverlay: {
+      enabled: true,
+      type: "rhombs",
+      thinColor: "#204a87",
+      thickColor: "#555753",
+      edgeColor: "#edd400",
+    },
+  };
+  assert.deepEqual(paletteFromStudioPattern(pattern, "p1"), ["#204a87", "#555753"]);
+  const updated = studioPatternWithPalette(pattern, "p1", { palette_1: "#112233", palette_2: "#445566" });
+  assert.equal(updated.penroseOverlay.thinColor, "#112233");
+  assert.equal(updated.penroseOverlay.thickColor, "#445566");
+  assert.equal(updated.penroseOverlay.edgeColor, "#edd400");
+});

@@ -14,12 +14,25 @@ export function penrosePaletteFields(mode) {
 
 export function paletteFromStudioPattern(pattern, mode) {
   if (!pattern) return [];
+  if (mode === "p1" && pattern.penroseOverlay?.enabled) {
+    return [pattern.penroseOverlay.thinColor, pattern.penroseOverlay.thickColor];
+  }
   const fallback = pattern.colors?.base;
   return penroseTileTypes(mode).map((tileType) => pattern.tileColors?.[tileType] || fallback || null);
 }
 
 export function studioPatternWithPalette(pattern, mode, values) {
   if (!pattern) return null;
+  if (mode === "p1" && pattern.penroseOverlay?.enabled) {
+    return {
+      ...pattern,
+      penroseOverlay: {
+        ...pattern.penroseOverlay,
+        thinColor: values.palette_1 || pattern.penroseOverlay.thinColor,
+        thickColor: values.palette_2 || pattern.penroseOverlay.thickColor,
+      },
+    };
+  }
   const tileColors = Object.fromEntries(
     penroseTileTypes(mode).map((tileType, index) => [tileType, values[`palette_${index + 1}`]])
   );

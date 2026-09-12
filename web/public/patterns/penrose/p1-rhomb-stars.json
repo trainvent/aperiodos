@@ -1,0 +1,37 @@
+{
+  "schema": "aperiodos.material-design",
+  "version": 1,
+  "id": "builtin-penrose-p1-over-p3",
+  "name": "P1 over P3",
+  "tile": "penrose",
+  "tileMode": "p1",
+  "colors": { "base": "#555753", "ink": "#204a87" },
+  "tileColors": {
+    "pentagon-a": "#555753",
+    "pentagon-b": "#555753",
+    "pentagon-c": "#555753",
+    "star": "#555753",
+    "boat": "#555753",
+    "diamond": "#555753"
+  },
+  "outline": "#111111",
+  "strokeWidth": 1,
+  "penroseOverlay": {
+    "enabled": true,
+    "type": "rhombs",
+    "thinColor": "#204a87",
+    "thickColor": "#555753",
+    "edgeColor": "#edd400",
+    "edgeWidth": 1,
+    "scale": 2.23606797749979,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0
+  },
+  "polygons": [],
+  "paths": [],
+  "lines": [],
+  "circles": [],
+  "circularPaths": [],
+  "layerOrder": []
+}

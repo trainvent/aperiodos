@@ -2,7 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use serde_json::{json, Value};
 
-const KINDS: [(&str, &str); 4] = [
+const KINDS: [(&str, &str); 5] = [
+    ("polygon", "polygons"),
     ("path", "paths"),
     ("line", "lines"),
     ("circle", "circles"),
@@ -113,7 +114,7 @@ pub fn create_empty_design(tile: &str) -> Value {
         "id":format!("builtin-empty-{suffix}-pattern"),"name":format!("Untitled {label} pattern"),
         "tile":tile,"colors":{"base":"#ffffff","ink":"#00c200"},"outline":"#17313b",
         "strokeWidth":if tile == "spectre" { 1 } else { 2 },
-        "paths":[],"lines":[],"circles":[],"circularPaths":[],"layerOrder":[]
+        "polygons":[],"paths":[],"lines":[],"circles":[],"circularPaths":[],"layerOrder":[]
     });
     if tile == "spectre" {
         design["tileShape"] = json!({"roundness":0.18,"weight":0.5,"lean":1});
@@ -135,6 +136,11 @@ pub fn element_material_color(design: &Value, element: &Value) -> Value {
 pub fn tile_base_color<'a>(design: &'a Value, tile_type: Option<&str>) -> &'a str {
     tile_type
         .and_then(|tile_type| design.get("tileColors")?.get(tile_type)?.as_str())
+        .or_else(|| {
+            tile_type
+                .filter(|tile_type| tile_type.starts_with("pentagon-"))
+                .and_then(|_| design.get("tileColors")?.get("pentagon")?.as_str())
+        })
         .or_else(|| design.pointer("/colors/base").and_then(Value::as_str))
         .unwrap_or("#ffffff")
 }
@@ -216,11 +222,19 @@ pub fn validate_design(input: &Value) -> Result<Value, String> {
         .get("tile")
         .and_then(Value::as_str)
         .unwrap_or_default();
+    let p1_rhomb_overlay = tile == "penrose"
+        && input.get("tileMode").and_then(Value::as_str) == Some("p1")
+        && input
+            .get("penroseOverlay")
+            .and_then(|overlay| overlay.get("enabled"))
+            .and_then(Value::as_bool)
+            == Some(true);
     if !["einstein-hat", "spectre", "penrose"].contains(&tile)
         || !input.get("paths").is_some_and(Value::is_array)
-        || KINDS
-            .into_iter()
-            .all(|(_, collection)| array(input, collection).is_empty())
+        || (!p1_rhomb_overlay
+            && KINDS
+                .into_iter()
+                .all(|(_, collection)| array(input, collection).is_empty()))
     {
         return fail("The design must contain supported tile material geometry.");
     }
@@ -240,6 +254,32 @@ pub fn validate_design(input: &Value) -> Result<Value, String> {
             .unwrap_or_default();
         if !["kite-dart", "rhombs", "p1"].contains(&mode) {
             return fail("Penrose designs need a supported tile combination.");
+        }
+    }
+    if let Some(overlay) = input.get("penroseOverlay") {
+        if tile != "penrose"
+            || input.get("tileMode").and_then(Value::as_str) != Some("p1")
+            || !overlay.is_object()
+            || overlay.get("type").and_then(Value::as_str) != Some("rhombs")
+        {
+            return fail("Penrose overlays must be a P1 rhomb overlay.");
+        }
+        for key in ["thinColor", "thickColor", "edgeColor"] {
+            if !non_empty_string(overlay.get(key)) {
+                return fail("Penrose overlay colors must be non-empty color values.");
+            }
+        }
+        for key in ["edgeWidth", "scale", "rotation", "offsetX", "offsetY"] {
+            if finite_number(overlay.get(key)).is_none() {
+                return fail("Penrose overlay geometry must use finite numeric values.");
+            }
+        }
+        if finite_number(overlay.get("edgeWidth"))
+            .is_none_or(|value| !(0.0..=20.0).contains(&value))
+            || finite_number(overlay.get("scale"))
+                .is_none_or(|value| !(0.125..=8.0).contains(&value))
+        {
+            return fail("Penrose overlay width or scale is outside its supported range.");
         }
     }
     if let Some(tile_colors) = input.get("tileColors") {
@@ -264,6 +304,26 @@ pub fn validate_design(input: &Value) -> Result<Value, String> {
     }
     if input.get("outline").is_some() && !non_empty_string(input.get("outline")) {
         return fail("Pattern outline colors must be non-empty color values.");
+    }
+
+    for polygon in array(input, "polygons") {
+        let points = array(polygon, "points");
+        if points.len() < 3 {
+            return fail("Every polygon must contain at least three points.");
+        }
+        if points.iter().any(|point| !point_is_finite(point)) {
+            return fail("Polygon points must use finite lattice coordinates.");
+        }
+        validate_color(polygon, "Polygon colors must be non-empty color values.")?;
+        if polygon.get("strokeColor").is_some() && !non_empty_string(polygon.get("strokeColor")) {
+            return fail("Polygon outline colors must be non-empty color values.");
+        }
+        if polygon.get("width").is_some()
+            && finite_number(polygon.get("width")).is_none_or(|width| width < 0.0)
+        {
+            return fail("Polygon outline widths must be zero or positive.");
+        }
+        validate_scope(polygon)?;
     }
 
     for path in array(input, "paths") {
@@ -586,5 +646,24 @@ mod tests {
             common_tile_base_color(&unified, json!(["dart", "kite"]).as_array().unwrap()),
             Some("#123456")
         );
+    }
+
+    #[test]
+    fn enabled_p1_rhomb_overlay_is_valid_without_tile_local_elements() {
+        let mut design = create_empty_design("penrose");
+        design["tileMode"] = json!("p1");
+        design["penroseOverlay"] = json!({
+            "enabled": true,
+            "type": "rhombs",
+            "thinColor": "#204a87",
+            "thickColor": "#555753",
+            "edgeColor": "#edd400",
+            "edgeWidth": 1,
+            "scale": 5.0_f64.sqrt(),
+            "rotation": 0,
+            "offsetX": 0,
+            "offsetY": 0
+        });
+        assert!(validate_design(&design).is_ok());
     }
 }

@@ -108,24 +108,45 @@ export function coerceStudioPattern(payload, tile = "einstein-hat") {
     const tileName = tile === "spectre" ? "Spectre" : tile === "penrose" ? "Penrose" : "Einstein";
     throw new ApiError(`'studio_pattern' must be a version 1 ${tileName} material design.`);
   }
+  const polygons = Array.isArray(pattern.polygons) ? pattern.polygons : [];
   const paths = Array.isArray(pattern.paths) ? pattern.paths : [];
   const lines = Array.isArray(pattern.lines) ? pattern.lines : [];
   const circles = Array.isArray(pattern.circles) ? pattern.circles : [];
   const circularPaths = Array.isArray(pattern.circularPaths) ? pattern.circularPaths : [];
+  const overlay = pattern.penroseOverlay;
+  const hasP1RhombOverlay = tile === "penrose" && pattern.tileMode === "p1" && overlay?.enabled === true;
   if (pattern.strokeWidth !== undefined && (!Number.isFinite(Number(pattern.strokeWidth)) || Number(pattern.strokeWidth) < 0 || Number(pattern.strokeWidth) > 20)) {
     throw new ApiError("'studio_pattern.strokeWidth' must be between 0 and 20.");
   }
   if (pattern.outline !== undefined && (typeof pattern.outline !== "string" || !pattern.outline.trim())) {
     throw new ApiError("'studio_pattern.outline' must be a non-empty color value.");
   }
-  if (!paths.length && !lines.length && !circles.length && !circularPaths.length) {
+  if (!hasP1RhombOverlay && !polygons.length && !paths.length && !lines.length && !circles.length && !circularPaths.length) {
     throw new ApiError("'studio_pattern' must contain at least one material element.");
   }
-  if (paths.length + lines.length + circles.length + circularPaths.length > 100) {
+  if (overlay !== undefined) {
+    if (tile !== "penrose" || pattern.tileMode !== "p1" || !overlay || typeof overlay !== "object" || Array.isArray(overlay) || overlay.type !== "rhombs") {
+      throw new ApiError("'studio_pattern.penroseOverlay' must be a P1 rhomb overlay.");
+    }
+    for (const key of ["thinColor", "thickColor", "edgeColor"]) {
+      if (typeof overlay[key] !== "string" || !overlay[key].trim() || overlay[key].length > 200) {
+        throw new ApiError(`'studio_pattern.penroseOverlay.${key}' must be a non-empty color value.`);
+      }
+    }
+    for (const key of ["edgeWidth", "scale", "rotation", "offsetX", "offsetY"]) {
+      if (!Number.isFinite(Number(overlay[key]))) {
+        throw new ApiError(`'studio_pattern.penroseOverlay.${key}' must be finite.`);
+      }
+    }
+    if (Number(overlay.edgeWidth) < 0 || Number(overlay.edgeWidth) > 20 || Number(overlay.scale) < 0.125 || Number(overlay.scale) > 8) {
+      throw new ApiError("'studio_pattern.penroseOverlay' width or scale is outside its supported range.");
+    }
+  }
+  if (polygons.length + paths.length + lines.length + circles.length + circularPaths.length > 100) {
     throw new ApiError("'studio_pattern' contains too many material elements.");
   }
   const elementKeys = new Set();
-  for (const [kind, items] of [["path", paths], ["line", lines], ["circle", circles], ["circularPath", circularPaths]]) {
+  for (const [kind, items] of [["polygon", polygons], ["path", paths], ["line", lines], ["circle", circles], ["circularPath", circularPaths]]) {
     for (const item of items) {
       if (typeof item.id !== "string" || !item.id.trim() || item.id.length > 200 || elementKeys.has(`${kind}:${item.id}`)) {
         throw new ApiError("'studio_pattern' elements must have unique string identifiers.");
@@ -150,6 +171,17 @@ export function coerceStudioPattern(payload, tile = "einstein-hat") {
     }
   }
   const finitePoint = (point) => point && Number.isFinite(Number(point.u)) && Number.isFinite(Number(point.v));
+  for (const polygon of polygons) {
+    if (!Array.isArray(polygon.points) || polygon.points.length < 3 || polygon.points.length > 100 || !polygon.points.every(finitePoint)) {
+      throw new ApiError("'studio_pattern' contains an invalid polygon.");
+    }
+    if (polygon.strokeColor !== undefined && (typeof polygon.strokeColor !== "string" || !polygon.strokeColor.trim() || polygon.strokeColor.length > 200)) {
+      throw new ApiError("'studio_pattern' polygon outline colors must be non-empty color values.");
+    }
+    if (polygon.width !== undefined && (!Number.isFinite(Number(polygon.width)) || Number(polygon.width) < 0 || Number(polygon.width) > 20)) {
+      throw new ApiError("'studio_pattern' polygon widths must be between 0 and 20.");
+    }
+  }
   for (const pathItem of paths) {
     if (!Array.isArray(pathItem.points) || pathItem.points.length < 4 || pathItem.points.length > 100 || (pathItem.points.length - 1) % 3 !== 0 || !pathItem.points.every(finitePoint)) {
       throw new ApiError("'studio_pattern' contains an invalid Bézier path.");

@@ -128,6 +128,13 @@ impl Renderer for PenroseRenderer {
         });
         let material = (config.material_mode == PenroseMaterialMode::Pattern)
             .then(|| config.studio_pattern.as_ref().unwrap_or(&built_in_pattern));
+        let p1_overlay = (config.tile_mode == PenroseTileMode::P1)
+            .then(|| material.and_then(p1_rhomb_overlay))
+            .flatten();
+        let has_tile_local_material = material.is_some_and(studio_pattern_has_elements);
+        if let Some(overlay) = p1_overlay.as_ref() {
+            push_p1_rhomb_overlay(&mut scene, config, overlay, &tiles);
+        }
         let mut boundaries = BTreeMap::new();
 
         for tile in tiles {
@@ -147,23 +154,209 @@ impl Renderer for PenroseRenderer {
                 let (x, y) = svg_point(point, config);
                 ScenePoint::new(x, y)
             });
-            let fill = material
-                .map(|pattern| tile_base_color(pattern, Some(tile.tile_type)))
-                .unwrap_or(&palette[tile.fill_index]);
-            push_tile(
-                &mut scene,
-                points,
-                fill,
-                config,
-                material,
-                tile.fill_index,
-                tile.tile_type,
-                material_basis,
-            );
+            let fill = if p1_overlay.is_some() {
+                "transparent"
+            } else {
+                material
+                    .map(|pattern| tile_base_color(pattern, Some(tile.tile_type)))
+                    .unwrap_or(&palette[tile.fill_index])
+            };
+            if p1_overlay.is_none() || has_tile_local_material {
+                push_tile(
+                    &mut scene,
+                    points,
+                    fill,
+                    config,
+                    material,
+                    tile.fill_index,
+                    tile.tile_type,
+                    material_basis,
+                );
+            }
         }
         push_unique_boundaries(&mut scene, boundaries, config);
         Ok(scene)
     }
+}
+
+fn studio_pattern_has_elements(pattern: &Value) -> bool {
+    ["polygons", "paths", "lines", "circles", "circularPaths"]
+        .into_iter()
+        .any(|key| {
+            pattern
+                .get(key)
+                .and_then(Value::as_array)
+                .is_some_and(|items| !items.is_empty())
+        })
+}
+
+#[derive(Clone, Debug)]
+struct P1RhombOverlay {
+    thin_color: String,
+    thick_color: String,
+    edge_color: String,
+    edge_width: f64,
+    scale: f64,
+    rotation: f64,
+    offset_x: f64,
+    offset_y: f64,
+}
+
+fn p1_rhomb_overlay(pattern: &Value) -> Option<P1RhombOverlay> {
+    let overlay = pattern.get("penroseOverlay")?;
+    if overlay.get("enabled").and_then(Value::as_bool) != Some(true)
+        || overlay.get("type").and_then(Value::as_str) != Some("rhombs")
+    {
+        return None;
+    }
+    let string = |key: &str, fallback: &str| {
+        overlay
+            .get(key)
+            .and_then(Value::as_str)
+            .unwrap_or(fallback)
+            .to_owned()
+    };
+    let number = |key: &str, fallback: f64| {
+        overlay
+            .get(key)
+            .and_then(Value::as_f64)
+            .filter(|value| value.is_finite())
+            .unwrap_or(fallback)
+    };
+    Some(P1RhombOverlay {
+        thin_color: string("thinColor", "#204a87"),
+        thick_color: string("thickColor", "#555753"),
+        edge_color: string("edgeColor", "#edd400"),
+        edge_width: number("edgeWidth", 1.0).max(0.0),
+        scale: number("scale", 5.0_f64.sqrt()).max(0.125),
+        rotation: number("rotation", 0.0),
+        offset_x: number("offsetX", 0.0),
+        offset_y: number("offsetY", 0.0),
+    })
+}
+
+fn push_p1_rhomb_overlay(
+    scene: &mut Scene,
+    config: &PenroseSvgConfig,
+    overlay: &P1RhombOverlay,
+    p1_tiles: &[RenderTile],
+) {
+    let radians = overlay.rotation.to_radians();
+    let (sin, cos) = radians.sin_cos();
+    let transform_point = |point: Vec2| {
+        Vec2::new(
+            overlay.scale * (cos * point.x - sin * point.y) + overlay.offset_x,
+            overlay.scale * (sin * point.x + cos * point.y) + overlay.offset_y,
+        )
+    };
+    let mut boundaries = BTreeMap::new();
+    let mut overlay_polygons = Vec::new();
+    for tile in rhombs_logic::render_tiles(config.seed, config.iterations.saturating_add(2).min(8))
+    {
+        let transformed = RenderTile {
+            points: tile.points.into_iter().map(transform_point).collect(),
+            material_basis: tile.material_basis.map(transform_point),
+            ..tile
+        };
+        if !tile_visible(&transformed, config) {
+            continue;
+        }
+        let points = transformed
+            .points
+            .iter()
+            .map(|point| {
+                let (x, y) = svg_point(*point, config);
+                ScenePoint::new(x, y)
+            })
+            .collect::<Vec<_>>();
+        collect_unique_boundaries(&mut boundaries, &points);
+        let fill = if transformed.tile_type == "thin-rhomb" {
+            &overlay.thin_color
+        } else {
+            &overlay.thick_color
+        };
+        overlay_polygons.push((points, fill.to_owned()));
+    }
+
+    for (index, tile) in p1_tiles
+        .iter()
+        .filter(|tile| tile_visible(tile, config))
+        .enumerate()
+    {
+        let clip_points = tile
+            .points
+            .iter()
+            .map(|point| {
+                let (x, y) = svg_point(*point, config);
+                ScenePoint::new(x, y)
+            })
+            .collect::<Vec<_>>();
+        let clip_bounds = point_bounds(&clip_points);
+        let polygons = overlay_polygons
+            .iter()
+            .filter(|(points, _)| bounds_overlap(clip_bounds, point_bounds(points)))
+            .map(|(points, fill)| {
+                let points = points
+                    .iter()
+                    .map(|point| format!("{:.2},{:.2}", point.x, point.y))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                format!(
+                    "<polygon points=\"{points}\" fill=\"{}\" />",
+                    escape_xml(fill),
+                )
+            })
+            .collect::<String>();
+        let local_boundaries = boundaries
+            .iter()
+            .filter(|(_, (start, end))| bounds_overlap(clip_bounds, point_bounds(&[*start, *end])))
+            .map(|(key, edge)| (*key, *edge))
+            .collect();
+        let edges = boundaries_markup(
+            local_boundaries,
+            &overlay.edge_color,
+            overlay.edge_width,
+            "data-penrose-overlay-boundaries=\"true\"",
+        )
+        .unwrap_or_default();
+        let points = clip_points
+            .iter()
+            .map(|point| format!("{:.2},{:.2}", point.x, point.y))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let clip_id = format!("penrose-p1-overlay-tile-{index}");
+        scene.definitions.push(format!(
+            "<clipPath id=\"{clip_id}\"><polygon points=\"{points}\" /></clipPath>"
+        ));
+        scene.push_raw(format!(
+            "<g data-penrose-overlay-tile=\"true\" clip-path=\"url(#{clip_id})\">{polygons}{edges}</g>"
+        ));
+    }
+}
+
+type Bounds = (f64, f64, f64, f64);
+
+fn point_bounds(points: &[ScenePoint]) -> Bounds {
+    points.iter().fold(
+        (
+            f64::INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::NEG_INFINITY,
+        ),
+        |(min_x, min_y, max_x, max_y), point| {
+            (
+                min_x.min(point.x),
+                min_y.min(point.y),
+                max_x.max(point.x),
+                max_y.max(point.y),
+            )
+        },
+    )
+}
+
+fn bounds_overlap(left: Bounds, right: Bounds) -> bool {
+    left.0 <= right.2 && left.2 >= right.0 && left.1 <= right.3 && left.3 >= right.1
 }
 
 type BoundaryKey = ((i64, i64), (i64, i64));
@@ -204,8 +397,36 @@ fn push_unique_boundaries(
     boundaries: BTreeMap<BoundaryKey, (ScenePoint, ScenePoint)>,
     config: &PenroseSvgConfig,
 ) {
-    if config.stroke_width <= 0.0 || boundaries.is_empty() {
+    push_boundaries(
+        scene,
+        boundaries,
+        &config.outline,
+        config.stroke_width,
+        "data-penrose-boundaries=\"true\"",
+    );
+}
+
+fn push_boundaries(
+    scene: &mut Scene,
+    boundaries: BTreeMap<BoundaryKey, (ScenePoint, ScenePoint)>,
+    color: &str,
+    width: f64,
+    marker: &str,
+) {
+    let Some(markup) = boundaries_markup(boundaries, color, width, marker) else {
         return;
+    };
+    scene.push_raw(markup);
+}
+
+fn boundaries_markup(
+    boundaries: BTreeMap<BoundaryKey, (ScenePoint, ScenePoint)>,
+    color: &str,
+    width: f64,
+    marker: &str,
+) -> Option<String> {
+    if width <= 0.0 || boundaries.is_empty() {
+        return None;
     }
     let commands = boundaries
         .into_values()
@@ -217,11 +438,11 @@ fn push_unique_boundaries(
         })
         .collect::<Vec<_>>()
         .join(" ");
-    scene.push_raw(format!(
-        "<path data-penrose-boundaries=\"true\" d=\"{commands}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" />",
-        escape_xml(&config.outline),
-        config.stroke_width,
-    ));
+    Some(format!(
+        "<path {marker} d=\"{commands}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" />",
+        escape_xml(color),
+        width,
+    ))
 }
 
 fn push_tile(

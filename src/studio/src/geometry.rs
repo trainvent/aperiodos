@@ -781,6 +781,23 @@ fn degrees_sin(value: f64) -> f64 {
     value.to_radians().sin()
 }
 
+fn p1_pentagon(offset_x: f64, offset_y: f64) -> Vec<Point> {
+    translate(
+        vec![
+            point(0.0, 0.0),
+            point(degrees_cos(108.0), degrees_sin(108.0)),
+            point(
+                1.0 + degrees_cos(72.0) + degrees_cos(144.0),
+                degrees_sin(72.0) + degrees_sin(144.0),
+            ),
+            point(1.0 + degrees_cos(72.0), degrees_sin(72.0)),
+            point(1.0, 0.0),
+        ],
+        offset_x,
+        offset_y,
+    )
+}
+
 pub(crate) fn shapes_for_family(family: &str) -> Result<Vec<Shape>, GeometryError> {
     let simple = |name, tile_type, points| Shape {
         name,
@@ -857,24 +874,9 @@ pub(crate) fn shapes_for_family(family: &str) -> Result<Vec<Shape>, GeometryErro
             ),
         ],
         "penrose-p1" => vec![
-            simple(
-                "Pentagon",
-                "pentagon",
-                translate(
-                    vec![
-                        point(0.0, 0.0),
-                        point(degrees_cos(108.0), degrees_sin(108.0)),
-                        point(
-                            1.0 + degrees_cos(72.0) + degrees_cos(144.0),
-                            degrees_sin(72.0) + degrees_sin(144.0),
-                        ),
-                        point(1.0 + degrees_cos(72.0), degrees_sin(72.0)),
-                        point(1.0, 0.0),
-                    ],
-                    -1.9,
-                    0.9,
-                ),
-            ),
+            simple("Pentagon A", "pentagon-a", p1_pentagon(-1.9, 0.9)),
+            simple("Pentagon B", "pentagon-b", p1_pentagon(-0.6, 0.9)),
+            simple("Pentagon C", "pentagon-c", p1_pentagon(0.7, 0.9)),
             simple(
                 "Star",
                 "star",
@@ -1315,7 +1317,7 @@ mod tests {
             ("spectre", 1),
             ("penrose-kite-dart", 2),
             ("penrose-rhombs", 2),
-            ("penrose-p1", 4),
+            ("penrose-p1", 6),
         ] {
             let adapter = geometry_adapter(family).unwrap();
             assert_eq!(adapter["nativeStudioApiVersion"], 1);

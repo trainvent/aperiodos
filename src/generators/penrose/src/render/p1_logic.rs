@@ -115,7 +115,9 @@ fn execute_word(word: &str, initial_step: f64) -> Vec<RenderTile> {
                     tan_deg(54.0) * cos_deg(36.0) * frame.step,
                 ))
             }
-            'P' | 'Q' | 'R' => draw_pentagon(&mut tiles, frame),
+            'P' => draw_pentagon(&mut tiles, frame, "pentagon-a"),
+            'Q' => draw_pentagon(&mut tiles, frame, "pentagon-b"),
+            'R' => draw_pentagon(&mut tiles, frame, "pentagon-c"),
             'G' => draw_star(&mut tiles, frame),
             'B' => draw_boat(&mut tiles, frame),
             'D' => draw_diamond(&mut tiles, frame),
@@ -126,7 +128,7 @@ fn execute_word(word: &str, initial_step: f64) -> Vec<RenderTile> {
     tiles
 }
 
-fn draw_pentagon(tiles: &mut Vec<RenderTile>, frame: Frame) {
+fn draw_pentagon(tiles: &mut Vec<RenderTile>, frame: Frame, tile_type: &'static str) {
     let transform = frame
         .transform
         .then(Transform::translate(
@@ -142,7 +144,7 @@ fn draw_pentagon(tiles: &mut Vec<RenderTile>, frame: Frame) {
         material_basis: [points[0], points[1], points[2]],
         points,
         fill_index: 0,
-        tile_type: "pentagon",
+        tile_type,
     });
 }
 
@@ -365,6 +367,13 @@ mod tests {
             .map(|tile| tile.fill_index)
             .collect::<std::collections::BTreeSet<_>>();
         assert!(distinct.len() >= 3);
+        let tile_types = tiles
+            .iter()
+            .map(|tile| tile.tile_type)
+            .collect::<std::collections::BTreeSet<_>>();
+        for pentagon in ["pentagon-a", "pentagon-b", "pentagon-c"] {
+            assert!(tile_types.contains(pentagon));
+        }
     }
 
     #[test]

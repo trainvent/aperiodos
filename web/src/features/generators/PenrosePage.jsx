@@ -20,7 +20,6 @@ export default function PenrosePage() {
   const legacyPaletteDefaults = ["wheat", "midnightblue", "sandybrown", "seagreen"];
   const cartwheelPaletteDefaults = ["lightyellow", "lightcoral", "gainsboro", "dodgerblue"];
   const cartwheelLegacyHexDefaults = ["#ffffb3", "#ff6666", "#e6e6e6", "#0080ff"];
-  const paletteFields = penrosePaletteFields(values.tile_mode);
 
   useEffect(() => {
     async function refreshPatterns() {
@@ -45,6 +44,9 @@ export default function PenrosePage() {
     ...compatibleStudioPatterns.map((pattern) => ({ value: studioPatternValue(pattern.id), label: `${pattern.name} · ${t("generator.material.studio")}` })),
   ], [compatibleStudioPatterns, t]);
   const selectedStudioPattern = compatibleStudioPatterns.find((pattern) => pattern.id === studioPatternId(values.pattern_design));
+  const paletteFields = selectedStudioPattern?.penroseOverlay?.enabled
+    ? ["palette_1", "palette_2"]
+    : penrosePaletteFields(values.tile_mode);
   const patternStrokeWidth = selectedStudioPattern?.strokeWidth;
   const patternOutline = selectedStudioPattern?.outline;
   const patternPalette = paletteFromStudioPattern(selectedStudioPattern, values.tile_mode);
