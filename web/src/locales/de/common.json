@@ -4,7 +4,9 @@
 		"studio": "Studio",
 		"codes": "Shop",
 		"sponsors": "Sponsoren",
-		"about": "Über"
+		"about": "Über",
+		"openMenu": "Menü öffnen",
+		"closeMenu": "Menü schließen"
 	},
 	"language": {
 		"label": "Sprache"
@@ -16,6 +18,23 @@
 		"toggle": "Darstellung: {{current}}. Zu {{next}} wechseln"
 	},
 	"studio": {
+		"family": {
+			"editor": "Kachel-Editor",
+			"penroseExperimental": "Penrose (experimentell)",
+			"penrosePattern": "Penrose-Muster"
+		},
+		"tileNames": {
+			"dart": "Pfeil",
+			"kite": "Drachen",
+			"thin-rhomb": "Schmale Raute",
+			"thick-rhomb": "Breite Raute",
+			"pentagon-a": "Fünfeck A",
+			"pentagon-b": "Fünfeck B",
+			"pentagon-c": "Fünfeck C",
+			"star": "Stern",
+			"boat": "Boot",
+			"diamond": "Raute"
+		},
 		"hero": {
 			"pageTitle": "Studio",
 			"eyebrow": "Einstein-Materialdesigner",
@@ -62,7 +81,8 @@
 			"circularPath": "Kreisbogenpfad"
 		},
 		"templates": {
-			"untitled": "Unbenanntes Einstein-Muster"
+			"untitled": "Unbenanntes Einstein-Muster",
+			"untitledFamily": "Unbenanntes {{family}}-Muster"
 		},
 		"controls": {
 			"design": "Werkzeuge",
@@ -185,7 +205,10 @@
 			"flipped": "gespiegelt",
 			"expand": "Transformationsvorschau vergrößern",
 			"collapse": "Transformationsvorschau verkleinern",
-			"help": "Dasselbe kachellokale Material wird auf einen H-Cluster übertragen. M kennzeichnet die gespiegelte Kachel."
+			"help": "Dasselbe kachellokale Material wird auf einen H-Cluster übertragen. M kennzeichnet die gespiegelte Kachel.",
+			"transformedAria": "Vorschau des transformierten {{family}}-Materials",
+			"penroseAlt": "Generierte Penrose-Vorschau der ersten Generation",
+			"penroseLoading": "Erste Generation wird erzeugt…"
 		},
 		"library": {
 			"title": "Designbibliothek",
@@ -209,6 +232,8 @@
 			"import": "JSON importieren"
 		},
 		"status": {
+			"geometryLoading": "Studio-Geometrie wird geladen…",
+			"geometryFailed": "Studio-Geometrie konnte nicht geladen werden.",
 			"saved": "Entwurf wurde in diesem Browser gespeichert.",
 			"elementDeleted": "Element gelöscht. Über Erstellen kannst du ein neues Element hinzufügen.",
 			"emptyDesign": "Füge vor dem Speichern mindestens ein Element hinzu.",

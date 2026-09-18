@@ -59,6 +59,36 @@ const REFERENCES = {
       url: "https://openai.com/",
     },
   ],
+  el: [
+    {
+      label: "Trainvent",
+      url: "https://next.trainvent.com/",
+    },
+    {
+      label: "Το πλακίδιο Hat – υπόβαθρο και ανακάλυψη",
+      url: "https://cs.uwaterloo.ca/~csk/hat/h7h8.html",
+    },
+    {
+      label: "Το πλακίδιο Spectre – υπόβαθρο και αναφορά",
+      url: "https://cs.uwaterloo.ca/~csk/spectre/",
+    },
+    {
+      label: "Δύο αλγόριθμοι για τυχαία δημιουργία απεριοδικών πλακοστρώσεων",
+      url: "https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/aperiodic-tilings/",
+    },
+    {
+      label: "Γεννήτρια πλακιδίων Einstein από τον asmoly",
+      url: "https://github.com/asmoly/Einstein_Tile_Generator",
+    },
+    {
+      label: "Αποδότης Spectre από τον necocen",
+      url: "https://github.com/necocen/spectre",
+    },
+    {
+      label: "OpenAI",
+      url: "https://openai.com/",
+    },
+  ],
 };
 
 const ABOUT_CONTENT_BY_LANGUAGE = {
@@ -86,6 +116,18 @@ const ABOUT_CONTENT_BY_LANGUAGE = {
     notes:
       "All three rendering engines are implemented as crates in a shared Rust workspace. A Next.js application brings the tools together in a shared browser interface.",
   },
+  el: {
+    title: "Σχετικά με το Aperiodos",
+    summary:
+      "Το Aperiodos είναι ένα πειραματικό εργαλείο της Trainvent για την εξερεύνηση απεριοδικών πλακοστρώσεων. Μπορείτε να δημιουργείτε, να προσαρμόζετε και να εξάγετε μοτίβα Einstein, Spectre και Penrose απευθείας στο πρόγραμμα περιήγησης.",
+    references: REFERENCES.el,
+    credits:
+      "Οι γεννήτριες βασίζονται σε δημοσιευμένη μαθηματική έρευνα και δημόσια διαθέσιμα έργα ανοικτού κώδικα. Οι παραπάνω σύνδεσμοι τεκμηριώνουν σημαντικό υλικό αναφοράς και παλαιότερες υλοποιήσεις.",
+    technical_realizations:
+      "Η OpenAI υποστήριξε την ανάπτυξη μέσω της αρχιτεκτονικής λογισμικού, του σχεδιασμού API, της αναδόμησης κώδικα και της ενσωμάτωσης της διεπαφής με τις μηχανές απόδοσης.",
+    notes:
+      "Και οι τρεις μηχανές απόδοσης υλοποιούνται ως crates σε έναν κοινό χώρο εργασίας Rust. Μια εφαρμογή Next.js συγκεντρώνει τα εργαλεία σε μια ενιαία διεπαφή προγράμματος περιήγησης.",
+  },
 };
 
 export const ABOUT_CONTENT = ABOUT_CONTENT_BY_LANGUAGE.en;
@@ -96,8 +138,9 @@ export function getAppVersion(environment = process.env) {
 }
 
 export function getAboutContent(language, environment = process.env) {
+  const resolvedLanguage = ["de", "en", "el"].includes(language) ? language : "de";
   return {
-    ...ABOUT_CONTENT_BY_LANGUAGE[language === "en" ? "en" : "de"],
+    ...ABOUT_CONTENT_BY_LANGUAGE[resolvedLanguage],
     version: getAppVersion(environment),
   };
 }

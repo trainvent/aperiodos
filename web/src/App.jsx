@@ -51,7 +51,7 @@ export default function App() {
           type="button"
           aria-expanded={mobileMenuOpen}
           aria-controls="primary-navigation"
-          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-label={t(mobileMenuOpen ? "nav.closeMenu" : "nav.openMenu")}
           onClick={() => setMobileMenuOpen((open) => !open)}
         >
           <span />

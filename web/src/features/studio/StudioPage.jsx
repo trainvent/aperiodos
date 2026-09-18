@@ -240,11 +240,25 @@ function materialMatchesTile(item, tileType) {
     || (item.tileType === "pentagon" && tileType?.startsWith("pentagon-"));
 }
 
+function localizedStudioFamily(t, geometry) {
+  const key = {
+    "penrose-kite-dart": "generator.penrose.tilesP2",
+    "penrose-rhombs": "generator.penrose.tilesP3",
+    "penrose-p1": "generator.penrose.tilesP1",
+  }[geometry.family];
+  return key ? t(key) : geometry.label;
+}
+
+function localizedTileType(t, shape) {
+  return t(`studio.tileNames.${shape.tileType}`, { defaultValue: shape.name });
+}
+
 function exportSvg(design, geometry = geometryAdapterFor(design.tile === "spectre" ? "spectre" : "einstein")) {
   return studioCall("exportSvg", { design, tileType: geometry.activeTileType });
 }
 
 export default function StudioPage() {
+  const { t } = useTranslation("common");
   const [runtimeState, setRuntimeState] = useState("loading");
   useEffect(() => {
     let active = true;
@@ -254,8 +268,8 @@ export default function StudioPage() {
     );
     return () => { active = false; };
   }, []);
-  if (runtimeState === "loading") return <div className="studio-preview-loading">Loading Studio geometry…</div>;
-  if (runtimeState === "failed") return <div className="studio-preview-loading">Studio geometry could not be loaded.</div>;
+  if (runtimeState === "loading") return <div className="studio-preview-loading">{t("studio.status.geometryLoading")}</div>;
+  if (runtimeState === "failed") return <div className="studio-preview-loading">{t("studio.status.geometryFailed")}</div>;
   return <LoadedStudioPage />;
 }
 
@@ -284,7 +298,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     const empty = {
       ...createEmptyDesign(geometry.tile),
       ...(geometry.tileMode ? { tileMode: geometry.tileMode } : {}),
-      name: family === "spectre" ? t("studio.spectre.untitled") : geometry.tile === "penrose" ? `Untitled ${familyGeometry.label} pattern` : t("studio.templates.untitled"),
+      name: family === "spectre" ? t("studio.spectre.untitled") : geometry.tile === "penrose" ? t("studio.templates.untitledFamily", { family: localizedStudioFamily(t, familyGeometry) }) : t("studio.templates.untitled"),
     };
     if (geometry.tile === "penrose") {
       empty.tileColors = Object.fromEntries(
@@ -372,7 +386,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
   const familyDesigns = savedDesigns.filter((item) => item.tile === geometry.tile && (geometry.tile !== "penrose" || item.tileMode === geometry.tileMode));
   const selectedExportDesign = familyDesigns.find((item) => item.id === selectedExportId) || null;
   const penroseTileTypes = familyGeometry.editorShapes?.map((shape) => shape.tileType) || [];
-  const activeTileName = familyGeometry.editorShapes?.find((shape) => shape.tileType === activePenroseTileType)?.name || activePenroseTileType;
+  const activeTileShape = familyGeometry.editorShapes?.find((shape) => shape.tileType === activePenroseTileType);
+  const activeTileName = activeTileShape ? localizedTileType(t, activeTileShape) : activePenroseTileType;
   const activeTileBaseColor = geometry.tile === "penrose"
     ? tileBaseColor(design, activePenroseTileType)
     : design.colors.base;
@@ -1036,7 +1051,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
         if (tileType !== "all") setActivePenroseTileType(tileType);
       }}>
         <option value="all">{t("studio.controls.allPenroseTiles")}</option>
-        {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name}</option>)}
+        {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{localizedTileType(t, shape)}</option>)}
       </InspectorSelectField>
     );
   }
@@ -1204,7 +1219,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             {geometry.tile === "penrose" ? <label className="studio-navigator-tile-selector">
               <span>{t("studio.toolbar.tileType")}</span>
               <select value={activePenroseTileType} onChange={(event) => selectPenroseTileType(event.target.value)}>
-                {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{shape.name} · {penroseTileLayerCounts[shape.tileType] || 0}</option>)}
+                {familyGeometry.editorShapes.map((shape) => <option key={shape.tileType} value={shape.tileType}>{localizedTileType(t, shape)} · {penroseTileLayerCounts[shape.tileType] || 0}</option>)}
               </select>
             </label> : null}
             <button type="button" className={`studio-tree-root${!selectedPolygon && !selectedPath && !selectedLine && !selectedCircle && !selectedCircularPath ? " active" : ""}`} onClick={clearSelection}><strong>{t("studio.controls.outlineGroup")}</strong></button>
@@ -1482,13 +1497,14 @@ function TileShape({ design, geometry, mapper, ...props }) {
 }
 
 function ClusterPreview({ design, geometry }) {
+  const { t } = useTranslation("common");
   if (geometry.tile === "penrose") return <GeneratedPenrosePreview design={design} geometry={geometry} />;
 
   const transforms = geometry.previewTransforms;
   const fittedMappers = geometry.previewTransforms ? fittedClusterMappers(transforms, geometry) : null;
   const previewDesign = geometry.previewDesign ? geometry.previewDesign(design) : design;
   return (
-    <svg className="studio-cluster-preview" viewBox={`${H_CLUSTER_VIEWBOX.x} ${H_CLUSTER_VIEWBOX.y} ${H_CLUSTER_VIEWBOX.width} ${H_CLUSTER_VIEWBOX.height}`} aria-label={`Transformed ${geometry.label} material preview`}>
+    <svg className="studio-cluster-preview" viewBox={`${H_CLUSTER_VIEWBOX.x} ${H_CLUSTER_VIEWBOX.y} ${H_CLUSTER_VIEWBOX.width} ${H_CLUSTER_VIEWBOX.height}`} aria-label={t("studio.preview.transformedAria", { family: localizedStudioFamily(t, geometry) })}>
       <rect {...H_CLUSTER_VIEWBOX} fill="#fffdf8" />
       <defs>
         {transforms.map((transform, index) => <clipPath id={`cluster-clip-${index}`} key={index}><TileShape design={previewDesign} geometry={geometry} mapper={fittedMappers?.[index] || clusterMapper(transform)} /></clipPath>)}
@@ -1513,6 +1529,7 @@ function ClusterPreview({ design, geometry }) {
 }
 
 function GeneratedPenrosePreview({ design, geometry }) {
+  const { t } = useTranslation("common");
   const [previewUrl, setPreviewUrl] = useState("");
 
   useEffect(() => {
@@ -1553,8 +1570,8 @@ function GeneratedPenrosePreview({ design, geometry }) {
   }, [design, geometry.tileMode]);
 
   return previewUrl
-    ? <img className="studio-cluster-preview studio-generated-penrose-preview" src={previewUrl} alt="Generated first-generation Penrose preview" />
-    : <div className="studio-generated-penrose-preview studio-preview-loading">Generating first generation…</div>;
+    ? <img className="studio-cluster-preview studio-generated-penrose-preview" src={previewUrl} alt={t("studio.preview.penroseAlt")} />
+    : <div className="studio-generated-penrose-preview studio-preview-loading">{t("studio.preview.penroseLoading")}</div>;
 }
 
 function MiniTileDesign({ design, geometry, clipId, transform }) {

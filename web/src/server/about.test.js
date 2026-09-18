@@ -12,3 +12,9 @@ test("About content has a local development version fallback", () => {
   assert.equal(getAppVersion({}), "development");
   assert.equal(getAppVersion({ APP_VERSION: "  " }), "development");
 });
+
+test("About content is available in every supported language", () => {
+  assert.match(getAboutContent("de").summary, /Aperiodos ist/);
+  assert.match(getAboutContent("en").summary, /Aperiodos is/);
+  assert.match(getAboutContent("el").summary, /Το Aperiodos είναι/);
+});

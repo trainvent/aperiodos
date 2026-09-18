@@ -4,7 +4,9 @@
 		"studio": "Studio",
 		"codes": "Shop",
 		"sponsors": "Sponsors",
-		"about": "About"
+		"about": "About",
+		"openMenu": "Open menu",
+		"closeMenu": "Close menu"
 	},
 	"language": {
 		"label": "Language"
@@ -16,6 +18,23 @@
 		"toggle": "Theme: {{current}}. Switch to {{next}}"
 	},
 	"studio": {
+		"family": {
+			"editor": "Tile editor",
+			"penroseExperimental": "Penrose (experimental)",
+			"penrosePattern": "Penrose pattern"
+		},
+		"tileNames": {
+			"dart": "Dart",
+			"kite": "Kite",
+			"thin-rhomb": "Thin rhomb",
+			"thick-rhomb": "Thick rhomb",
+			"pentagon-a": "Pentagon A",
+			"pentagon-b": "Pentagon B",
+			"pentagon-c": "Pentagon C",
+			"star": "Star",
+			"boat": "Boat",
+			"diamond": "Diamond"
+		},
 		"hero": {
 			"pageTitle": "Studio",
 			"eyebrow": "Einstein material designer",
@@ -62,7 +81,8 @@
 			"circularPath": "Circular path"
 		},
 		"templates": {
-			"untitled": "Untitled Einstein pattern"
+			"untitled": "Untitled Einstein pattern",
+			"untitledFamily": "Untitled {{family}} pattern"
 		},
 		"controls": {
 			"design": "Tools",
@@ -185,7 +205,10 @@
 			"flipped": "flipped",
 			"expand": "Expand transformation preview",
 			"collapse": "Collapse transformation preview",
-			"help": "The same tile-local material is transformed onto an H cluster. M marks the reflected tile."
+			"help": "The same tile-local material is transformed onto an H cluster. M marks the reflected tile.",
+			"transformedAria": "Transformed {{family}} material preview",
+			"penroseAlt": "Generated first-generation Penrose preview",
+			"penroseLoading": "Generating first generation…"
 		},
 		"library": {
 			"title": "Design library",
@@ -209,6 +232,8 @@
 			"import": "Import JSON"
 		},
 		"status": {
+			"geometryLoading": "Loading Studio geometry…",
+			"geometryFailed": "Studio geometry could not be loaded.",
 			"saved": "Design saved in this browser.",
 			"elementDeleted": "Element deleted. You can add a new element from the Create ribbon.",
 			"emptyDesign": "Add at least one element before saving this design.",
