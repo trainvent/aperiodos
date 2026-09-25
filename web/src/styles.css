@@ -2040,6 +2040,12 @@ html[data-theme="dark"] .panel.studio-surface {
   border-radius: 4px;
 }
 
+html[data-theme="dark"] .studio-transform-widget,
+html[data-theme="dark"] .studio-transform-toggle {
+  border-color: var(--line);
+  background: var(--surface-solid);
+}
+
 .studio-transform-widget .studio-flip-key {
   margin-top: 5px;
   font-size: 0.58rem;
