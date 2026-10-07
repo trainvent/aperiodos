@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Link from "next/link";
 
-import HintPopup from "../../components/HintPopup";
+import GeneratorWalkthrough from "./GeneratorWalkthrough";
 import { apiUrl } from "../../lib/api";
 import { renderBrowserPreview } from "../../lib/rendererPreview";
 
-const RENDER_HINT_DISMISSED_KEY = "aperiodos.renderHintDismissed";
 
 export default function GeneratorLayout({
   title,
@@ -22,17 +21,19 @@ export default function GeneratorLayout({
 }) {
   const { t } = useTranslation("common");
   const [previewStatus, setPreviewStatus] = useState(() => t("generator.status.localPreviewLoading"));
-  const [previewHint, setPreviewHint] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewRequest, setPreviewRequest] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
   const [downloadFilename, setDownloadFilename] = useState("");
-  const [showRenderHint, setShowRenderHint] = useState(false);
   const [quotaExhausted, setQuotaExhausted] = useState(false);
+  const [showCodePurchase, setShowCodePurchase] = useState(false);
   const [creditCode, setCreditCode] = useState("");
   const [resettingDevQuota, setResettingDevQuota] = useState(false);
+  const settingsRef = useRef(null);
+  const previewButtonRef = useRef(null);
+  const renderButtonRef = useRef(null);
   const lastUrlRef = useRef("");
   const lastDownloadUrlRef = useRef("");
   const renderedBlobRef = useRef(null);
@@ -53,9 +54,7 @@ export default function GeneratorLayout({
   useEffect(() => {
     if (!generator) return undefined;
     settingsVersionRef.current += 1;
-    setShowRenderHint(false);
     setPreviewStatus(lastUrlRef.current ? "" : t("generator.status.localPreviewLoading"));
-    setPreviewHint(lastUrlRef.current ? t("generator.status.localPreviewStale") : "");
     setExportStatus("");
     renderedBlobRef.current = null;
     if (lastDownloadUrlRef.current) {
@@ -81,7 +80,6 @@ export default function GeneratorLayout({
         lastUrlRef.current = nextUrl;
         setPreviewUrl(nextUrl);
         setPreviewStatus("");
-        setShowRenderHint(true);
       } catch {
         // Full server renders remain available if WebAssembly is unsupported.
       }
@@ -93,6 +91,7 @@ export default function GeneratorLayout({
     event.preventDefault();
     const requestPayload = payload();
     setExporting(true);
+    setShowCodePurchase(false);
     setExportStatus(t("generator.status.rendering"));
 
     try {
@@ -113,6 +112,7 @@ export default function GeneratorLayout({
           }
           const limit = Number.parseInt(response.headers.get("X-RateLimit-Limit") || "3", 10);
           setQuotaExhausted(true);
+          setShowCodePurchase(true);
           throw new Error(t("generator.status.dailyLimit", { count: limit }));
         }
         if (response.status === 403 && creditCode.trim()) {
@@ -192,16 +192,15 @@ export default function GeneratorLayout({
 
   return (
     <section className="generator-layout">
+      <GeneratorWalkthrough settingsRef={settingsRef} previewRef={previewButtonRef} renderRef={renderButtonRef} />
         <form id="generator-settings-form" className="panel controls-panel" onSubmit={handleSubmit}>
-          <h2>{t("generator.layout.settings")}</h2>
-          <div className="grid">{controls}</div>
+          <div ref={settingsRef}>
+            <h2>{t("generator.layout.settings")}</h2>
+            <div className="grid">{controls}</div>
+          </div>
           <div className="actions-row">
             <div className="hint-anchor">
-              <HintPopup open={Boolean(previewHint)} onDismiss={() => setPreviewHint("")}>
-                {previewHint}
-              </HintPopup>
-              <button className="button" type="button" onClick={() => {
-                setPreviewHint("");
+              <button ref={previewButtonRef} className="button" type="button" onClick={() => {
                 setPreviewStatus(t("generator.status.localPreviewUpdating"));
                 setPreviewRequest((request) => request + 1);
               }}>
@@ -265,14 +264,8 @@ export default function GeneratorLayout({
                 </>
               ) : (
                 <div className="render-control">
-                  <HintPopup
-                    open={showRenderHint}
-                    onDismiss={() => setShowRenderHint(false)}
-                    storageKey={RENDER_HINT_DISMISSED_KEY}
-                  >
-                    {t("generator.status.renderHint")}
-                  </HintPopup>
                   <button
+                    ref={renderButtonRef}
                     className="button small render-button"
                     type="submit"
                     form="generator-settings-form"
@@ -290,7 +283,14 @@ export default function GeneratorLayout({
               <div className="status">{previewStatus}</div>
             </div>
           ) : null}
-          {exportStatus ? <div className="render-status">{exportStatus}</div> : null}
+          {exportStatus ? (
+            <div className="render-status">
+              {exportStatus}
+              {showCodePurchase ? (
+                <> {" "}<Link href="/generation-codes">{t("generator.credits.buyLink")}</Link></>
+              ) : null}
+            </div>
+          ) : null}
           <div className="preview-box">
             {previewUrl ? (
               previewType(payload()) === "image/svg+xml" ? (

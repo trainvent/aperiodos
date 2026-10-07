@@ -21,6 +21,13 @@ export default function HintPopup({ children, open, onDismiss, storageKey = "" }
 
   useEffect(() => {
     if (!open || dismissed) return undefined;
+    if (storageKey) {
+      try {
+        window.localStorage.setItem(storageKey, "true");
+      } catch {
+        // Dismissal still works when browser storage is unavailable.
+      }
+    }
     const dismiss = () => {
       setDismissed(true);
       if (storageKey) {

@@ -6,6 +6,15 @@ export function SettingsRow({ children }) {
   return <div className="field-pair full">{children}</div>;
 }
 
+function SettingsGroup({ title, children }) {
+  return (
+    <fieldset className="settings-group full">
+      <legend>{title}</legend>
+      <div className="settings-group-fields">{children}</div>
+    </fieldset>
+  );
+}
+
 export default function GeneratorSettingsScaffold({
   values,
   setValues,
@@ -16,6 +25,7 @@ export default function GeneratorSettingsScaffold({
   patternOptions,
   materialCompanion,
   modes,
+  geometryModes,
   palette
 }) {
   const { t } = useTranslation("common");
@@ -27,76 +37,86 @@ export default function GeneratorSettingsScaffold({
 
   return (
     <>
-      <SettingsRow>
-        <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
-        <NumberField values={values} setValues={setValues} name="height" label={t("generator.common.height")} min={64} max={6000} />
-      </SettingsRow>
-      {parameters}
-      {centerStep ? (
+      <SettingsGroup title={t("generator.groups.sizes")}>
         <SettingsRow>
-          <NumberField values={values} setValues={setValues} name="center_x" label={t("generator.common.centerX")} step={centerStep} />
-          <NumberField values={values} setValues={setValues} name="center_y" label={t("generator.common.centerY")} step={centerStep} />
+          <NumberField values={values} setValues={setValues} name="width" label={t("generator.common.width")} min={64} max={6000} />
+          <NumberField values={values} setValues={setValues} name="height" label={t("generator.common.height")} min={64} max={6000} />
         </SettingsRow>
-      ) : null}
-      <SettingsRow>
+      </SettingsGroup>
+      <SettingsGroup title={t("generator.groups.pattern")}>
+        {geometryModes}
+        {parameters}
+        {centerStep ? (
+          <SettingsRow>
+            <NumberField values={values} setValues={setValues} name="center_x" label={t("generator.common.centerX")} step={centerStep} />
+            <NumberField values={values} setValues={setValues} name="center_y" label={t("generator.common.centerY")} step={centerStep} />
+          </SettingsRow>
+        ) : null}
+      </SettingsGroup>
+      <SettingsGroup title={t("generator.groups.style")}>
+        <SettingsRow>
+          <NumberField
+            values={values}
+            setValues={setValues}
+            name="stroke_width"
+            label={t("generator.common.strokeWidth")}
+            min={0}
+            max={20}
+            step="0.1"
+          />
+        </SettingsRow>
+        {allowMaterial ? (
+          <SettingsRow>
+            <SelectField
+              values={values}
+              setValues={setValues}
+              name="material_mode"
+              label={t("generator.material.label")}
+              options={[
+                { value: "solid", label: t("generator.material.solid") },
+                ...(patternOptions?.length === 0 ? [] : [{ value: "pattern", label: t("generator.material.pattern") }])
+              ]}
+            />
+            {values.material_mode === "pattern" ? (
+              <SelectField
+                values={values}
+                setValues={setValues}
+                name="pattern_design"
+                label={t("generator.material.patternLabel")}
+                options={patternOptions || [{ value: "builtin:curves", label: t("generator.material.curves") }]}
+              />
+            ) : materialCompanion}
+          </SettingsRow>
+        ) : null}
+        {modes}
+        <SettingsRow>
+          <ColorField
+            values={values}
+            setValues={setValues}
+            name="background"
+            label={t("generator.common.background")}
+          />
+          <ColorField
+            values={values}
+            setValues={setValues}
+            name="outline"
+            label={t("generator.common.outline")}
+          />
+        </SettingsRow>
+        <div className="swatches full">
+          {palette}
+        </div>
+      </SettingsGroup>
+      <SettingsGroup title={t("generator.groups.file")}>
         <SelectField
           values={values}
           setValues={setValues}
           name="format"
           label={t("generator.common.format")}
           options={formatOptions}
+          full
         />
-        <NumberField
-          values={values}
-          setValues={setValues}
-          name="stroke_width"
-          label={t("generator.common.strokeWidth")}
-          min={0}
-          max={20}
-          step="0.1"
-        />
-      </SettingsRow>
-      {allowMaterial ? (
-        <SettingsRow>
-          <SelectField
-            values={values}
-            setValues={setValues}
-              name="material_mode"
-            label={t("generator.material.label")}
-            options={[
-              { value: "solid", label: t("generator.material.solid") },
-              { value: "pattern", label: t("generator.material.pattern") }
-            ]}
-          />
-          {values.material_mode === "pattern" ? (
-            <SelectField
-              values={values}
-              setValues={setValues}
-              name="pattern_design"
-              label={t("generator.material.patternLabel")}
-              options={patternOptions || [{ value: "builtin:curves", label: t("generator.material.curves") }]}
-            />
-          ) : materialCompanion}
-        </SettingsRow>
-      ) : null}
-      {modes}
-      <SettingsRow>
-        <ColorField
-          values={values}
-          setValues={setValues}
-          name="background"
-          label={t("generator.common.background")}
-        />
-        <ColorField
-          values={values}
-          setValues={setValues}
-          name="outline"
-          label={t("generator.common.outline")}
-        />
-      </SettingsRow>
-      <div className="swatches full">
-        {palette}
-      </div>
+      </SettingsGroup>
     </>
   );
 }

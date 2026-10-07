@@ -32,7 +32,7 @@ export default function EinsteinPage() {
 
   const patternOptions = useMemo(() => [
     { value: "builtin:curves", label: t("generator.material.curves") },
-    ...studioPatterns.map((pattern) => ({ value: studioPatternValue(pattern.id), label: `${pattern.name} · ${t("generator.material.studio")}` })),
+    ...studioPatterns.map((pattern) => ({ value: studioPatternValue(pattern.id), label: pattern.name })),
   ], [studioPatterns, t]);
   const selectedStudioPattern = studioPatterns.find((pattern) => pattern.id === studioPatternId(values.pattern_design));
   const patternStrokeWidth = selectedStudioPattern?.strokeWidth;

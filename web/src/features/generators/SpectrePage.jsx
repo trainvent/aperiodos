@@ -32,7 +32,7 @@ export default function SpectrePage() {
 
   const patternOptions = useMemo(() => studioPatterns.map((pattern) => ({
     value: studioPatternValue(pattern.id),
-    label: `${pattern.name} · ${t("generator.material.studio")}`,
+    label: pattern.name,
   })), [studioPatterns, t]);
   const selectedStudioPattern = studioPatterns.find((pattern) => pattern.id === studioPatternId(values.pattern_design))
     || (values.material_mode === "pattern" ? studioPatterns[0] : null);

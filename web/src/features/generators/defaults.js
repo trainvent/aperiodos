@@ -62,7 +62,7 @@ export const PENROSE_DEFAULTS = {
   center_y: 0,
   format: "svg",
   material_mode: "solid",
-  pattern_design: "builtin:crosshatch",
+  pattern_design: "",
   build_logic: "default",
   tile_mode: "kite-dart",
   background: "white",

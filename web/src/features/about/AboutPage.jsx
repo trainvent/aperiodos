@@ -50,6 +50,22 @@ export default function AboutPage() {
     ? i18n.resolvedLanguage
     : "de";
   const [content, setContent] = useState(() => createAboutFallback(t));
+  const [clearError, setClearError] = useState(false);
+
+  function clearData() {
+    if (!window.confirm(t("about.clearDataConfirm"))) return;
+    try {
+      for (const storage of [window.localStorage, window.sessionStorage]) {
+        const keys = Object.keys(storage).filter((key) =>
+          key.startsWith("aperiodos-") || key.startsWith("aperiodos.")
+        );
+        keys.forEach((key) => storage.removeItem(key));
+      }
+      window.location.reload();
+    } catch {
+      setClearError(true);
+    }
+  }
 
   useEffect(() => {
     setContent(createAboutFallback(t));
@@ -74,7 +90,13 @@ export default function AboutPage() {
     <section className="about-grid">
         <article className="panel prose-panel about-intro">
           <p>{content.summary}</p>
-          <p className="about-version">{t("about.version", { version: content.version })}</p>
+          <div className="about-data-row">
+            <p className="about-version">{t("about.version", { version: content.version })}</p>
+            <button className="button button-muted small" type="button" onClick={clearData}>
+              {t("about.clearData")}
+            </button>
+          </div>
+          {clearError ? <p role="alert">{t("about.clearDataError")}</p> : null}
         </article>
 
         <article className="panel prose-panel">

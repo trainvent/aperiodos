@@ -375,6 +375,8 @@
 		}
 	},
 	"generator": {
+"walkthrough": {"title": "Kurze Einführung", "settings": {"title": "Einstellungen", "body": "Wähle im Einstellungsbereich dein Kachelmuster, die Größe, Farben und das Dateiformat."}, "preview": {"title": "Vorschau", "body": "Klicke nach Änderungen auf Vorschau, um das Bild im Browser zu aktualisieren. Hier kannst du vor dem Rendern experimentieren."}, "render": {"title": "Rendern", "body": "Wenn dir die Vorschau gefällt, klicke auf Rendern, um eine Datei zum Herunterladen zu erstellen. Dafür wird dein Tageskontingent oder ein Generierungscode verwendet."}, "continue": "Klicken zum Fortfahren", "finish": "Loslegen", "skip": "Einführung überspringen"},
+
 		"material": {
 			"label": "Material",
 			"solid": "Einfarbige Kacheln",
@@ -400,14 +402,14 @@
 			"shareUnavailable": "Das Teilen von Dateien wird von diesem Browser nicht unterstützt. Du kannst die Datei stattdessen herunterladen.",
 			"shareFailed": "Die Datei konnte nicht geteilt werden.",
 			"shared": "Datei geteilt.",
-			"dailyLimit": "Du hast deine {{count}} kostenlosen Generierungen für heute verbraucht. Bitte versuche es morgen erneut.",
+			"dailyLimit": "Du hast deine {{count}} kostenlosen Generierungen für heute verbraucht. Versuche es morgen erneut.",
 			"serviceDailyLimit": "Der Dienst hat sein Generierungslimit für heute erreicht. Bitte versuche es morgen erneut.",
 			"devQuotaResetting": "Lokales Render-Limit wird zurückgesetzt...",
 			"devQuotaReset": "Lokales Render-Limit zurückgesetzt.",
 			"devQuotaResetFailed": "Das lokale Render-Limit konnte nicht zurückgesetzt werden.",
 			"reset": "Einstellungen zurückgesetzt."
 		},
-		"credits": {
+		"credits": {"buyLink": "Codes kaufen",
 			"title": "Mit einem Generierungscode fortfahren",
 			"help": "Füge unten einen unbenutzten Code ein und starte die Generierung erneut.",
 			"label": "Generierungscode",
@@ -426,6 +428,7 @@
 			"download": "Herunterladen",
 			"placeholder": "Das generierte Bild erscheint hier. Beginnen Sie mit den Standard-Einstellungen oder experimentieren Sie mit einer neuen Palette."
 		},
+		"groups": {"sizes": "Größe", "pattern": "Muster & Anordnung", "style": "Stil", "file": "Datei"},
 		"common": {
 			"iterations": "Iterationen",
 			"level": "Stufe",
@@ -479,6 +482,10 @@
 		}
 	},
 	"about": {
+		"clearData": "Daten löschen",
+		"clearDataConfirm": "Gespeicherte Aperiodos-Daten in diesem Browser löschen? Dies entfernt deine gespeicherten Studio-Designs, Sprach- und Darstellungseinstellungen und setzt Hinweise zurück. Dies kann nicht rückgängig gemacht werden.",
+		"clearDataError": "Nicht alle gespeicherten Daten konnten gelöscht werden. Bitte erlaube den Browserspeicher und versuche es erneut.",
+
 		"version": "Version {{version}}",
 		"hero": {
 			"title": "Über Aperiodos",

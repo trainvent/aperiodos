@@ -40,10 +40,19 @@ export default function PenrosePage() {
 
   const compatibleStudioPatterns = studioPatterns.filter((pattern) => !pattern.tileMode || pattern.tileMode === values.tile_mode);
   const patternOptions = useMemo(() => [
-    { value: "builtin:crosshatch", label: t("generator.material.crosshatch") },
-    ...compatibleStudioPatterns.map((pattern) => ({ value: studioPatternValue(pattern.id), label: `${pattern.name} · ${t("generator.material.studio")}` })),
+    ...compatibleStudioPatterns.map((pattern) => ({ value: studioPatternValue(pattern.id), label: pattern.name })),
   ], [compatibleStudioPatterns, t]);
   const selectedStudioPattern = compatibleStudioPatterns.find((pattern) => pattern.id === studioPatternId(values.pattern_design));
+  useEffect(() => {
+    if (values.material_mode !== "pattern") return;
+    if (compatibleStudioPatterns.some((pattern) => pattern.id === studioPatternId(values.pattern_design))) return;
+    setValues((current) => ({
+      ...current,
+      material_mode: compatibleStudioPatterns.length ? "pattern" : "solid",
+      pattern_design: compatibleStudioPatterns.length ? studioPatternValue(compatibleStudioPatterns[0].id) : "",
+    }));
+  }, [values.material_mode, values.pattern_design, compatibleStudioPatterns]);
+
   const paletteFields = selectedStudioPattern?.penroseOverlay?.enabled
     ? ["palette_1", "palette_2"]
     : penrosePaletteFields(values.tile_mode);
@@ -156,7 +165,7 @@ export default function PenrosePage() {
             </SettingsRow>
           }
           centerStep="0.01"
-          modes={
+          geometryModes={
             <SettingsRow>
               <SelectField
                 values={values}
@@ -199,7 +208,7 @@ export default function PenrosePage() {
         center_x: Number(values.center_x),
         center_y: Number(values.center_y),
         format: values.format,
-        material_mode: values.material_mode,
+        material_mode: values.material_mode === "pattern" && selectedStudioPattern ? "pattern" : "solid",
         build_logic: values.build_logic,
         tile_mode: values.tile_mode,
         background: values.background,
