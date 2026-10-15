@@ -54,74 +54,147 @@ pub(super) fn render_tiles(seed: PenroseSeed, iterations: usize) -> Vec<RenderTi
             }
             assembled_tiles(&triangles, PenroseTileMode::KiteDart)
         }
-        // Cartwheel uses pre-expanded canonical states from the reference construction.
-        PenroseSeed::Star => {
-            let effective_iterations = iterations.min(4);
-            let triangles =
-                initial_cartwheel(effective_iterations, PHI.powi(effective_iterations as i32));
-            let mut tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
-            apply_cartwheel_coloring(&mut tiles);
-            tiles
+        PenroseSeed::Star => render_cartwheel(iterations),
+    }
+}
+
+// Reference: Simon Tatham, “Beyond the wall”, Batman appendix:
+// https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/aperiodic-transducers/
+// The reference uses four oriented Robinson half-tiles. Keep their ordering
+// during substitution: the parity rules for the sun are a different convention.
+#[derive(Clone, Copy)]
+struct CartwheelTriangle {
+    kind: char,
+    points: [Vec2; 3],
+    region: usize,
+}
+
+fn cartwheel_seed() -> Vec<CartwheelTriangle> {
+    include_str!("cartwheel_seed_data_0.txt")
+        .lines()
+        .map(|line| {
+            let parts = line.split_ascii_whitespace().collect::<Vec<_>>();
+            CartwheelTriangle {
+                kind: parts[0].chars().next().unwrap(),
+                points: std::array::from_fn(|i| {
+                    Vec2::new(
+                        parts[1 + i * 2].parse().unwrap(),
+                        parts[2 + i * 2].parse().unwrap(),
+                    )
+                }),
+                region: parts[7].parse().unwrap(),
+            }
+        })
+        .collect()
+}
+
+fn subdivide_cartwheel(triangles: &[CartwheelTriangle]) -> Vec<CartwheelTriangle> {
+    let mut result = Vec::with_capacity(triangles.len() * 3);
+    let r = 1.0 / PHI;
+    let q = 1.0 - r;
+    for triangle in triangles {
+        let [a, b, c] = triangle.points;
+        let mut push = |kind, points| {
+            result.push(CartwheelTriangle {
+                kind,
+                points,
+                region: triangle.region,
+            })
+        };
+        match triangle.kind {
+            'A' => {
+                let p = b * q + c * r;
+                let t = a * r + c * q;
+                push('B', [p, t, b]);
+                push('U', [c, t, p]);
+                push('A', [t, a, b]);
+            }
+            'B' => {
+                let p = b * r + c * q;
+                let t = a * q + c * r;
+                push('A', [p, t, a]);
+                push('V', [p, c, t]);
+                push('B', [b, p, a]);
+            }
+            'U' => {
+                let p = a * q + b * r;
+                push('U', [b, c, p]);
+                push('B', [p, c, a]);
+            }
+            'V' => {
+                let p = a * r + b * q;
+                push('V', [c, a, p]);
+                push('A', [c, p, b]);
+            }
+            _ => unreachable!(),
         }
     }
+    result
 }
 
-fn apply_cartwheel_coloring(tiles: &mut [RenderTile]) {
-    for tile in tiles {
-        tile.fill_index = cartwheel_fill_index(&tile.points);
+const CARTWHEEL_CENTER_Y: f64 = 0.190_983_005_625_052_55;
+
+fn render_cartwheel(iterations: usize) -> Vec<RenderTile> {
+    let seed = cartwheel_seed();
+    let mut triangles = seed.clone();
+    for _ in 0..iterations {
+        triangles = subdivide_cartwheel(&triangles);
     }
+    // Every expansion reverses Batman. Restore his orientation and keep the
+    // centre fixed while increasing the patch, with unit tile edges at all depths.
+    let size = PHI.powi(iterations as i32);
+    let orientation = if iterations % 2 == 0 { 1.0 } else { -1.0 };
+    let triangles = triangles
+        .iter()
+        .map(|triangle| {
+            let points = triangle.points.map(|p| {
+                Vec2::new(
+                    p.x * size * orientation,
+                    -(p.y - CARTWHEEL_CENTER_Y) * size * orientation,
+                )
+            });
+            cartwheel_triangle(triangle.kind, points)
+        })
+        .collect::<Vec<_>>();
+    let mut tiles = assembled_tiles(&triangles, PenroseTileMode::KiteDart);
+    for tile in &mut tiles {
+        let centroid = tile
+            .points
+            .iter()
+            .fold(Vec2::new(0.0, 0.0), |sum, p| sum + *p)
+            / tile.points.len() as f64;
+        tile.fill_index = cartwheel_region(centroid, &seed);
+    }
+    tiles
 }
 
-fn cartwheel_fill_index(points: &[Vec2]) -> usize {
-    // Empirically centered on the canonical Batman expansion used by this seed data.
-    const CENTER_X: f64 = 0.0;
-    const CENTER_Y: f64 = 0.190_983_005_625_052_55;
-    const BATMAN_RADIUS: f64 = 0.34;
-    const CARTWHEEL_RING_RADIUS: f64 = 0.76;
-    const SPOKE_START_RADIUS: f64 = 0.60;
-    const SPOKE_HALF_WIDTH: f64 = 0.12;
-    const SPOKE_OFFSET: f64 = PI / 2.0;
-
-    let centroid = polygon_centroid(points);
-    let dx = centroid.x - CENTER_X;
-    let dy = centroid.y - CENTER_Y;
-    let radius = (dx * dx + dy * dy).sqrt();
-
-    if radius <= BATMAN_RADIUS {
-        return 3;
+fn cartwheel_region(point: Vec2, seed: &[CartwheelTriangle]) -> usize {
+    // Exact central half-tile boundaries, rather than circular approximations.
+    let raw = Vec2::new(point.x, CARTWHEEL_CENTER_Y - point.y);
+    if point.x.abs() < 3.0 && point.y.abs() < 3.0 {
+        for triangle in seed {
+            let [a, b, c] = triangle.points;
+            let cross = |u: Vec2, v: Vec2| u.x * v.y - u.y * v.x;
+            let signs = [
+                cross(b - a, raw - a),
+                cross(c - b, raw - b),
+                cross(a - c, raw - c),
+            ];
+            if signs.iter().all(|s| *s >= -1e-8) || signs.iter().all(|s| *s <= 1e-8) {
+                return triangle.region;
+            }
+        }
     }
-    if radius <= CARTWHEEL_RING_RADIUS {
-        return 2;
-    }
-    if radius < SPOKE_START_RADIUS {
-        return 0;
-    }
-
-    let angle = dy.atan2(dx);
-    let spoke_step = PI / 5.0;
-    let nearest_spoke = ((angle - SPOKE_OFFSET) / spoke_step).round() * spoke_step + SPOKE_OFFSET;
-    let delta = wrapped_angle(angle - nearest_spoke).abs();
-
-    if delta <= SPOKE_HALF_WIDTH {
+    // The spokes are constant-width Conway worms along ten rays, not wedges.
+    // Their actual tile boundaries and handedness come from the substitution.
+    let angle = point.y.atan2(point.x);
+    let spoke = (angle / (PI / 5.0)).round() * (PI / 5.0);
+    let perpendicular = (-point.x * spoke.sin() + point.y * spoke.cos()).abs();
+    if perpendicular < 0.5 {
         1
     } else {
         0
     }
-}
-
-fn polygon_centroid(points: &[Vec2]) -> Vec2 {
-    let count = points.len() as f64;
-    if count == 0.0 {
-        return Vec2::new(0.0, 0.0);
-    }
-    points
-        .iter()
-        .fold(Vec2::new(0.0, 0.0), |acc, point| acc + *point)
-        / count
-}
-
-fn wrapped_angle(value: f64) -> f64 {
-    (value + PI).rem_euclid(2.0 * PI) - PI
 }
 
 fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<RenderTile> {
@@ -186,7 +259,10 @@ fn assembled_tiles(triangles: &[Triangle], tile_mode: PenroseTileMode) -> Vec<Re
 fn initial_seed(seed: PenroseSeed, size: f64) -> Vec<Triangle> {
     match seed {
         PenroseSeed::Sun => initial_sun(10, size),
-        PenroseSeed::Star => initial_cartwheel(0, size),
+        PenroseSeed::Star => cartwheel_seed()
+            .iter()
+            .map(|t| cartwheel_triangle(t.kind, t.points.map(|p| p * size)))
+            .collect(),
     }
 }
 
@@ -209,14 +285,7 @@ fn initial_sun(count: usize, size: f64) -> Vec<Triangle> {
     triangles
 }
 
-fn initial_cartwheel(expansion_step: usize, size: f64) -> Vec<Triangle> {
-    cartwheel_seed_data(expansion_step)
-        .lines()
-        .filter(|line| !line.trim().is_empty())
-        .map(|line| parse_cartwheel_triangle(line, size))
-        .collect()
-}
-
+#[cfg(test)]
 fn parse_cartwheel_triangle(line: &str, size: f64) -> Triangle {
     let mut parts = line.split_ascii_whitespace();
     let tile_type = parts
@@ -237,8 +306,12 @@ fn parse_cartwheel_triangle(line: &str, size: f64) -> Triangle {
         Vec2::new(parse_f64(parts.next()), parse_f64(parts.next())),
     ];
 
+    cartwheel_triangle(tile_type, points)
+}
+
+fn cartwheel_triangle(tile_type: char, points: [Vec2; 3]) -> Triangle {
     let (kind, perm, parities) = match tile_type {
-        'A' => (TriangleKind::Acute, [2usize, 0, 1], [false, false, false]),
+        'A' => (TriangleKind::Acute, [2usize, 0, 1], [false, false, true]),
         'B' => (TriangleKind::Acute, [2usize, 0, 1], [false, true, false]),
         'U' => (TriangleKind::Obtuse, [0usize, 1, 2], [false, true, false]),
         'V' => (TriangleKind::Obtuse, [1usize, 0, 2], [false, true, false]),
@@ -255,6 +328,7 @@ fn parse_cartwheel_triangle(line: &str, size: f64) -> Triangle {
     }
 }
 
+#[cfg(test)]
 fn cartwheel_seed_data(expansion_step: usize) -> &'static str {
     match expansion_step {
         0 => include_str!("cartwheel_seed_data_0.txt"),
@@ -524,6 +598,75 @@ mod tests {
             .collect::<Vec<_>>();
         lengths.sort_unstable();
         lengths
+    }
+
+    #[test]
+    fn cartwheel_substitution_matches_all_four_reference_expansions() {
+        let mut triangles = cartwheel_seed();
+        for step in 1..=4 {
+            triangles = subdivide_cartwheel(&triangles);
+            let expected = cartwheel_seed_data(step)
+                .lines()
+                .map(|line| parse_cartwheel_triangle(line, 1.0))
+                .collect::<Vec<_>>();
+            assert_eq!(triangles.len(), expected.len());
+            let signature = |triangle: Triangle| {
+                let mut points = triangle.vertices.map(|vertex| {
+                    (
+                        (vertex.position.x * 1e8).round() as i64,
+                        (vertex.position.y * 1e8).round() as i64,
+                        vertex.parity,
+                    )
+                });
+                points.sort_unstable();
+                (triangle.kind == TriangleKind::Acute, points)
+            };
+            let mut actual = triangles
+                .iter()
+                .map(|t| signature(cartwheel_triangle(t.kind, t.points)))
+                .collect::<Vec<_>>();
+            let mut expected = expected.into_iter().map(signature).collect::<Vec<_>>();
+            actual.sort_unstable();
+            expected.sort_unstable();
+            assert_eq!(actual, expected, "reference expansion {step}");
+        }
+    }
+
+    #[test]
+    fn cartwheel_spokes_keep_constant_width_far_from_the_center() {
+        let seed = cartwheel_seed();
+        for index in 0..10 {
+            let angle = index as f64 * PI / 5.0;
+            let direction = Vec2::new(angle.cos(), angle.sin());
+            let normal = Vec2::new(-angle.sin(), angle.cos());
+            for radius in [5.0, 50.0, 500.0] {
+                assert_eq!(
+                    cartwheel_region(direction * radius + normal * 0.3, &seed),
+                    1
+                );
+                assert_eq!(
+                    cartwheel_region(direction * radius + normal * 0.8, &seed),
+                    0
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn cartwheel_center_is_complete_and_stable_at_every_expansion() {
+        let mut previous_count = 0;
+        for step in 0..=6 {
+            let tiles = render_cartwheel(step);
+            assert!(tiles.len() > previous_count);
+            previous_count = tiles.len();
+            assert_eq!(tiles.iter().filter(|t| t.fill_index == 3).count(), 10);
+            assert_eq!(tiles.iter().filter(|t| t.fill_index == 2).count(), 30);
+            assert!(approx_eq(shortest_boundary_edge(&tiles), 1.0 / PHI));
+            if step == 0 {
+                // All 80 half-tiles must pair, including type A (formerly missing).
+                assert_eq!(tiles.len(), 40);
+            }
+        }
     }
 
     #[test]

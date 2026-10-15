@@ -28,6 +28,7 @@
 			"kite": "Drachen",
 			"thin-rhomb": "Schmale Raute",
 			"thick-rhomb": "Breite Raute",
+			"pentagon": "Fünfeck",
 			"pentagon-a": "Fünfeck A",
 			"pentagon-b": "Fünfeck B",
 			"pentagon-c": "Fünfeck C",
@@ -476,6 +477,10 @@
 			"tilesP2": "P2: Drachen & Pfeile",
 			"tilesP3": "P3: Rauten",
 			"tilesP1": "P1: Sterne",
+			"cartwheelSectors": "Sektoren",
+			"cartwheelSpokes": "Speichen",
+			"cartwheelCenter": "Zentrales Wagenrad",
+			"cartwheelBatman": "Batman",
 			"drawLogic": "Zeichenlogik",
 			"drawLogicDefault": "Standard",
 			"drawLogicCartwheel": "Cartwheel"

@@ -6,7 +6,7 @@ import { apiUrl } from "../../lib/api";
 import { PENROSE_DEFAULTS } from "./defaults";
 import GeneratorLayout from "./GeneratorLayout";
 import GeneratorSettingsScaffold, { SettingsRow } from "./GeneratorSettingsScaffold";
-import { paletteFromStudioPattern, penrosePaletteFields, studioPatternWithPalette } from "./penrosePalette";
+import { paletteFromStudioPattern, penrosePaletteFields, penroseTileTypes, studioPatternWithPalette } from "./penrosePalette";
 import { getPenroseStudioPatterns, STUDIO_LIBRARY_EVENT, studioPatternId, studioPatternValue } from "../studio/patternLibrary";
 
 export default function PenrosePage() {
@@ -18,8 +18,8 @@ export default function PenrosePage() {
   const modeLegacyScales = { "kite-dart": [320], rhombs: [320], p1: [7, 10, 14, 285, 320] };
   const p1PaletteDefaults = ["seagreen", "midnightblue", "sandybrown", "goldenrod"];
   const legacyPaletteDefaults = ["wheat", "midnightblue", "sandybrown", "seagreen"];
-  const cartwheelPaletteDefaults = ["lightyellow", "lightcoral", "gainsboro", "dodgerblue"];
-  const cartwheelLegacyHexDefaults = ["#ffffb3", "#ff6666", "#e6e6e6", "#0080ff"];
+  const cartwheelPaletteDefaults = ["#ffffb3", "#ff6666", "#e6e6e6", "#0080ff"];
+  const cartwheelLegacyColorDefaults = ["lightyellow", "lightcoral", "gainsboro", "dodgerblue"];
 
   useEffect(() => {
     async function refreshPatterns() {
@@ -53,9 +53,12 @@ export default function PenrosePage() {
     }));
   }, [values.material_mode, values.pattern_design, compatibleStudioPatterns]);
 
+  const cartwheelColors = values.tile_mode === "kite-dart" && values.build_logic === "cartwheel" && values.material_mode !== "pattern";
+  const cartwheelColorLabels = ["cartwheelSectors", "cartwheelSpokes", "cartwheelCenter", "cartwheelBatman"];
+  const paletteTileTypes = penroseTileTypes(selectedStudioPattern?.penroseOverlay?.enabled ? "rhombs" : values.tile_mode);
   const paletteFields = selectedStudioPattern?.penroseOverlay?.enabled
     ? ["palette_1", "palette_2"]
-    : penrosePaletteFields(values.tile_mode);
+    : cartwheelColors ? ["palette_1", "palette_2", "palette_3", "palette_4"] : penrosePaletteFields(values.tile_mode);
   const patternStrokeWidth = selectedStudioPattern?.strokeWidth;
   const patternOutline = selectedStudioPattern?.outline;
   const patternPalette = paletteFromStudioPattern(selectedStudioPattern, values.tile_mode);
@@ -122,9 +125,11 @@ export default function PenrosePage() {
       const matchesLegacyDefaults = currentPalette.every((color, index) => color === legacyPaletteDefaults[index]);
       const matchesCartwheelDefaults =
         currentPalette.every((color, index) => color === cartwheelPaletteDefaults[index]) ||
-        currentPalette.every((color, index) => color === cartwheelLegacyHexDefaults[index]);
+        currentPalette.every((color, index) => color === cartwheelLegacyColorDefaults[index]);
 
-      if (current.build_logic === "cartwheel" && matchesLegacyDefaults) {
+      const matchesP1Defaults = currentPalette.every((color, index) => color === p1PaletteDefaults[index]);
+      const matchesLegacyCartwheelColors = currentPalette.every((color, index) => color === cartwheelLegacyColorDefaults[index]);
+      if (current.build_logic === "cartwheel" && (matchesLegacyDefaults || matchesP1Defaults || matchesLegacyCartwheelColors)) {
         return {
           ...current,
           palette_1: cartwheelPaletteDefaults[0],
@@ -194,7 +199,7 @@ export default function PenrosePage() {
           palette={
             <>
               {paletteFields.map((name, index) => (
-                <ColorField key={name} values={values} setValues={setValues} name={name} label={t(`generator.common.color${index + 1}`)} />
+                <ColorField key={name} values={values} setValues={setValues} name={name} label={t(cartwheelColors ? `generator.penrose.${cartwheelColorLabels[index]}` : `studio.tileNames.${paletteTileTypes[index]}`)} />
               ))}
             </>
           }

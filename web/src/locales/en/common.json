@@ -28,6 +28,7 @@
 			"kite": "Kite",
 			"thin-rhomb": "Thin rhomb",
 			"thick-rhomb": "Thick rhomb",
+			"pentagon": "Pentagon",
 			"pentagon-a": "Pentagon A",
 			"pentagon-b": "Pentagon B",
 			"pentagon-c": "Pentagon C",
@@ -476,6 +477,10 @@
 			"tilesP2": "P2: Kite & Dart",
 			"tilesP3": "P3: Rhombs",
 			"tilesP1": "P1: Stars",
+			"cartwheelSectors": "Sectors",
+			"cartwheelSpokes": "Spokes",
+			"cartwheelCenter": "Central cartwheel",
+			"cartwheelBatman": "Batman",
 			"drawLogic": "Drawing Logic",
 			"drawLogicDefault": "Default",
 			"drawLogicCartwheel": "Cartwheel"
