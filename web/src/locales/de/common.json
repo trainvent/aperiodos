@@ -226,7 +226,8 @@
 			"delete": "Löschen"
 		},
 		"actions": {
-			"save": "In Bibliothek speichern",
+			"saveAsNew": "Kopie speichern",
+			"save": "Speichern",
 			"reset": "Zurücksetzen",
 			"exportJson": "JSON exportieren",
 			"exportSvg": "SVG exportieren",
@@ -237,6 +238,7 @@
 			"geometryFailed": "Studio-Geometrie konnte nicht geladen werden.",
 			"saved": "Entwurf wurde in diesem Browser gespeichert.",
 			"elementDeleted": "Element gelöscht. Über Erstellen kannst du ein neues Element hinzufügen.",
+			"duplicateName": "Für diesen Kacheltyp gibt es bereits einen Entwurf mit diesem Namen. Bitte wähle einen anderen Namen.",
 			"emptyDesign": "Füge vor dem Speichern mindestens ein Element hinzu.",
 			"loaded": "Entwurf geladen.",
 			"deleted": "Lokaler Entwurf gelöscht.",

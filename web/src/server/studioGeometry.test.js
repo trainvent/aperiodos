@@ -26,7 +26,7 @@ import {
   validateDesign,
   tileBaseColor,
 } from "../features/studio/einsteinGeometry.js";
-import { getEinsteinStudioPatterns, getPenroseStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns, readStudioLibrary, writeStudioLibrary } from "../features/studio/patternLibrary.js";
+import { createStudioDesignCopy, getStudioLibraryDesigns, hasStudioNameConflict, getEinsteinStudioPatterns, getPenroseStudioPatterns, getPublicStudioDesigns, getSpectreStudioPatterns, readStudioLibrary, writeStudioLibrary } from "../features/studio/patternLibrary.js";
 import { spectreEdgeControl, spectrePath } from "../features/studio/spectreGeometry.js";
 import { cartesianGridLines, geometryAdapterFor, penroseTileEditorGeometry, snapCartesianPoint } from "../features/studio/studioGeometryAdapters.js";
 import { transformedMaterialScale } from "../features/studio/previewGeometry.js";
@@ -747,4 +747,53 @@ test("Studio accepts circular-path-only material designs", () => {
     points: [{ u: 0, v: 0 }, { u: 1, v: 0 }, { u: 1, v: 1 }],
   }];
   assert.equal(validateDesign(design).circularPaths[0].points.length, 3);
+});
+
+
+test("Studio names are unique within a tile family, across local and integrated designs", () => {
+  const existing = { ...createEmptyDesign(), id: "local-one", name: "GreenCurves" };
+  const copy = { ...existing, id: "local-two", name: "  GREENCURVES  " };
+  assert.equal(hasStudioNameConflict(copy, [existing]), true);
+  assert.equal(hasStudioNameConflict(existing, [existing]), false);
+  const integrated = { ...existing, id: "builtin-einstein-greencurves" };
+  assert.equal(hasStudioNameConflict(integrated, [integrated]), true);
+  assert.equal(hasStudioNameConflict(copy, [integrated]), true);
+  assert.equal(hasStudioNameConflict({ ...copy, tile: "spectre" }, [existing]), false);
+  assert.equal(hasStudioNameConflict({ ...copy, tile: "penrose", tileMode: "p1" }, [
+    { ...existing, tile: "penrose", tileMode: "rhombs" },
+  ]), false);
+  let writes = 0;
+  assert.throws(() => writeStudioLibrary([existing, copy], { setItem() { writes++; } }),
+    { code: "DUPLICATE_STUDIO_NAME" });
+  assert.equal(writes, 0);
+});
+
+test("Studio repairs existing local name collisions without losing designs", async () => {
+  const integrated = { ...createEmptyDesign(), id: "builtin-green", name: "GreenCurves", lines: [{ id: "line", width: 1, points: [{ u: 0, v: 0 }, { u: 1, v: 0 }] }] };
+  const first = { ...integrated, id: "local-one" };
+  const second = { ...integrated, id: "local-two", name: "greencurves" };
+  const numbered = { ...integrated, id: "local-three", name: "GreenCurves (2)" };
+  let stored = JSON.stringify([first, second, numbered]);
+  const storage = { getItem: () => stored, setItem: (_, value) => { stored = value; } };
+  const fetcher = async (url) => ({ ok: true, json: async () => url.endsWith("library.json") ? ["/patterns/einstein/green.json"] : integrated });
+  const library = await getStudioLibraryDesigns(storage, fetcher);
+  assert.deepEqual(library.map(({ name }) => name), ["GreenCurves", "GreenCurves (3)", "greencurves (4)", "GreenCurves (2)"]);
+  assert.deepEqual(library.map(({ id }) => id), [integrated.id, first.id, second.id, numbered.id]);
+  assert.equal(JSON.parse(stored).length, 3);
+  assert.deepEqual(await getStudioLibraryDesigns(storage, fetcher), library);
+});
+
+
+test("Save as new keeps the original and copies edits with a fresh unique identity", () => {
+  const original = { ...createEmptyDesign(), id: "original", name: "GreenCurves", createdAt: "2020-01-01T00:00:00.000Z" };
+  const modified = { ...original, outline: "#ff0000" };
+  const copy = createStudioDesignCopy(modified, [original, { ...original, id: "second", name: "GreenCurves (2)" }]);
+  assert.notEqual(copy.id, original.id);
+  assert.equal(copy.name, "GreenCurves (3)");
+  assert.equal(copy.outline, "#ff0000");
+  assert.notEqual(copy.createdAt, original.createdAt);
+  assert.notEqual(original.outline, copy.outline);
+  assert.equal(original.name, "GreenCurves");
+  assert.equal(createStudioDesignCopy({ ...modified, name: "My new design" }, [original]).name, "My new design");
+  assert.equal(createStudioDesignCopy({ ...modified, id: "builtin-green" }, [original]).name, "GreenCurves (2)");
 });

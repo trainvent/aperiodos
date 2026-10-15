@@ -1,31 +1,71 @@
 {
-  "schema": "aperiodos.material-design",
-  "version": 1,
-  "id": "builtin-green-curves",
-  "name": "GreenCurves",
-  "tile": "einstein-hat",
-  "colors": { "base": "#ffffff", "ink": "#00c200" },
-  "outline": "#17313b",
-  "paths": [],
   "circles": [],
   "circularPaths": [
     {
       "id": "green-curves-fine",
       "name": "Circular path 3",
-      "width": 0.7,
+      "points": [
+        {
+          "u": 4,
+          "v": -2
+        },
+        {
+          "u": 0,
+          "v": 0
+        },
+        {
+          "u": -2,
+          "v": 4
+        }
+      ],
       "side": "left",
-      "points": [{ "u": 4, "v": -2 }, { "u": 0, "v": 0 }, { "u": -2, "v": 4 }]
+      "width": 0.7
     },
     {
       "id": "green-curves-bold",
       "name": "Circular path 2",
-      "width": 1.3,
+      "points": [
+        {
+          "u": 4,
+          "v": -2
+        },
+        {
+          "u": 0,
+          "v": 0
+        },
+        {
+          "u": -2,
+          "v": 4
+        }
+      ],
       "side": "left",
-      "points": [{ "u": 4, "v": -2 }, { "u": 0, "v": 0 }, { "u": -2, "v": 4 }]
+      "width": 1.3
     }
   ],
+  "colors": {
+    "base": "#ff0000",
+    "ink": "#00c200"
+  },
+  "createdAt": "2026-10-15T08:12:29.282Z",
+  "id": "builtin-einstein-greencurves",
   "layerOrder": [
-    { "kind": "circularPath", "id": "green-curves-fine" },
-    { "kind": "circularPath", "id": "green-curves-bold" }
-  ]
+    {
+      "id": "green-curves-fine",
+      "kind": "circularPath"
+    },
+    {
+      "id": "green-curves-bold",
+      "kind": "circularPath"
+    }
+  ],
+  "lines": [],
+  "name": "GreenCurves",
+  "outline": "#17313b",
+  "paths": [],
+  "polygons": [],
+  "schema": "aperiodos.material-design",
+  "strokeWidth": 0,
+  "tile": "einstein-hat",
+  "updatedAt": "2026-10-15T08:22:13.025Z",
+  "version": 1
 }

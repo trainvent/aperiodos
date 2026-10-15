@@ -20,7 +20,7 @@ import {
   tileBaseColor,
   validateDesign,
 } from "./einsteinGeometry";
-import { getStudioLibraryDesigns, writeStudioLibrary } from "./patternLibrary";
+import { createStudioDesignCopy, getStudioLibraryDesigns, hasStudioNameConflict, readStudioLibrary, studioDesignNameKey, writeStudioLibrary } from "./patternLibrary";
 import { renderBrowserPreview } from "../../lib/rendererPreview";
 import StudioFamilySwitch from "./StudioFamilySwitch";
 import MaterialLayerShapes from "./MaterialLayerShapes";
@@ -39,6 +39,7 @@ import {
   InspectorToggleField,
 } from "./widgets/InspectorFields";
 import StudioSurface from "./widgets/StudioSurface";
+import StudioColorInput from "./widgets/StudioColorInput";
 import { loadStudioRuntime, studioCall } from "./studioRuntime";
 import { transformedMaterialScale } from "./previewGeometry";
 
@@ -847,24 +848,35 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     setStatus(t("studio.status.elementDeleted"));
   }
 
-  function saveDesign() {
+  async function saveDesign(asNew = false) {
     const hasP1RhombOverlay = design.tile === "penrose" && design.tileMode === "p1" && design.penroseOverlay?.enabled;
     if (!hasP1RhombOverlay && !(design.polygons || []).length && !design.paths.length && !(design.lines || []).length && !(design.circles || []).length && !(design.circularPaths || []).length) {
       setStatus(t("studio.status.emptyDesign"));
       return;
     }
-    const now = new Date().toISOString();
-    const currentId = design.id.startsWith("builtin-") ? null : design.id;
-    const saved = {
-      ...cloneDesign(design),
-      id: currentId || window.crypto?.randomUUID?.() || `design-${Date.now()}`,
-      createdAt: currentId ? design.createdAt : now,
-      updatedAt: now,
-    };
-    const next = [...savedDesigns.filter((item) => !item.id.startsWith("builtin-") && item.id !== saved.id), saved];
-    persistLibrary(next);
-    setDesign(saved);
-    setStatus(t("studio.status.saved"));
+    try {
+      const library = await getStudioLibraryDesigns();
+      setSavedDesigns(library);
+      const candidate = asNew ? createStudioDesignCopy(design, library) : design;
+      if (hasStudioNameConflict(candidate, library)) {
+        setStatus(t("studio.status.duplicateName"));
+        return;
+      }
+      const now = new Date().toISOString();
+      const currentId = candidate.id.startsWith("builtin-") ? null : candidate.id;
+      const saved = {
+        ...cloneDesign(candidate),
+        id: currentId || window.crypto?.randomUUID?.() || `design-${Date.now()}`,
+        createdAt: currentId ? candidate.createdAt : now,
+        updatedAt: now,
+      };
+      const next = [...library.filter((item) => item.id !== saved.id), saved];
+      persistLibrary(next);
+      setDesign(saved);
+      setStatus(t("studio.status.saved"));
+    } catch (error) {
+      setStatus(t(error.code === "DUPLICATE_STUDIO_NAME" ? "studio.status.duplicateName" : "studio.status.libraryFailed"));
+    }
   }
 
   function loadDesign(nextDesign) {
@@ -895,6 +907,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Integration failed.");
+      writeStudioLibrary(readStudioLibrary().filter((candidate) => candidate.id !== item.id));
       setSavedDesigns(await getStudioLibraryDesigns());
       setSelectedExportId(result.design.id);
       setStatus(t("studio.status.integrated"));
@@ -911,9 +924,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
     try {
       const existingLocal = savedDesigns.find((candidate) => (
         !candidate.id.startsWith("builtin-")
-        && candidate.name === item.name
-        && candidate.tile === item.tile
-        && (candidate.tileMode || null) === (item.tileMode || null)
+        && studioDesignNameKey(candidate) === studioDesignNameKey(item)
       ));
       let localId = existingLocal?.id;
       if (!existingLocal) {
@@ -1171,7 +1182,8 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
               <input value={design.name} onChange={(event) => setDesign((current) => ({ ...current, name: event.target.value }))} />
             </label>
             <div className="studio-toolbar-group studio-toolbar-actions">
-              <button type="button" className="primary" onClick={saveDesign}><span>⌘</span>{t("studio.actions.save")}</button>
+              <button type="button" className="primary" onClick={() => saveDesign()}><span>⌘</span>{t("studio.actions.save")}</button>
+              <button type="button" onClick={() => saveDesign(true)}>{t("studio.actions.saveAsNew")}</button>
               <button type="button" onClick={resetDesign}><span>↺</span>{t("studio.actions.reset")}</button>
             </div>
           </div>
@@ -1186,7 +1198,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
             </div>
             <div className="studio-toolbar-group studio-toolbar-settings">
               <span className="studio-toolbar-label">{t("studio.toolbar.appearance")}</span>
-              <label className="studio-toolbar-color" title={t("studio.controls.curveColor")}><span>{t("studio.toolbar.material")}</span><input type="color" value={design.colors.ink} onChange={(event) => setDesign((current) => setDefaultMaterialColor(current, event.target.value))} /></label>
+              <label className="studio-toolbar-color" title={t("studio.controls.curveColor")}><span>{t("studio.toolbar.material")}</span><StudioColorInput value={design.colors.ink} onChange={(color) => setDesign((current) => setDefaultMaterialColor(current, color))} /></label>
               <label className="studio-toolbar-number" title={t("studio.controls.outlineWidth")}>
                 <span>{t("studio.toolbar.strokeWidth")}</span>
                 <input type="number" min="0" max="20" step="0.1" value={outlineWidth.toFixed(1)} onChange={(event) => updateOutlineWidth(Number(event.target.value))} />
@@ -1248,7 +1260,7 @@ function MaterialStudioEditor({ family, onFamilyChange, cachedDesign, onDraftCha
               </>
             ) : (
               <div className="studio-layer-stack">
-                <div className="studio-layer-stack-label"><span>{t("studio.layers.top")}</span><small>{t("studio.layers.orderHelp")}</small></div>
+                <div className="studio-layer-stack-label"><span>{t("studio.layers.top")}</span></div>
                 {[...visibleMaterialLayers].reverse().map(({ kind, id, item }, displayIndex, layers) => {
                   const active = (kind === "path" && id === selectedPathId && !selectedCircle && !selectedCircularPath)
                     || (kind === "polygon" && id === selectedPolygonId)

@@ -1,3 +1,5 @@
+import StudioColorInput from "./StudioColorInput";
+
 function FieldShell({ label, className = "", children }) {
   return (
     <label className={`studio-widget-field${className ? ` ${className}` : ""}`}>
@@ -26,7 +28,7 @@ export function InspectorSelectField({ label, value, onChange, children }) {
 export function InspectorColorField({ label, value, mixed = false, onChange }) {
   return (
     <FieldShell label={label} className={`studio-widget-color${mixed ? " mixed" : ""}`}>
-      <input type="color" aria-label={label} value={value || "#000000"} onChange={(event) => onChange(event.target.value)} />
+      <StudioColorInput aria-label={label} value={value} onChange={onChange} />
     </FieldShell>
   );
 }

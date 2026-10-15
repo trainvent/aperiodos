@@ -226,7 +226,8 @@
 			"delete": "Delete"
 		},
 		"actions": {
-			"save": "Save to library",
+			"saveAsNew": "Save copy",
+			"save": "Save",
 			"reset": "Reset",
 			"exportJson": "Export JSON",
 			"exportSvg": "Export SVG",
@@ -237,6 +238,7 @@
 			"geometryFailed": "Studio geometry could not be loaded.",
 			"saved": "Design saved in this browser.",
 			"elementDeleted": "Element deleted. You can add a new element from the Create ribbon.",
+			"duplicateName": "A design with this name already exists for this tile type. Choose a different name.",
 			"emptyDesign": "Add at least one element before saving this design.",
 			"loaded": "Design loaded.",
 			"deleted": "Local design deleted.",

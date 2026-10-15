@@ -1030,6 +1030,7 @@ html[data-theme="dark"] .panel.studio-surface {
 
 .studio-toolbar-main {
   min-height: 58px;
+  flex-wrap: wrap;
   align-items: center;
   gap: 18px;
   padding: 8px 12px;
@@ -1116,6 +1117,7 @@ html[data-theme="dark"] .panel.studio-surface {
 .studio-family-switch select {
   min-width: 116px;
   height: 34px;
+  font-size: 0.72rem;
 }
 
 .studio-family-switch select + select {

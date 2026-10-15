@@ -1,7 +1,7 @@
 [
-  "/patterns/einstein/greencurves.json",
   "/patterns/spectre/hexagonalization.json",
   "/patterns/penrose/p2-bicircular.json",
   "/patterns/penrose/p3-circular.json",
-  "/patterns/penrose/p1-rhomb-stars.json"
+  "/patterns/penrose/p1-rhomb-stars.json",
+  "/patterns/einstein/greencurves.json"
 ]

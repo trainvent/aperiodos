@@ -10,6 +10,35 @@ export const PUBLIC_STUDIO_PATTERN_ASSETS = [
 ];
 export const PUBLIC_STUDIO_PATTERN_REGISTRY = "/patterns/library.json";
 
+export function studioDesignNameKey(design) {
+  return JSON.stringify([
+    design.tile,
+    design.tile === "penrose" ? design.tileMode || "kite-dart" : null,
+    String(design.name || "").normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase(),
+  ]);
+}
+
+export function hasStudioNameConflict(design, library) {
+  return library.some((item) => studioDesignNameKey(item) === studioDesignNameKey(design)
+    && (item.id !== design.id || String(item.id).startsWith("builtin-")));
+}
+
+export function createStudioDesignCopy(design, library) {
+  const now = new Date().toISOString();
+  const copy = {
+    ...cloneDesign(design),
+    id: globalThis.crypto.randomUUID(),
+    createdAt: now,
+    updatedAt: now,
+  };
+  const baseName = copy.name.trim();
+  let suffix = 2;
+  while (hasStudioNameConflict(copy, library)) {
+    copy.name = `${baseName} (${suffix++})`;
+  }
+  return copy;
+}
+
 export function readStudioLibrary(storage = globalThis.window?.localStorage) {
   if (!storage) return [];
   const parsed = JSON.parse(storage.getItem(STUDIO_LIBRARY_KEY) || "[]");
@@ -18,6 +47,16 @@ export function readStudioLibrary(storage = globalThis.window?.localStorage) {
 }
 
 export function writeStudioLibrary(designs, storage = globalThis.window?.localStorage) {
+  const names = new Set();
+  for (const design of designs) {
+    const key = studioDesignNameKey(design);
+    if (names.has(key)) {
+      const error = new Error("A design with this name already exists for this tile type.");
+      error.code = "DUPLICATE_STUDIO_NAME";
+      throw error;
+    }
+    names.add(key);
+  }
   const validated = designs
     .filter((design) => !String(design.id).startsWith("builtin-"))
     .map((design) => cloneDesign(validateDesign(design)));
@@ -48,7 +87,25 @@ export async function getPublicStudioDesigns(fetcher = globalThis.fetch) {
 }
 
 export async function getStudioLibraryDesigns(storage = globalThis.window?.localStorage, fetcher = globalThis.fetch) {
-  return [...await getPublicStudioDesigns(fetcher), ...readStudioLibrary(storage)];
+  const publicDesigns = await getPublicStudioDesigns(fetcher);
+  const locals = readStudioLibrary(storage);
+  const used = new Set(publicDesigns.map(studioDesignNameKey));
+  const reserved = new Set([...publicDesigns, ...locals].map(studioDesignNameKey));
+  let renamed = false;
+  const uniqueLocals = locals.map((design) => {
+    let next = design;
+    let suffix = 2;
+    if (used.has(studioDesignNameKey(next))) {
+      do {
+        next = { ...design, name: `${design.name.trim()} (${suffix++})` };
+      } while (reserved.has(studioDesignNameKey(next)) || used.has(studioDesignNameKey(next)));
+      renamed = true;
+    }
+    used.add(studioDesignNameKey(next));
+    return next;
+  });
+  if (renamed) writeStudioLibrary([...publicDesigns, ...uniqueLocals], storage);
+  return [...publicDesigns, ...uniqueLocals];
 }
 
 export async function getEinsteinStudioPatterns(storage = globalThis.window?.localStorage, fetcher = globalThis.fetch) {
